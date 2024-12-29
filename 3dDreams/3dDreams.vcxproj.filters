@@ -13,6 +13,9 @@
     <ClCompile Include="app.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="hw_memory.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hw.h">
@@ -25,6 +28,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="fixed_point.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hw_memory.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

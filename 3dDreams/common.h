@@ -23,9 +23,27 @@ typedef int32_t fp;
 #define post(p) assert(p)
 #define inv(p)  assert(p)
 
-#define iff(p, q) assert(p == q)
-#define implies(p, q) assert(!(p) || (q))
+#define iff(p, q) (p) == (q)
+#define implies(p, q) (!(p) || (q))
 
 typedef enum {false, true} bool;
+
+__declspec(align(64))	// Align to cache line.
+typedef struct
+{
+   u32 x, y;
+} co_point;
+
+__declspec(align(64))	// Align to cache line.
+typedef struct
+{
+   f32 x, y;
+} co_f32_point;
+
+__declspec(align(64))	// Align to cache line.
+typedef struct
+{
+   f32 w, h;
+} co_area;
 
 #endif

@@ -1,4 +1,3 @@
-
 #if 0
 #include "../hardware/hardware.h"           /* macros */
 #include "../graphics/graphics.h"           /* G_c_buffer */
@@ -7,30 +6,30 @@
 #endif
 
 #include "hw.h"
+#include "hw_memory.h"
 #include "common.h"
 #include <stdarg.h>                         /* var arg stuff */
 #include <stdio.h>                          /* vsprintf */
 #include <stdlib.h>                         /* exit */
 #include <stdint.h>
 
-typedef struct hw_window
-{
-   u32 w, h;
-} hw_window;
+__declspec(align(64))	// Align to cache line.
+typedef struct { u32 w, h; } hw_window;
 
+__declspec(align(64))	// Align to cache line.
 typedef struct hw_platform
 {
-   void* data;
+   hw_memory_buffer memory;
+   u32 image_pixel_size;
    bool finished;
 } hw_platform;
 
-int main(int argc, char **argv);
+int main(int argc, const char **argv, hw_platform* platform);
 
 #if 0
 
 int HW_screen_x_size;                       /* screen dimensions */
 int HW_screen_y_size;
-int HW_image_size;                          /* number of pixels */
 int HW_pixel_size;                          /* in bytes */
 
 int HW_red_size;                            /* how many bits is there */
@@ -235,62 +234,26 @@ long FAR PASCAL WndProc(HWND hWnd,UINT message,
 
 #endif
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine,int nCmdShow)
-{
-   // TODO: Parse program arguments to the application
-#if 0
-   WNDCLASS w;
-   int n;
-   char *start,*end;                          /* to get parametrs */
-   char *o[32];                               /* to pass parameters */
-
-   HW_cmd_show=nCmdShow;
-   if((HW_instance=hPrevInstance)==NULL)
-   {
-      w.style=CS_HREDRAW|CS_VREDRAW;
-      w.lpfnWndProc=(LPVOID)WndProc;
-      w.cbClsExtra=0;
-      w.cbWndExtra=0;
-      w.hInstance=hInstance;
-      w.hIcon=NULL;
-      w.hCursor=NULL;
-      w.hbrBackground=GetStockObject(WHITE_BRUSH);
-      w.lpszMenuName=NULL;
-      w.lpszClassName="3Dgpl3";
-
-      if(! RegisterClass(&w))
-         return FALSE;
-   }
-
-   n=0;
-   o[n++]="";
-   start=lpszCmdLine;                         /* starting from here */
-   while((end=strchr(start,' '))!=NULL)
-   {
-      if(n>=32) 
-         HW_error("(Hardware) Way too many command line options.\n");
-      if(end!=start) o[n++]=start;              /* ignore empty ones */
-      *end=0;                                   /* end of line */
-      start=end+1;
-   }
-   if(strlen(start)>0) o[n++]=start;          /* the very last one */
-#endif
-
-   return(main(0, NULL));
-}
-
-void HW_window_open(const char *window_title, int width, int height)
+void HW_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height)
 {
 #if 0
    PAINTSTRUCT ps;
+
    int i,remap;
-   COLORREF cr,cr2;                           /* for determining */
-   BYTE r,g,b;                                /* bits for each color */
+   COLORREF cr,cr2;
+   BYTE r,g,b;
 
+   assert(!platform->finished);
 
-   HW_screen_x_size=size_x;                   /* screen size */
-   HW_screen_y_size=size_y;
-   HW_image_size=HW_screen_x_size*HW_screen_y_size;
+   // precondition for allocating the actual memory for the window properties if any
+   //assert(platform->memory.base);
+   //assert(platform->memory.max_size > 0);
+
+   //HW_screen_x_size=size_x;                   /* screen size */
+   //HW_screen_y_size=size_y;
+
+   //HW_image_size=width*height;
+
 
    C_init_clipping(0,0,HW_screen_x_size-1,HW_screen_y_size-1);
    T_init_math();
@@ -378,4 +341,56 @@ void HW_event_loop_start(void (*frame)(void), void (*handler)(int key_code), voi
          //UpdateWindow(HW_wnd);
       }
    }
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
+{
+   hw_platform platform = {0};
+   LPSTR cmd = GetCommandLineA();
+   platform.memory = HW_memory_buffer_create(4ll * 1024 * 1024 * 1024);
+
+   if (!platform.memory.base || platform.memory.max_size != 4ll * 1024 * 1024 * 1024)
+      return -1;
+
+   // TODO: Parse program arguments to the application
+#if 0
+   WNDCLASS w;
+   int n;
+   char *start,*end;                          /* to get parametrs */
+   char *o[32];                               /* to pass parameters */
+
+   HW_cmd_show=nCmdShow;
+   if((HW_instance=hPrevInstance)==NULL)
+   {
+      w.style=CS_HREDRAW|CS_VREDRAW;
+      w.lpfnWndProc=(LPVOID)WndProc;
+      w.cbClsExtra=0;
+      w.cbWndExtra=0;
+      w.hInstance=hInstance;
+      w.hIcon=NULL;
+      w.hCursor=NULL;
+      w.hbrBackground=GetStockObject(WHITE_BRUSH);
+      w.lpszMenuName=NULL;
+      w.lpszClassName="3Dgpl3";
+
+      if(! RegisterClass(&w))
+         return FALSE;
+   }
+
+   n=0;
+   o[n++]="";
+   start=lpszCmdLine;                         /* starting from here */
+   while((end=strchr(start,' '))!=NULL)
+   {
+      if(n>=32) 
+         HW_error("(Hardware) Way too many command line options.\n");
+      if(end!=start) o[n++]=start;              /* ignore empty ones */
+      *end=0;                                   /* end of line */
+      start=end+1;
+   }
+   if(strlen(start)>0) o[n++]=start;          /* the very last one */
+#endif
+
+
+   return main(0, &cmd, &platform);
 }
