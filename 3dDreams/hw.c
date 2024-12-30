@@ -8,16 +8,20 @@
 #include "hw.h"
 #include "hw_memory.h"
 #include "common.h"
+
+#include <ShellAPI.h>
 #include <stdarg.h>                         /* var arg stuff */
 #include <stdio.h>                          /* vsprintf */
 #include <stdlib.h>                         /* exit */
 #include <stdint.h>
 
-__declspec(align(64))	// Align to cache line.
-typedef struct { u32 w, h; } hw_window;
+#define MAX_ARGV 32
 
 __declspec(align(64))	// Align to cache line.
-typedef struct hw_platform
+   typedef struct { u32 w, h; } hw_window;
+
+__declspec(align(64))	// Align to cache line.
+   typedef struct hw_platform
 {
    hw_memory_buffer memory;
    u32 image_pixel_size;
@@ -174,21 +178,6 @@ void HW_blit(void)
 * Quiting with a message.                                *
 \**********************************************************/
 
-void HW_error(char *s,...)
-{
-   char str[256];
-   va_list lst;
-
-   va_start(lst,s);
-   vsprintf(str,s,lst);                       /* forming the message */
-   va_end(lst);
-
-   MessageBox(NULL,str,"3Dgpl",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
-
-   HW_close_event_loop();
-   exit(0);                                   /* above might not be enough */
-}
-
 /**********************************************************\
 * Quitting the event loop.                               *
 \**********************************************************/
@@ -315,6 +304,10 @@ void HW_window_close(void)
    //DeleteObject(HW_bmp);
 }
 
+void HW_event_loop_end(void)
+{
+}
+
 void HW_event_loop_start(void (*frame)(void), void (*handler)(int key_code), void (*idle)(void))
 {
 
@@ -343,54 +336,62 @@ void HW_event_loop_start(void (*frame)(void), void (*handler)(int key_code), voi
    }
 }
 
+static void HW_error(char *s, ...)
+{
+   char buffer[4096];
+   va_list lst;
+   assert(s && "Non-null error string!");
+
+   va_start(lst,s);
+   vsprintf_s(buffer,sizeof(buffer),s,lst);                       /* forming the message */
+   va_end(lst);
+
+   MessageBox(NULL,buffer,"3Dgpl",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
+
+   HW_event_loop_end();
+}
+
+static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
+{
+   int argc = 0;
+   char *arg_start,*arg_end;
+   argv[argc++] = GetCommandLine();    // put program name as the first one
+   arg_start = cmd;
+   while (arg_end = strchr(arg_start, ' '))
+   {
+      if(argc >= MAX_ARGV)                   // exceeds our max number of arguments
+         return 0;
+      if (arg_end != arg_start) 
+         argv[argc++] = arg_start;
+      *arg_end = 0;
+      arg_start = arg_end+1;
+   }
+   if(strlen(arg_start) > 0) 
+      argv[argc++] = arg_start;
+
+   return argc;
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    hw_platform platform = {0};
-   LPSTR cmd = GetCommandLineA();
-   platform.memory = HW_memory_buffer_create(4ll * 1024 * 1024 * 1024);
+   MEMORYSTATUSEX memory_status = {0};
+   char *argv[MAX_ARGV];
+   int argc;
 
-   if (!platform.memory.base || platform.memory.max_size != 4ll * 1024 * 1024 * 1024)
-      return -1;
+   memory_status.dwLength = sizeof(memory_status);
+   if (!GlobalMemoryStatusEx(&memory_status))
+      return 0;
+   platform.memory = HW_memory_buffer_create(memory_status.ullAvailPhys);
+   if (!platform.memory.base || (platform.memory.max_size != memory_status.ullAvailPhys))
+      return 0;
 
-   // TODO: Parse program arguments to the application
-#if 0
-   WNDCLASS w;
-   int n;
-   char *start,*end;                          /* to get parametrs */
-   char *o[32];                               /* to pass parameters */
-
-   HW_cmd_show=nCmdShow;
-   if((HW_instance=hPrevInstance)==NULL)
+   argc = HW_parse_cmdline_into_arguments(lpszCmdLine, argv);
+   if (argc == 0)
    {
-      w.style=CS_HREDRAW|CS_VREDRAW;
-      w.lpfnWndProc=(LPVOID)WndProc;
-      w.cbClsExtra=0;
-      w.cbWndExtra=0;
-      w.hInstance=hInstance;
-      w.hIcon=NULL;
-      w.hCursor=NULL;
-      w.hbrBackground=GetStockObject(WHITE_BRUSH);
-      w.lpszMenuName=NULL;
-      w.lpszClassName="3Dgpl3";
-
-      if(! RegisterClass(&w))
-         return FALSE;
+      HW_error("(Hardware) Invalid number of command line options given.\n");
+      return 0;
    }
 
-   n=0;
-   o[n++]="";
-   start=lpszCmdLine;                         /* starting from here */
-   while((end=strchr(start,' '))!=NULL)
-   {
-      if(n>=32) 
-         HW_error("(Hardware) Way too many command line options.\n");
-      if(end!=start) o[n++]=start;              /* ignore empty ones */
-      *end=0;                                   /* end of line */
-      start=end+1;
-   }
-   if(strlen(start)>0) o[n++]=start;          /* the very last one */
-#endif
-
-
-   return main(0, &cmd, &platform);
+   return main(argc, argv, &platform);    // Enter the engine main
 }

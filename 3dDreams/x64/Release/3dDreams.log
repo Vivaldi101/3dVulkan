@@ -1,0 +1,52 @@
+﻿Build started 30/12/2024 16.20.44.
+     1>Project "C:\Work\3dDreams\3dDreams\3dDreams.vcxproj" on node 2 (rebuild target(s)).
+     1>PrepareForBuild:
+         Creating directory "C:\Work\3dDreams\x64\Release\".
+       InitializeBuildStatus:
+         Creating "x64\Release\3dDreams.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\CL.exe /c /Zi /nologo /W4 /WX- /O2 /Oi /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Release\\" /Fd"x64\Release\vc100.pdb" /Gd /TC /errorReport:prompt hw.c app.c hw_memory.c
+         hw.c
+     1>c:\work\3ddreams\3ddreams\common.h(35): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>c:\work\3ddreams\3ddreams\common.h(41): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>c:\work\3ddreams\3ddreams\common.h(47): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>c:\work\3ddreams\3ddreams\hw_memory.h(28): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>hw.c(21): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>hw.c(226): warning C4100: 'height' : unreferenced formal parameter
+     1>hw.c(226): warning C4100: 'width' : unreferenced formal parameter
+     1>hw.c(226): warning C4100: 'y' : unreferenced formal parameter
+     1>hw.c(226): warning C4100: 'x' : unreferenced formal parameter
+     1>hw.c(226): warning C4100: 'title' : unreferenced formal parameter
+     1>hw.c(226): warning C4100: 'platform' : unreferenced formal parameter
+     1>hw.c(311): warning C4100: 'idle' : unreferenced formal parameter
+     1>hw.c(311): warning C4100: 'handler' : unreferenced formal parameter
+     1>hw.c(311): warning C4100: 'frame' : unreferenced formal parameter
+     1>hw.c(340): warning C4211: nonstandard extension used : redefined extern to static
+     1>hw.c(375): warning C4100: 'nCmdShow' : unreferenced formal parameter
+     1>hw.c(375): warning C4100: 'hPrevInstance' : unreferenced formal parameter
+     1>hw.c(375): warning C4100: 'hInstance' : unreferenced formal parameter
+         app.c
+     1>c:\work\3ddreams\3ddreams\common.h(35): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>c:\work\3ddreams\3ddreams\common.h(41): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>c:\work\3ddreams\3ddreams\common.h(47): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+     1>c:\work\3ddreams\3ddreams\fixed_point.h(6): warning C4100: 'f' : unreferenced formal parameter
+         hw_memory.c
+     1>c:\work\3ddreams\3ddreams\hw_memory.h(28): warning C4324: '<unnamed-tag>' : structure was padded due to __declspec(align())
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Work\3dDreams\x64\Release\3dDreams.exe" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"x64\Release\3dDreams.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Work\3dDreams\x64\Release\3dDreams.pdb" /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Work\3dDreams\x64\Release\3dDreams.lib" /MACHINE:X64 x64\Release\hw.obj
+         x64\Release\app.obj
+         x64\Release\hw_memory.obj
+         Generating code
+     1>c:\work\3ddreams\3ddreams\hw.c(360): warning C4706: assignment within conditional expression
+         Finished generating code
+         3dDreams.vcxproj -> C:\Work\3dDreams\x64\Release\3dDreams.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Work\3dDreams\x64\Release\3dDreams.exe;#1" /manifest x64\Release\3dDreams.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "x64\Release\3dDreams.unsuccessfulbuild".
+         Touching "x64\Release\3dDreams.lastbuildstate".
+     1>Done Building Project "C:\Work\3dDreams\3dDreams\3dDreams.vcxproj" (rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.61
