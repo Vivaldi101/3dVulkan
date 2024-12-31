@@ -233,8 +233,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
    case WM_CLOSE:
       PostQuitMessage(0);
       return 0;
-   case WM_SIZE:
-      return 0;
    }
 
    return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -340,21 +338,20 @@ void HW_event_loop_end(void)
 {
 }
 
-void HW_event_loop_start(void (*frame)(void), void (*handler)(int key_code), void (*idle)(void))
+void HW_event_loop_start(hw_platform* p, void (*frame)(void), void (*handler)(int key_code), void (*idle)(void))
 {
-
    //HW_frame_function=frame;
    //HW_handler_function=handler;
    //HW_idle_function=idle;
 
    //HW_frame_function();
-   //InvalidateRect(HW_wnd,&HW_rect,TRUE);
-   //UpdateWindow(HW_wnd);
+   InvalidateRect(p->window, NULL, TRUE);
+   UpdateWindow(p->window);
 
    for(;;)
    {
       MSG msg;
-      if(PeekMessage(&msg,NULL,0,0,PM_REMOVE)) 
+      if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
       {
          if(msg.message == WM_QUIT) 
             break;
@@ -363,8 +360,8 @@ void HW_event_loop_start(void (*frame)(void), void (*handler)(int key_code), voi
       }
       else
       {
-         //InvalidateRect(HW_wnd,&HW_rect,TRUE);
-         //UpdateWindow(HW_wnd);
+         InvalidateRect(p->window, NULL, TRUE);
+         UpdateWindow(p->window);
       }
    }
 }

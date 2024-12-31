@@ -40,7 +40,7 @@ void HW_window_close(void);
 void HW_draw_pixel(byte address, int r, int g, int b);
 void HW_draw_swap(void);
 
-void HW_event_loop_start(void (*frame)(void), void (*handler)(int key_code), void (*idle)(void));
+void HW_event_loop_start(hw_platform* platform, void (*frame)(void), void (*handler)(int key_code), void (*idle)(void));
 void HW_event_loop_end(void);
 void HW_error(char *string, ...);
 
