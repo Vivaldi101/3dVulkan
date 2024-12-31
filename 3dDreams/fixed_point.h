@@ -3,9 +3,12 @@
 
 #include "common.h"
 
-static fp FP_make_fixed_point(f32 f)
-{
-   return 0;
-}
+static fp FP_to_fixed_point(f32 f, i32 scale) { return (fp)f << scale; }
+
+static fp FP_fixed_add(fp a, fp b) { return a + b; }
+
+static fp FP_fixed_sub(fp a, fp b) { return a - b; }
+
+static fp FP_fixed_mul(fp a, fp b, i32 scale) { return (a * b) / scale; }
 
 #endif
