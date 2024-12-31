@@ -17,14 +17,13 @@
 
 #define MAX_ARGV 32
 
-__declspec(align(64))	// Align to cache line.
-   typedef struct { u32 w, h; } hw_window;
+__declspec(align(64)) typedef struct { u32 w, h; } hw_window;
 
-__declspec(align(64))	// Align to cache line.
-   typedef struct hw_platform
+__declspec(align(64)) typedef struct hw_platform
 {
    hw_memory_buffer memory;
    u32 image_pixel_size;
+   HWND window;
    bool finished;
 } hw_platform;
 
@@ -192,9 +191,19 @@ void HW_close_event_loop(void)
 * as a result of executing our event loop.              *
 \* * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-long FAR PASCAL WndProc(HWND hWnd,UINT message,
-   WPARAM wParam,LPARAM lParam)
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
+* Windows Main function. It'll prepare a window and     *
+* call our main.                                        *
+\* * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+#endif
+
+#if 0
+// Re-enable this
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#if 0
    switch(message)
    {
    case WM_PAINT:      if(HW_frame_function!=NULL) HW_idle_function();
@@ -213,46 +222,38 @@ long FAR PASCAL WndProc(HWND hWnd,UINT message,
       break;
    default:            return(DefWindowProc(hWnd,message,wParam,lParam));
    }
-   return(0L);
+#endif
+   return 0;
 }
+#else
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
-* Windows Main function. It'll prepare a window and     *
-* call our main.                                        *
-\* * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+   switch(uMsg) 
+   {
+   case WM_CLOSE:
+      PostQuitMessage(0);
+      return 0;
+   case WM_SIZE:
+      return 0;
+   }
 
+   return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
 #endif
 
 void HW_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height)
 {
+   RECT winrect;
+   WNDCLASS wc;
+   DWORD dwExStyle, dwStyle;
+
 #if 0
+   // These belong elsewhere
    PAINTSTRUCT ps;
 
    int i,remap;
    COLORREF cr,cr2;
    BYTE r,g,b;
-
-   assert(!platform->finished);
-
-   // precondition for allocating the actual memory for the window properties if any
-   //assert(platform->memory.base);
-   //assert(platform->memory.max_size > 0);
-
-   //HW_screen_x_size=size_x;                   /* screen size */
-   //HW_screen_y_size=size_y;
-
-   //HW_image_size=width*height;
-
-
-   C_init_clipping(0,0,HW_screen_x_size-1,HW_screen_y_size-1);
-   T_init_math();
-
-   HW_wnd=CreateWindow("3Dgpl3",window_title,WS_SYSMENU,
-      CW_USEDEFAULT,CW_USEDEFAULT,
-      HW_screen_x_size,
-      HW_screen_y_size+GetSystemMetrics(SM_CYCAPTION),
-      NULL,NULL,HW_instance,NULL);
-
    HW_mem=CreateCompatibleDC(BeginPaint(HW_wnd,&ps));
    if((GetDeviceCaps(ps.hdc,PLANES))!=1)
       HW_error("(Hardware) Direct RGB color expected.");
@@ -293,9 +294,40 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
    HW_rect.right=HW_screen_x_size;
    HW_rect.bottom=HW_screen_y_size;
 
-   ShowWindow(HW_wnd,HW_cmd_show);            /* generate messages */
-   UpdateWindow(HW_wnd);
 #endif
+   winrect.left = 0;
+   winrect.right = width;
+   winrect.top = 0;
+   winrect.bottom = height;
+
+   wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+   wc.lpfnWndProc = WndProc;
+   wc.cbClsExtra = 0;
+   wc.cbWndExtra = 0;
+   wc.hInstance = GetModuleHandle(NULL);
+   wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);
+   wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+   wc.hbrBackground = NULL;
+   wc.lpszMenuName = NULL;
+   wc.lpszClassName = title;
+   if(!RegisterClass(&wc)) 
+      HW_error("(Hardware) Failed to Win32 register class.");
+
+   dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+   dwStyle = WS_OVERLAPPEDWINDOW;
+   AdjustWindowRectEx(&winrect, dwStyle, false, dwExStyle);
+
+   platform->window = CreateWindowEx(dwExStyle, 
+      wc.lpszClassName, title, WS_CLIPSIBLINGS | WS_CLIPCHILDREN | dwStyle, 
+      0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
+
+   if(!platform->window)
+      HW_error("(Hardware) Failed to create Win32 window.");
+
+   ShowWindow(platform->window, SW_SHOW);
+   SetForegroundWindow(platform->window);
+   SetFocus(platform->window);
+   UpdateWindow(platform->window);
 }
 
 void HW_window_close(void)
@@ -324,7 +356,8 @@ void HW_event_loop_start(void (*frame)(void), void (*handler)(int key_code), voi
       MSG msg;
       if(PeekMessage(&msg,NULL,0,0,PM_REMOVE)) 
       {
-         if(msg.message == WM_QUIT) break;
+         if(msg.message == WM_QUIT) 
+            break;
          TranslateMessage(&msg);
          DispatchMessage(&msg);
       }
@@ -343,12 +376,13 @@ static void HW_error(char *s, ...)
    assert(s && "Non-null error string!");
 
    va_start(lst,s);
-   vsprintf_s(buffer,sizeof(buffer),s,lst);                       /* forming the message */
+   vsprintf_s(buffer,sizeof(buffer),s,lst);
    va_end(lst);
 
    MessageBox(NULL,buffer,"3Dgpl",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
    HW_event_loop_end();
+   abort();
 }
 
 static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
@@ -380,8 +414,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    int argc;
 
    memory_status.dwLength = sizeof(memory_status);
+
    if (!GlobalMemoryStatusEx(&memory_status))
       return 0;
+
    platform.memory = HW_memory_buffer_create(memory_status.ullAvailPhys);
    if (!platform.memory.base || (platform.memory.max_size != memory_status.ullAvailPhys))
       return 0;
@@ -393,5 +429,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
       return 0;
    }
 
-   return main(argc, argv, &platform);    // Enter the engine main
+   return main(argc, argv, &platform);    // enter the engine main
 }
