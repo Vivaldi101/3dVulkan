@@ -12,6 +12,9 @@ typedef int8_t  i8;
 typedef int16_t i16;
 typedef int32_t i32;
 
+typedef int64_t i64;
+typedef uint64_t u64;
+
 typedef unsigned char byte;
 
 typedef float f32;
@@ -25,6 +28,8 @@ typedef int32_t fp;
 
 #define iff(p, q) (p) == (q)
 #define implies(p, q) (!(p) || (q))
+
+#define cache_align __declspec(align(64)) 
 
 typedef enum {false, true} bool;
 

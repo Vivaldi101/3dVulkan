@@ -13,8 +13,7 @@ enum
 
 #define DEG_TO_RAD(degrees) ((degrees) * (3.14159265358979323846f / 180.0f))
 
-__declspec(align(64))	// Align to cache line.
-typedef struct { f32 x,y,z; } vec3;
+cache_align typedef struct { f32 x,y,z; } vec3;
 
 // TODO: Also maybe we should remove these defines and just do functions..
 #define vec3_cross(a, b, c) (c).x = (a).y*(b).z - (a).z*(b).y; (c).y = (a).z*(b).x - (a).x*(b).z; (c).z = (a).x*(b).y - (a).y*(b).x;

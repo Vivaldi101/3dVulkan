@@ -17,25 +17,15 @@
 
 #define MAX_ARGV 32
 
-__declspec(align(64)) typedef struct { HWND handle; } hw_window;
+cache_align typedef struct { HWND handle; } hw_window;
 
-__declspec(align(64)) typedef struct hw_platform
+cache_align typedef struct hw_platform
 {
    hw_memory_buffer memory;
    u32 image_pixel_size;
    hw_window window;
    bool finished;
 } hw_platform;
-
-typedef enum
-{
-   HW_KEY_INPUT, HW_MOUSE_INPUT
-} hw_input_type;
-
-__declspec(align(64)) typedef struct hw_input
-{
-   hw_input_type input_type;
-} hw_input;
 
 int main(int argc, const char **argv, hw_platform* platform);
 
@@ -350,15 +340,11 @@ void HW_event_loop_end(void)
 
 static hw_input_type HW_input_type(const MSG* m)
 {
-   return HW_KEY_INPUT;  // placeholder
+   return HW_INPUT_TYPE_KEY;  // placeholder
 }
 
-void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(hw_input* input))
+void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(app_input* input))
 {
-   //HW_frame_function=frame;
-   //HW_handler_function=handler;
-   //HW_idle_function=idle;
-
    //HW_frame_function();
 
    // First window paint
@@ -368,7 +354,7 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (
    for(;;)
    {
       MSG msg;
-      hw_input input;
+      app_input input;
       if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
       {
          if(msg.message == WM_QUIT) break;
@@ -377,6 +363,17 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (
       }
 
       input.input_type = HW_input_type(&msg);
+      switch(input.input_type)
+      {
+         case HW_INPUT_TYPE_KEY:
+            input.key = 0; 
+            break;
+         case HW_INPUT_TYPE_MOUSE:
+            input.pos[0] = input.pos[1] = 0; 
+            break;
+         default: break;
+      }
+
       input_function(&input);
       frame_function();
    }
@@ -391,7 +388,7 @@ static void HW_error(char *s, ...)
    vsprintf_s(buffer,sizeof(buffer),s,lst);
    va_end(lst);
 
-   MessageBox(NULL,buffer,"3Dgpl",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
+   MessageBox(NULL,buffer,"Engine",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
    HW_event_loop_end();
 

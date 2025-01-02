@@ -11,11 +11,18 @@ static void App_frame_draw()
 {
 }
 
-static void App_input_handle(hw_input* input)
+static void App_input_handle(app_input* input)
 {
+   u64 key;
+   i32 pos[2], i;
+   if(input->input_type == HW_INPUT_TYPE_MOUSE)
+      if(input->pos[0] > 0 && input->pos[1] > 0)
+         for(i = 0; i < 2; ++i)
+            pos[i] = input->pos[i];
+   if(input->input_type == HW_INPUT_TYPE_KEY)
+      key = input->key;
 }
 
-// TODO: think if we need to pass the platform info here
 int main(int argc, const char **argv, hw_platform* platform)
 {
    g_frustum frustum;
