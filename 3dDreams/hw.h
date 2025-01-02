@@ -22,17 +22,11 @@
 #define HW_KEY_SPACE       VK_SPACE
 #define HW_KEY_TAB         VK_TAB           /* ids of some keys */
 
-#define HW_MAX_SCREEN_SIZE 1024
-
-extern int HW_screen_x_size;                /* screen dimensions */
-extern int HW_screen_y_size;
-extern int HW_image_size;                   /* number of pixels */
-extern int HW_pixel_size;                   /* in bytes */
-
 //typedef char* HW_pixel_ptr;                 /* may not fit a char though */
 //typedef int HW_fixed;                       /* better be 32 bit machine */
 
 typedef struct hw_platform hw_platform;
+typedef struct hw_input hw_input;
 
 void HW_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height);
 void HW_window_close(void);
@@ -40,7 +34,7 @@ void HW_window_close(void);
 void HW_draw_pixel(byte address, int r, int g, int b);
 void HW_draw_swap(void);
 
-void HW_event_loop_start(hw_platform* platform, void (*frame)(void), void (*handler)(int key_code), void (*idle)(void));
+void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(hw_input* input));
 void HW_event_loop_end(void);
 void HW_error(char *string, ...);
 

@@ -17,15 +17,25 @@
 
 #define MAX_ARGV 32
 
-__declspec(align(64)) typedef struct { u32 w, h; } hw_window;
+__declspec(align(64)) typedef struct { HWND handle; } hw_window;
 
 __declspec(align(64)) typedef struct hw_platform
 {
    hw_memory_buffer memory;
    u32 image_pixel_size;
-   HWND window;
+   hw_window window;
    bool finished;
 } hw_platform;
+
+typedef enum
+{
+   HW_KEY_INPUT, HW_MOUSE_INPUT
+} hw_input_type;
+
+__declspec(align(64)) typedef struct hw_input
+{
+   hw_input_type input_type;
+} hw_input;
 
 int main(int argc, const char **argv, hw_platform* platform);
 
@@ -315,17 +325,17 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
    dwStyle = WS_OVERLAPPEDWINDOW;
    AdjustWindowRectEx(&winrect, dwStyle, false, dwExStyle);
 
-   platform->window = CreateWindowEx(dwExStyle, 
+   platform->window.handle = CreateWindowEx(dwExStyle, 
       wc.lpszClassName, title, WS_CLIPSIBLINGS | WS_CLIPCHILDREN | dwStyle, 
       0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
 
-   if(!platform->window)
+   if(!platform->window.handle)
       HW_error("(Hardware) Failed to create Win32 window.");
 
-   ShowWindow(platform->window, SW_SHOW);
-   SetForegroundWindow(platform->window);
-   SetFocus(platform->window);
-   UpdateWindow(platform->window);
+   ShowWindow(platform->window.handle, SW_SHOW);
+   SetForegroundWindow(platform->window.handle);
+   SetFocus(platform->window.handle);
+   UpdateWindow(platform->window.handle);
 }
 
 void HW_window_close(void)
@@ -338,31 +348,37 @@ void HW_event_loop_end(void)
 {
 }
 
-void HW_event_loop_start(hw_platform* p, void (*frame)(void), void (*handler)(int key_code), void (*idle)(void))
+static hw_input_type HW_input_type(const MSG* m)
+{
+   return HW_KEY_INPUT;  // placeholder
+}
+
+void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(hw_input* input))
 {
    //HW_frame_function=frame;
    //HW_handler_function=handler;
    //HW_idle_function=idle;
 
    //HW_frame_function();
-   InvalidateRect(p->window, NULL, TRUE);
-   UpdateWindow(p->window);
+
+   // First window paint
+   InvalidateRect(platform->window.handle, NULL, TRUE);
+   UpdateWindow(platform->window.handle);
 
    for(;;)
    {
       MSG msg;
+      hw_input input;
       if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
       {
-         if(msg.message == WM_QUIT) 
-            break;
+         if(msg.message == WM_QUIT) break;
          TranslateMessage(&msg);
          DispatchMessage(&msg);
       }
-      else
-      {
-         InvalidateRect(p->window, NULL, TRUE);
-         UpdateWindow(p->window);
-      }
+
+      input.input_type = HW_input_type(&msg);
+      input_function(&input);
+      frame_function();
    }
 }
 
@@ -370,7 +386,6 @@ static void HW_error(char *s, ...)
 {
    char buffer[4096];
    va_list lst;
-   assert(s && "Non-null error string!");
 
    va_start(lst,s);
    vsprintf_s(buffer,sizeof(buffer),s,lst);
@@ -379,6 +394,8 @@ static void HW_error(char *s, ...)
    MessageBox(NULL,buffer,"3Dgpl",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
    HW_event_loop_end();
+
+   // no point in trying to recover from system-level error
    abort();
 }
 
@@ -386,8 +403,10 @@ static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
 {
    int argc = 0;
    char *arg_start,*arg_end;
+
    argv[argc++] = GetCommandLine();    // put program name as the first one
    arg_start = cmd;
+
    while (arg_end = strchr(arg_start, ' '))
    {
       if(argc >= MAX_ARGV)                   // exceeds our max number of arguments
@@ -397,6 +416,7 @@ static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
       *arg_end = 0;
       arg_start = arg_end+1;
    }
+
    if(strlen(arg_start) > 0) 
       argv[argc++] = arg_start;
 
@@ -411,7 +431,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    int argc;
 
    memory_status.dwLength = sizeof(memory_status);
-
    if (!GlobalMemoryStatusEx(&memory_status))
       return 0;
 
