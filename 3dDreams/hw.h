@@ -32,13 +32,13 @@ cache_align typedef struct app_input
 } app_input;
 
 void HW_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height);
-void HW_window_close(void);
+void HW_window_close(hw_platform* platform);
 
 void HW_draw_pixel(byte address, int r, int g, int b);
 void HW_draw_swap(void);
 
 void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(app_input* input));
-void HW_event_loop_end(void);
-void HW_error(char *string, ...);
+void HW_event_loop_end(hw_platform* platform);
+void HW_error(hw_platform* platform, const char *s);
 
 #endif

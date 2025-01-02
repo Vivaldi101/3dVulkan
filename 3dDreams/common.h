@@ -2,6 +2,7 @@
 #define _COMMON_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
 
 typedef uint8_t   u8;
@@ -22,6 +23,8 @@ typedef double f64;
 
 typedef int32_t fp;
 
+typedef size_t usize;
+
 #define pre(p)  assert(p)
 #define post(p) assert(p)
 #define inv(p)  assert(p)
@@ -29,26 +32,23 @@ typedef int32_t fp;
 #define iff(p, q) (p) == (q)
 #define implies(p, q) (!(p) || (q))
 
-#define cache_align __declspec(align(64)) 
+#define cache_align __declspec(align(64))    // assume 64 byte cacheline size. TODO: assert or test for this
 
 typedef enum {false, true} bool;
 
-__declspec(align(64))	// Align to cache line.
-typedef struct
+cache_align typedef struct
 {
    u32 x, y;
-} co_point;
+} c_point;
 
-__declspec(align(64))	// Align to cache line.
-typedef struct
+cache_align typedef struct
 {
    f32 x, y;
-} co_f32_point;
+} c_f32_point;
 
-__declspec(align(64))	// Align to cache line.
-typedef struct
+cache_align typedef struct
 {
    f32 w, h;
-} co_area;
+} c_area;
 
 #endif

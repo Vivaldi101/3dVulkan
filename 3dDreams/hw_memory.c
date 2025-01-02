@@ -12,6 +12,7 @@ hw_memory_buffer HW_memory_buffer_create(size_t num_bytes)
     return result;
 }
 
+#if 0
 static void* HW_memory_buffer_top(hw_memory_buffer *buffer) 
 {
     void *ptr = buffer->base + buffer->bytes_used;
@@ -36,7 +37,6 @@ static void* HW_memory_buffer_pop(hw_memory_buffer *buffer, size_t num_bytes)
     return result;
 }
 
-#if 0
 
 static size_t isMemoryStackEmpty(MemoryStack *ms)
 {

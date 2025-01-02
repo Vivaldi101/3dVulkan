@@ -9,11 +9,7 @@
 #include "hw_memory.h"
 #include "common.h"
 
-#include <ShellAPI.h>
-#include <stdarg.h>                         /* var arg stuff */
 #include <stdio.h>                          /* vsprintf */
-#include <stdlib.h>                         /* exit */
-#include <stdint.h>
 
 #define MAX_ARGV 32
 
@@ -31,9 +27,6 @@ int main(int argc, const char **argv, hw_platform* platform);
 
 #if 0
 
-int HW_screen_x_size;                       /* screen dimensions */
-int HW_screen_y_size;
-int HW_pixel_size;                          /* in bytes */
 
 int HW_red_size;                            /* how many bits is there */
 int HW_green_size;                          /* occupied by each color */
@@ -51,77 +44,6 @@ RECT HW_rect;                               /* "client" area dimensions */
 HWND HW_wnd;                                /* window */
 HANDLE HW_instance;   
 int HW_cmd_show;                            /* not sure why, but needed */
-void (*HW_frame_function)(void)=NULL;
-void (*HW_handler_function)(int key_code)=NULL;
-void (*HW_idle_function)(void)=NULL;
-
-/**********************************************************\
-* Creating a window.                                     *
-\**********************************************************/
-
-void HW_init_screen(char *window_title,int size_x,int size_y)
-{
-   PAINTSTRUCT ps;
-   int i,remap;
-   COLORREF cr,cr2;                           /* for determining */
-   BYTE r,g,b;                                /* bits for each color */
-
-   HW_screen_x_size=size_x;                   /* screen size */
-   HW_screen_y_size=size_y;
-   HW_image_size=HW_screen_x_size*HW_screen_y_size;
-
-   C_init_clipping(0,0,HW_screen_x_size-1,HW_screen_y_size-1);
-   T_init_math();
-
-   HW_wnd=CreateWindow("3Dgpl3",window_title,WS_SYSMENU,
-      CW_USEDEFAULT,CW_USEDEFAULT,
-      HW_screen_x_size,
-      HW_screen_y_size+GetSystemMetrics(SM_CYCAPTION),
-      NULL,NULL,HW_instance,NULL);
-
-   HW_mem=CreateCompatibleDC(BeginPaint(HW_wnd,&ps));
-   if((GetDeviceCaps(ps.hdc,PLANES))!=1)
-      HW_error("(Hardware) Direct RGB color expected.");
-
-   HW_pixel_size=GetDeviceCaps(ps.hdc,BITSPIXEL)/8;
-   if((HW_pixel_size!=2)&&(HW_pixel_size!=3)&&(HW_pixel_size!=4))
-      HW_error("(Hardware) 16bpp, 24bpp or 32bpp expected.");
-
-   G_init_graphics();
-
-   HW_bmp=CreateCompatibleBitmap(ps.hdc,HW_screen_x_size,HW_screen_y_size);
-   SelectObject(HW_mem,HW_bmp);
-
-   cr2=0;                                     /* ugly way of doing something */
-   HW_red_mask=HW_green_mask=HW_blue_mask=0;  /* trivial. Windows don't */
-   for (i=1;i<256;i++)                        /* have any service to report */
-   {                                          /* pixel bit layout */
-      cr=SetPixel(HW_mem,0,0,RGB(i,i,i));
-      if(GetRValue(cr)!=GetRValue(cr2)) HW_red_mask++;
-      if(GetGValue(cr)!=GetGValue(cr2)) HW_green_mask++;
-      if(GetBValue(cr)!=GetBValue(cr2)) HW_blue_mask++;       
-      cr2=cr;                                   /* masks - which bits are masked */
-   }                                          /* by every color */
-   HW_red_size=HW_green_size=HW_blue_size=0;  
-   for(i=0;i<8;i++)                           /* finding how many bits */
-   {
-      if(HW_red_mask>>i) HW_red_size++;
-      if(HW_green_mask>>i) HW_green_size++;
-      if(HW_blue_mask>>i) HW_blue_size++;
-   }
-   HW_red_shift=HW_green_size+HW_blue_size;   /* finding how to pack colors */
-   HW_green_shift=HW_blue_size;               /* into a pixel */
-   HW_blue_shift=0;
-
-   EndPaint(HW_wnd,&ps);
-
-   HW_rect.left=HW_rect.top=0;
-   HW_rect.right=HW_screen_x_size;
-   HW_rect.bottom=HW_screen_y_size;
-
-   ShowWindow(HW_wnd,HW_cmd_show);            /* generate messages */
-   UpdateWindow(HW_wnd);
-}
 
 /**********************************************************\
 * Packing a pixel into a bitmap.                         *
@@ -309,7 +231,7 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
    wc.lpszMenuName = NULL;
    wc.lpszClassName = title;
    if(!RegisterClass(&wc)) 
-      HW_error("(Hardware) Failed to Win32 register class.");
+      HW_error(platform, "(Hardware) Failed to Win32 register class.");
 
    dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
    dwStyle = WS_OVERLAPPEDWINDOW;
@@ -320,7 +242,7 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
       0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
 
    if(!platform->window.handle)
-      HW_error("(Hardware) Failed to create Win32 window.");
+      HW_error(platform, "(Hardware) Failed to create Win32 window.");
 
    ShowWindow(platform->window.handle, SW_SHOW);
    SetForegroundWindow(platform->window.handle);
@@ -328,14 +250,14 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
    UpdateWindow(platform->window.handle);
 }
 
-void HW_window_close(void)
+void HW_window_close(hw_platform* platform)
 {
-   //DeleteDC(HW_mem);
-   //DeleteObject(HW_bmp);
+   PostMessage(platform->window.handle,WM_QUIT,0,0L);
 }
 
-void HW_event_loop_end(void)
+void HW_event_loop_end(hw_platform* platform)
 {
+   HW_window_close(platform);
 }
 
 static hw_input_type HW_input_type(const MSG* m)
@@ -345,9 +267,7 @@ static hw_input_type HW_input_type(const MSG* m)
 
 void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(app_input* input))
 {
-   //HW_frame_function();
-
-   // First window paint
+   // first window paint
    InvalidateRect(platform->window.handle, NULL, TRUE);
    UpdateWindow(platform->window.handle);
 
@@ -379,28 +299,24 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (
    }
 }
 
-static void HW_error(char *s, ...)
+static void HW_error(hw_platform* platform, const char *s)
 {
-   char buffer[4096];
-   va_list lst;
+   const usize buffer_size = strlen(s)+1; // string len + 1 for null
+   char* buffer = HW_push_count(&platform->memory, buffer_size, char);
 
-   va_start(lst,s);
-   vsprintf_s(buffer,sizeof(buffer),s,lst);
-   va_end(lst);
-
+   memcpy(buffer, s, buffer_size);
    MessageBox(NULL,buffer,"Engine",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
-   HW_event_loop_end();
-
-   // no point in trying to recover from system-level error
-   abort();
+   HW_pop_count(&platform->memory, buffer_size, char);
+   HW_event_loop_end(platform);
 }
 
 static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
 {
-   int argc = 0;
+   int argc;
    char *arg_start,*arg_end;
 
+   argc = 0;
    argv[argc++] = GetCommandLine();    // put program name as the first one
    arg_start = cmd;
 
@@ -423,9 +339,9 @@ static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    hw_platform platform = {0};
-   MEMORYSTATUSEX memory_status = {0};
-   char *argv[MAX_ARGV];
+   MEMORYSTATUSEX memory_status;
    int argc;
+   char **argv;
 
    memory_status.dwLength = sizeof(memory_status);
    if (!GlobalMemoryStatusEx(&memory_status))
@@ -435,12 +351,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    if (!platform.memory.base || (platform.memory.max_size != memory_status.ullAvailPhys))
       return 0;
 
+   argv = HW_push_count(&platform.memory, MAX_ARGV, char*);
    argc = HW_parse_cmdline_into_arguments(lpszCmdLine, argv);
-   if (argc == 0)
-   {
-      HW_error("(Hardware) Invalid number of command line options given.\n");
-      return 0;
-   }
 
-   return main(argc, argv, &platform);    // enter the engine main
+   if (argc == 0)
+      HW_error(&platform, "(Hardware) Invalid number of command line options given.\n");
+
+   return main(argc, argv, &platform);    // pass the options to the application
 }

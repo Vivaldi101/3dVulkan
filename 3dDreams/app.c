@@ -35,7 +35,7 @@ int main(int argc, const char **argv, hw_platform* platform)
    G_frustum_create(&frustum, 800, 600, 90.0f);
 
    HW_event_loop_start(platform, App_frame_draw, App_input_handle);
-   HW_window_close();
+   HW_window_close(platform);
 
    return 0;
 }
