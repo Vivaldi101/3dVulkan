@@ -16,6 +16,7 @@ enum
 cache_align typedef struct { f32 x,y,z; } vec3;
 
 // TODO: Also maybe we should remove these defines and just do functions..
+// TODO: typedefs for vertexes as float arrays to keeep them conceptually separate from directed vectors
 #define vec3_cross(a, b, c) (c).x = (a).y*(b).z - (a).z*(b).y; (c).y = (a).z*(b).x - (a).x*(b).z; (c).z = (a).x*(b).y - (a).y*(b).x;
 
 #if 0
@@ -110,7 +111,7 @@ static void G_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
    yb = -h / (2*z);
    yt = h / (2*z);
 
-   // The above were used with an implicit z-viewspace distance of one. We need to negate it for right-handed camera space
+   // The above were used with an implicit z-viewspace distance of one. We need to negate it for right-handed camera space for the frustum plane normals 
    z = -1.0f;
 
    vlb.x = xl;    vlt.x = xl; 
@@ -133,6 +134,33 @@ static void G_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
    G_plane_create(&frustum->r, &origin, &vrb, &vrt);
    G_plane_create(&frustum->t, &origin, &vtr, &vtl);
    G_plane_create(&frustum->b, &origin, &vbl, &vbr);
+}
+
+// Return the t-value instead?
+static bool G_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 vi[3])
+{
+   f32 a,b,t;
+
+   // othogonal distance to the plane for two points of the segment
+   a = plane->n.x*v0[0] + plane->n.y*v0[1] + plane->n.z*v0[2] + plane->d;
+   b = plane->n.x*v1[0] + plane->n.y*v1[1] + plane->n.z*v1[2] + plane->d;
+
+   // line parallel to the plane
+   if (a == b)
+      return false;
+
+   // ratio from similar triangles of projection of the points onto the plane
+   t = a / (a - b);
+
+   // inside the segment from v0 to v1
+   if (t < 0.0f || t > 1.0f)
+      return false;
+
+   vi[0] = v0[0] + t*(v1[0] - v0[0]);
+   vi[1] = v0[1] + t*(v1[1] - v0[1]);
+   vi[2] = v0[2] + t*(v1[2] - v0[2]);
+
+   return true;
 }
 
 #endif

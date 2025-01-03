@@ -302,12 +302,12 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (
 static void HW_error(hw_platform* platform, const char *s)
 {
    const usize buffer_size = strlen(s)+1; // string len + 1 for null
-   char* buffer = HW_push_count(&platform->memory, buffer_size, char);
+   char* buffer = HW_push_string(&platform->memory, buffer_size);
 
    memcpy(buffer, s, buffer_size);
    MessageBox(NULL,buffer,"Engine",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
-   HW_pop_count(&platform->memory, buffer_size, char);
+   HW_pop_string(&platform->memory, buffer_size);
    HW_event_loop_end(platform);
 }
 

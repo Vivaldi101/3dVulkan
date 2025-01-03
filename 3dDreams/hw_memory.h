@@ -17,9 +17,11 @@
 #define HW_push_size(stack, size, type) ((type *)_push_(stack, size))  
 #define HW_push_struct(stack, type) ((type *)HW_memory_buffer_push(stack, sizeof(type)))  
 #define HW_push_count(stack, count, type) ((type *)HW_memory_buffer_push(stack, (count)*sizeof(type)))  
+#define HW_push_string(stack, count) HW_push_count(stack, count, char)
 
 #define HW_pop_struct(stack, type) ((type *)_pop_(stack, sizeof(type)))  
 #define HW_pop_count(stack, count, type) ((type *)HW_memory_buffer_pop(stack, (count)*sizeof(type)))  
+#define HW_pop_string(stack, count) HW_pop_count(stack, count, char)
 
 #define HW_push_array(stack, count, type) ((type *)_push_(stack, (count) * sizeof(type)))
 #define HW_pop_array(stack, count, type) ((type *)_pop_(stack, (count) * sizeof(type)))
