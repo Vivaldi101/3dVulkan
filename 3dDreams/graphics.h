@@ -49,9 +49,9 @@ static vec3 vec3_add(const vec3* a, const vec3* b)
 #define vec3_normalize(a) { f32 l = vec3_len((a)); (a).x /= l; (a).y /= l; (a).z /= l;}
 
 // normal and othogonal distance to the origin
-typedef struct g_plane { vec3 n; f32 d; } g_plane;
+cache_align typedef struct g_plane { vec3 n; f32 d; } g_plane;
 
-typedef struct g_frustum { g_plane l,r,t,b,n,f; } g_frustum;
+cache_align typedef struct g_frustum { g_plane l,r,t,b,n,f; } g_frustum;
 
 static int G_plane_classify_vertex_side(g_plane* plane, f32 vertex[3])
 {
@@ -145,15 +145,15 @@ static bool G_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 
    a = plane->n.x*v0[0] + plane->n.y*v0[1] + plane->n.z*v0[2] + plane->d;
    b = plane->n.x*v1[0] + plane->n.y*v1[1] + plane->n.z*v1[2] + plane->d;
 
-   // line parallel to the plane
+   // no intersection to line parallel to the plane
    if (a == b)
       return false;
 
    // ratio from similar triangles of projection of the points onto the plane
    t = a / (a - b);
 
-   // inside the segment from v0 to v1
-   if (t < 0.0f || t > 1.0f)
+   // must be inside the segment from v0 to v1
+   if (0.0f > t || t > 1.0f)
       return false;
 
    vi[0] = v0[0] + t*(v1[0] - v0[0]);

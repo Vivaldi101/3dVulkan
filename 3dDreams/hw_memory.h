@@ -8,7 +8,7 @@
 #include <windows.h>
 #include "common.h"
 
-// TODO: Rename these guys to fit the module_object_action way
+// TODO: Rename these apis to fit the module_object_action way
 
 #define HW_get_array_elements(stack, type) ((type *)stack.base)
 #define HW_get_at(stack, type, index) ((type *)_getat_(stack, sizeof(type), index))

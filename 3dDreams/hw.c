@@ -23,7 +23,8 @@ cache_align typedef struct hw_platform
    bool finished;
 } hw_platform;
 
-int main(int argc, const char **argv, hw_platform* platform);
+//int main(int argc, const char **argv, hw_platform* platform);
+void App_start(int argc, const char **argv, hw_platform* platform);
 
 #if 0
 
@@ -277,11 +278,13 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (
       app_input input;
       if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
       {
-         if(msg.message == WM_QUIT) break;
+         if(msg.message == WM_QUIT) 
+            break;
          TranslateMessage(&msg);
          DispatchMessage(&msg);
       }
 
+      // random test code for input
       input.input_type = HW_input_type(&msg);
       switch(input.input_type)
       {
@@ -357,5 +360,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    if (argc == 0)
       HW_error(&platform, "(Hardware) Invalid number of command line options given.\n");
 
-   return main(argc, argv, &platform);    // pass the options to the application
+   App_start(argc, argv, &platform);    // pass the options to the application
+
+   return 0;
 }

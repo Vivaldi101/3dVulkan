@@ -10,8 +10,6 @@
 #include "common.h"
 #include <windows.h>                        /* MS-Windows API */
 
-#define main _main                          /* to accomodate windows */
-
 #define HW_KEY_ARROW_LEFT  VK_LEFT
 #define HW_KEY_ARROW_RIGHT VK_RIGHT
 #define HW_KEY_ARROW_UP    VK_UP
