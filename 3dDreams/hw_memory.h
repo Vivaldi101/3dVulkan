@@ -28,7 +28,7 @@
 #define HW_check_memory(cond) do { if (!(cond)) { MessageBoxA(0, "Out of memory in: " ##__FILE__, 0, 0); DebugBreak(); } } while(0)
 #define HW_print_message_box(msg) MessageBoxA(0, msg, 0, 0)
 
-cache_align typedef struct
+cache_align typedef struct hw_memory_buffer
 {
    byte* base;
    size_t max_size, bytes_used;

@@ -1,13 +1,29 @@
 #include "hw.h"
 #include "graphics.h"
 #include "fixed_point.h"
+
 #include "common.h"
+#include "hw_memory.h"
 
 #include <assert.h>
 
-// do frame drawing
-static void App_frame_draw()
+typedef struct app_some_type
 {
+   int arr[100];
+   char* name;
+   bool isvalid;
+} app_some_type;
+
+// do frame drawing
+// TODO: Pass frame data
+static void App_frame_draw(hw_memory_buffer* frame_memory)
+{
+   int i;
+   app_some_type* type = HW_push_struct(frame_memory, app_some_type);
+   type->isvalid = true;
+   type->name = "foo";
+   for(i = 0; i < array_count(type->arr); ++i)
+      type->arr[i] = 42;
 }
 
 // do input handling

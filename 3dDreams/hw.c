@@ -266,7 +266,7 @@ static hw_input_type HW_input_type(const MSG* m)
    return HW_INPUT_TYPE_KEY;  // placeholder
 }
 
-void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(app_input* input))
+void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory_buffer* frame_memory), void (*input_function)(app_input* input))
 {
    // first window paint
    InvalidateRect(platform->window.handle, NULL, TRUE);
@@ -276,6 +276,7 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (
    {
       MSG msg;
       app_input input;
+      hw_memory_buffer frame_memory;
       if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
       {
          if(msg.message == WM_QUIT) 
@@ -296,9 +297,19 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (
             break;
          default: break;
       }
-
       input_function(&input);
-      frame_function();
+
+      // TODO: join the arenas
+      frame_memory.bytes_used = platform->memory.bytes_used;
+      // hard cap of 10 megabytes of frame memory
+      frame_memory.max_size = 10ull*1024*1024;
+      frame_memory.base = platform->memory.base + platform->memory.bytes_used;
+      assert(frame_memory.max_size < platform->memory.max_size);
+      // TODO: function for clearing the memory arena buffers
+      frame_function(&frame_memory);
+      frame_memory.bytes_used = 0;
+      frame_memory.max_size = 0;
+      frame_memory.base = 0;
    }
 }
 

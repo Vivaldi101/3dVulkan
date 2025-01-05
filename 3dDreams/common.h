@@ -34,6 +34,8 @@ typedef size_t usize;
 
 #define cache_align __declspec(align(64))    // assume 64 byte cacheline size. TODO: assert or test for this
 
+#define array_count(a) sizeof((a)) / sizeof((a)[0])
+
 typedef enum {false, true} bool;
 
 cache_align typedef struct

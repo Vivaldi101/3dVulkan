@@ -21,6 +21,7 @@
 #define HW_KEY_TAB         VK_TAB           /* ids of some keys */
 
 typedef struct hw_platform hw_platform;
+typedef struct hw_memory_buffer hw_memory_buffer;
 
 typedef enum { HW_INPUT_TYPE_KEY, HW_INPUT_TYPE_MOUSE, HW_INPUT_TYPE_TOUCH } hw_input_type;
 cache_align typedef struct app_input
@@ -35,7 +36,7 @@ void HW_window_close(hw_platform* platform);
 void HW_draw_pixel(byte address, int r, int g, int b);
 void HW_draw_swap(void);
 
-void HW_event_loop_start(hw_platform* platform, void (*frame_function)(), void (*input_function)(app_input* input));
+void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory_buffer* frame_memory), void (*input_function)(app_input* input));
 void HW_event_loop_end(hw_platform* platform);
 void HW_error(hw_platform* platform, const char *s);
 
