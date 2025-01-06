@@ -6,6 +6,7 @@
 #endif
 
 #include <windows.h>
+#include <assert.h>
 #include "common.h"
 
 // TODO: Rename these apis to fit the module_object_action way
@@ -34,7 +35,7 @@ cache_align typedef struct hw_memory_buffer
    size_t max_size, bytes_used;
 } hw_memory_buffer;
 
-hw_memory_buffer HW_memory_buffer_create(size_t num_bytes);
+hw_memory_buffer HW_memory_buffer_create(size_t bytes);
 
 static void* HW_memory_buffer_top(hw_memory_buffer *buffer) 
 {
@@ -43,25 +44,23 @@ static void* HW_memory_buffer_top(hw_memory_buffer *buffer)
 }
 
 // FIXME: pass alignment
-static void* HW_memory_buffer_push(hw_memory_buffer *buffer, size_t num_bytes) 
+static void* HW_memory_buffer_push(hw_memory_buffer *buffer, size_t bytes) 
 {
    void* result;
-   if(buffer->bytes_used + num_bytes > buffer->max_size)
-      return 0;
+   assert(buffer->bytes_used + bytes <= buffer->max_size);
 
    result = buffer->base + buffer->bytes_used;
-   buffer->bytes_used += num_bytes;
+   buffer->bytes_used += bytes;
 
    return result;
 }
 
-static void* HW_memory_buffer_pop(hw_memory_buffer *buffer, size_t num_bytes) 
+static void* HW_memory_buffer_pop(hw_memory_buffer *buffer, size_t bytes) 
 {
    void *result;
-   if(buffer->bytes_used < num_bytes)
-      return 0;
+   assert(buffer->bytes_used >= bytes);
 
-   buffer->bytes_used -= num_bytes;
+   buffer->bytes_used -= bytes;
    result = buffer->base + buffer->bytes_used;
 
    return result;
