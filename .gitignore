@@ -4,4 +4,6 @@ x64/
 *.sln
 *.sdf
 *.swp
+*.suo
+*.ipch
 *.vcxproj*
