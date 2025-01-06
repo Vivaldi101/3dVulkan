@@ -1,0 +1,7 @@
+build/
+data/
+x64/
+*.sln
+*.sdf
+*.swp
+*.vcxproj*
