@@ -38,26 +38,33 @@ hw_memory_buffer HW_memory_buffer_create(size_t num_bytes);
 
 static void* HW_memory_buffer_top(hw_memory_buffer *buffer) 
 {
-    void *ptr = buffer->base + buffer->bytes_used;
-    return ptr;
+   void *ptr = buffer->base + buffer->bytes_used;
+   return ptr;
 }
 
 // FIXME: pass alignment
 static void* HW_memory_buffer_push(hw_memory_buffer *buffer, size_t num_bytes) 
 {
-    void *result = buffer->base + buffer->bytes_used;
-    buffer->bytes_used += num_bytes;
-    
-    return result;
+   void* result;
+   if(buffer->bytes_used + num_bytes > buffer->max_size)
+      return 0;
+
+   result = buffer->base + buffer->bytes_used;
+   buffer->bytes_used += num_bytes;
+
+   return result;
 }
 
 static void* HW_memory_buffer_pop(hw_memory_buffer *buffer, size_t num_bytes) 
 {
-    void *result;
-    buffer->bytes_used -= num_bytes;
-    result = buffer->base + buffer->bytes_used;
-    
-    return result;
+   void *result;
+   if(buffer->bytes_used < num_bytes)
+      return 0;
+
+   buffer->bytes_used -= num_bytes;
+   result = buffer->base + buffer->bytes_used;
+
+   return result;
 }
 
 #endif
