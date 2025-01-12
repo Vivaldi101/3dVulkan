@@ -6,14 +6,17 @@
 #endif
 
 #include "hw.h"
-#include "hw_memory.h"
+#include "hw_arena.h"
 #include "common.h"
 
 #include <stdio.h>                          /* vsprintf */
 
 #define MAX_ARGV 32
 
-cache_align typedef struct { HWND handle; } hw_window;
+cache_align typedef struct hw_window 
+{ 
+   HWND handle; 
+} hw_window;
 
 cache_align typedef struct hw_platform
 {
@@ -23,28 +26,9 @@ cache_align typedef struct hw_platform
    bool finished;
 } hw_platform;
 
-//int main(int argc, const char **argv, hw_platform* platform);
 void App_start(int argc, const char **argv, hw_platform* platform);
 
 #if 0
-
-
-int HW_red_size;                            /* how many bits is there */
-int HW_green_size;                          /* occupied by each color */
-int HW_blue_size;
-int HW_red_mask;                            /* which bits are occupied */
-int HW_green_mask;                          /* by color */
-int HW_blue_mask;
-int HW_red_shift;                           /* how colors are packed into */
-int HW_green_shift;                         /* the bitmap */
-int HW_blue_shift;
-
-HDC HW_mem;                                 /* memory device context */
-HBITMAP HW_bmp;                             /* bitmap header */
-RECT HW_rect;                               /* "client" area dimensions */
-HWND HW_wnd;                                /* window */
-HANDLE HW_instance;   
-int HW_cmd_show;                            /* not sure why, but needed */
 
 /**********************************************************\
 * Packing a pixel into a bitmap.                         *
@@ -85,28 +69,6 @@ void HW_blit(void)
    SetBitmapBits(HW_bmp,HW_image_size*HW_pixel_size,(void*)G_c_buffer);
    BitBlt(ps.hdc,0,0,HW_screen_x_size,HW_screen_y_size,HW_mem,0,0,SRCCOPY);
    EndPaint(HW_wnd,&ps);
-}
-
-/**********************************************************\
-* Deallocating some stuff.                               *
-\**********************************************************/
-
-/**********************************************************\
-* Running the event loop.                                *
-\**********************************************************/
-
-
-/**********************************************************\
-* Quiting with a message.                                *
-\**********************************************************/
-
-/**********************************************************\
-* Quitting the event loop.                               *
-\**********************************************************/
-
-void HW_close_event_loop(void)
-{
-   PostMessage(HW_wnd,WM_CLOSE,0,0L);         /* telling ourselves to quit */
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
@@ -266,7 +228,7 @@ static hw_input_type HW_input_type(const MSG* m)
    return HW_INPUT_TYPE_KEY;  // placeholder
 }
 
-void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory_buffer* frame_memory), void (*input_function)(app_input* input))
+void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory_buffer* frame_arena), void (*input_function)(app_input* input))
 {
    // first window paint
    InvalidateRect(platform->window.handle, NULL, TRUE);
@@ -276,7 +238,7 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory
    {
       MSG msg;
       app_input input;
-      hw_memory_buffer frame_memory;
+      hw_memory_buffer frame_arena;
       if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
       {
          if(msg.message == WM_QUIT) 
@@ -299,29 +261,21 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory
       }
       input_function(&input);
 
-      // TODO: join the arenas
-      frame_memory.bytes_used = platform->memory.bytes_used;
-      // hard cap of 10 megabytes of frame memory
-      frame_memory.max_size = 10ull*1024*1024;
-      frame_memory.base = platform->memory.base + platform->memory.bytes_used;
-      assert(frame_memory.max_size < platform->memory.max_size);
-      // TODO: function for clearing the memory arena buffers
-      frame_function(&frame_memory);
-      frame_memory.bytes_used = 0;
-      frame_memory.max_size = 0;
-      frame_memory.base = 0;
+      frame_arena = HW_sub_arena_create(&platform->memory);
+      frame_function(&frame_arena);
+      HW_sub_arena_clear(&frame_arena);
    }
 }
 
 static void HW_error(hw_platform* platform, const char *s)
 {
    const usize buffer_size = strlen(s)+1; // string len + 1 for null
-   char* buffer = HW_push_string(&platform->memory, buffer_size);
+   char* buffer = HW_arena_push_string(&platform->memory, buffer_size);
 
    memcpy(buffer, s, buffer_size);
    MessageBox(NULL,buffer,"Engine",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
-   HW_pop_string(&platform->memory, buffer_size);
+   HW_arena_pop_string(&platform->memory, buffer_size);
    HW_event_loop_end(platform);
 }
 
@@ -356,16 +310,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    MEMORYSTATUSEX memory_status;
    int argc;
    char **argv;
+   usize virtual_memory_amount = 10ull*1024*1024;
 
    memory_status.dwLength = sizeof(memory_status);
    if (!GlobalMemoryStatusEx(&memory_status))
       return 0;
 
-   platform.memory = HW_memory_buffer_create(memory_status.ullAvailPhys);
-   if (!platform.memory.base || (platform.memory.max_size != memory_status.ullAvailPhys))
+   platform.memory = HW_arena_create(virtual_memory_amount);
+   if (!platform.memory.base || (platform.memory.max_size != virtual_memory_amount))
       return 0;
 
-   argv = HW_push_count(&platform.memory, MAX_ARGV, char*);
+   argv = HW_arena_push_count(&platform.memory, MAX_ARGV, char*);
    argc = HW_parse_cmdline_into_arguments(lpszCmdLine, argv);
 
    if (argc == 0)

@@ -1,4 +1,4 @@
-#include "hw_memory.h"
+#include "hw_arena.h"
 
 hw_memory_buffer HW_memory_buffer_create(size_t num_bytes) 
 {

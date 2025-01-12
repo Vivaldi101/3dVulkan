@@ -3,7 +3,7 @@
 #include "fixed_point.h"
 
 #include "common.h"
-#include "hw_memory.h"
+#include "hw_arena.h"
 
 #include <assert.h>
 
@@ -16,10 +16,10 @@ typedef struct app_some_type
 
 // do frame drawing
 // TODO: Pass frame data
-static void App_frame_draw(hw_memory_buffer* frame_memory)
+static void App_frame_draw(hw_memory_buffer* frame_arena)
 {
    int i;
-   app_some_type* type = HW_push_struct(frame_memory, app_some_type);
+   app_some_type* type = HW_arena_push_struct(frame_arena, app_some_type);
    type->isvalid = true;
    type->name = "foo";
    for(i = 0; i < array_count(type->arr); ++i)
