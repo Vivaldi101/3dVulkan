@@ -18,15 +18,15 @@ cache_align typedef struct hw_window
    HWND handle; 
 } hw_window;
 
-cache_align typedef struct hw_platform
+cache_align typedef struct hw
 {
-   hw_memory_buffer memory;
+   hw_buffer memory;
    u32 image_pixel_size;
    hw_window window;
    bool finished;
-} hw_platform;
+} hw;
 
-void App_start(int argc, const char **argv, hw_platform* platform);
+void app_start(int argc, const char **argv, hw* hw);
 
 #if 0
 
@@ -34,24 +34,24 @@ void App_start(int argc, const char **argv, hw_platform* platform);
 * Packing a pixel into a bitmap.                         *
 \**********************************************************/
 
-void HW_pixel(char* buf_address,int red,int green,int blue)
+void hw_pixel(char* buf_address,int red,int green,int blue)
 {                                           /* adjust and clamp */
-   if((red>>=(8-HW_red_size))>HW_red_mask) red=HW_red_mask;
-   if((green>>=(8-HW_green_size))>HW_green_mask) green=HW_green_mask; 
-   if((blue>>=(8-HW_blue_size))>HW_blue_mask) blue=HW_blue_mask; 
+   if((red>>=(8-hw_red_size))>hw_red_mask) red=hw_red_mask;
+   if((green>>=(8-hw_green_size))>hw_green_mask) green=hw_green_mask; 
+   if((blue>>=(8-hw_blue_size))>hw_blue_mask) blue=hw_blue_mask; 
 
-   switch(HW_pixel_size)                      /* depending on screen depth */ 
+   switch(hw_pixel_size)                      /* depending on screen depth */ 
    {                                          /* pack and store */
    case 2:                                   /* 16bpp */
-      (*(short*)buf_address)=(red<<HW_red_shift)|(green<<HW_green_shift)|
-         (blue<<HW_blue_shift); 
+      (*(short*)buf_address)=(red<<hw_red_shift)|(green<<hw_green_shift)|
+         (blue<<hw_blue_shift); 
       break;
    case 3:                                   /* 24bpp */
       *buf_address=blue; *(buf_address+1)=green; *(buf_address+2)=red;
       break;
    case 4:                                   /* 32bpp */
-      (*(int*)buf_address)=(red<<HW_red_shift)|(green<<HW_green_shift)|
-         (blue<<HW_blue_shift);
+      (*(int*)buf_address)=(red<<hw_red_shift)|(green<<hw_green_shift)|
+         (blue<<hw_blue_shift);
       break;
    }
 }
@@ -80,17 +80,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 #if 0
    switch(message)
    {
-   case WM_PAINT:      if(HW_frame_function!=NULL) HW_idle_function();
+   case WM_PAINT:      if(hw_frame_function!=NULL) hw_idle_function();
       break;
    case WM_ERASEBKGND: return(1L);           /* don't erase background */
    case WM_DESTROY:    PostQuitMessage(0);
       break;
-   case WM_KEYDOWN:    if(HW_handler_function!=NULL) HW_handler_function(wParam);
-      if(HW_frame_function!=NULL) 
+   case WM_KEYDOWN:    if(hw_handler_function!=NULL) hw_handler_function(wParam);
+      if(hw_frame_function!=NULL) 
       {
-         HW_frame_function();
-         InvalidateRect(HW_wnd,&HW_rect,TRUE);
-         UpdateWindow(HW_wnd);
+         hw_frame_function();
+         InvalidateRect(hw_wnd,&hw_rect,TRUE);
+         UpdateWindow(hw_wnd);
       }
 
       break;
@@ -113,7 +113,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 #endif
 
-void HW_platform_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height)
+static void hw_graphics_open(hw* hw)
+{
+}
+
+void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height)
 {
    RECT winrect;
    WNDCLASS wc;
@@ -126,45 +130,45 @@ void HW_platform_window_open(hw_platform* platform, const char *title, int x, in
    int i,remap;
    COLORREF cr,cr2;
    BYTE r,g,b;
-   HW_mem=CreateCompatibleDC(BeginPaint(HW_wnd,&ps));
+   hw_mem=CreateCompatibleDC(BeginPaint(hw_wnd,&ps));
    if((GetDeviceCaps(ps.hdc,PLANES))!=1)
-      HW_error("(Hardware) Direct RGB color expected.");
+      hw_error("(Hardware) Direct RGB color expected.");
 
-   HW_pixel_size=GetDeviceCaps(ps.hdc,BITSPIXEL)/8;
-   if((HW_pixel_size!=2)&&(HW_pixel_size!=3)&&(HW_pixel_size!=4))
-      HW_error("(Hardware) 16bpp, 24bpp or 32bpp expected.");
+   hw_pixel_size=GetDeviceCaps(ps.hdc,BITSPIXEL)/8;
+   if((hw_pixel_size!=2)&&(hw_pixel_size!=3)&&(hw_pixel_size!=4))
+      hw_error("(Hardware) 16bpp, 24bpp or 32bpp expected.");
 
    G_init_graphics();
 
-   HW_bmp=CreateCompatibleBitmap(ps.hdc,HW_screen_x_size,HW_screen_y_size);
-   SelectObject(HW_mem,HW_bmp);
+   hw_bmp=CreateCompatibleBitmap(ps.hdc,hw_screen_x_size,hw_screen_y_size);
+   SelectObject(hw_mem,hw_bmp);
 
    cr2=0;                                     /* ugly way of doing something */
-   HW_red_mask=HW_green_mask=HW_blue_mask=0;  /* trivial. Windows don't */
+   hw_red_mask=hw_green_mask=hw_blue_mask=0;  /* trivial. Windows don't */
    for (i=1;i<256;i++)                        /* have any service to report */
    {                                          /* pixel bit layout */
-      cr=SetPixel(HW_mem,0,0,RGB(i,i,i));
-      if(GetRValue(cr)!=GetRValue(cr2)) HW_red_mask++;
-      if(GetGValue(cr)!=GetGValue(cr2)) HW_green_mask++;
-      if(GetBValue(cr)!=GetBValue(cr2)) HW_blue_mask++;       
+      cr=SetPixel(hw_mem,0,0,RGB(i,i,i));
+      if(GetRValue(cr)!=GetRValue(cr2)) hw_red_mask++;
+      if(GetGValue(cr)!=GetGValue(cr2)) hw_green_mask++;
+      if(GetBValue(cr)!=GetBValue(cr2)) hw_blue_mask++;       
       cr2=cr;                                   /* masks - which bits are masked */
    }                                          /* by every color */
-   HW_red_size=HW_green_size=HW_blue_size=0;  
+   hw_red_size=hw_green_size=hw_blue_size=0;  
    for(i=0;i<8;i++)                           /* finding how many bits */
    {
-      if(HW_red_mask>>i) HW_red_size++;
-      if(HW_green_mask>>i) HW_green_size++;
-      if(HW_blue_mask>>i) HW_blue_size++;
+      if(hw_red_mask>>i) hw_red_size++;
+      if(hw_green_mask>>i) hw_green_size++;
+      if(hw_blue_mask>>i) hw_blue_size++;
    }
-   HW_red_shift=HW_green_size+HW_blue_size;   /* finding how to pack colors */
-   HW_green_shift=HW_blue_size;               /* into a pixel */
-   HW_blue_shift=0;
+   hw_red_shift=hw_green_size+hw_blue_size;   /* finding how to pack colors */
+   hw_green_shift=hw_blue_size;               /* into a pixel */
+   hw_blue_shift=0;
 
-   EndPaint(HW_wnd,&ps);
+   EndPaint(hw_wnd,&ps);
 
-   HW_rect.left=HW_rect.top=0;
-   HW_rect.right=HW_screen_x_size;
-   HW_rect.bottom=HW_screen_y_size;
+   hw_rect.left=hw_rect.top=0;
+   hw_rect.right=hw_screen_x_size;
+   hw_rect.bottom=hw_screen_y_size;
 
 #endif
    winrect.left = 0;
@@ -183,51 +187,46 @@ void HW_platform_window_open(hw_platform* platform, const char *title, int x, in
    wc.lpszMenuName = NULL;
    wc.lpszClassName = title;
    if(!RegisterClass(&wc)) 
-      HW_platform_error(platform, "(Hardware) Failed to Win32 register class.");
+      hw_error(hw, "(Hardware) Failed to Win32 register class.");
 
    dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
    dwStyle = WS_OVERLAPPEDWINDOW;
    AdjustWindowRectEx(&winrect, dwStyle, false, dwExStyle);
 
-   platform->window.handle = CreateWindowEx(dwExStyle, 
+   hw->window.handle = CreateWindowEx(dwExStyle, 
       wc.lpszClassName, title, WS_CLIPSIBLINGS | WS_CLIPCHILDREN | dwStyle, 
       0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
 
-   if(!platform->window.handle)
-      HW_platform_error(platform, "(Hardware) Failed to create Win32 window.");
+   if(!hw->window.handle)
+      hw_error(hw, "(Hardware) Failed to create Win32 window.");
 
-   ShowWindow(platform->window.handle, SW_SHOW);
-   SetForegroundWindow(platform->window.handle);
-   SetFocus(platform->window.handle);
-   UpdateWindow(platform->window.handle);
+   ShowWindow(hw->window.handle, SW_SHOW);
+   SetForegroundWindow(hw->window.handle);
+   SetFocus(hw->window.handle);
+   UpdateWindow(hw->window.handle);
 }
 
-void HW_platform_window_close(hw_platform* platform)
+void hw_window_close(hw* hw)
 {
-   PostMessage(platform->window.handle,WM_QUIT,0,0L);
+   PostMessage(hw->window.handle,WM_QUIT,0,0L);
 }
 
-void HW_platform_event_loop_end(hw_platform* platform)
+void hw_event_loop_end(hw* hw)
 {
-   HW_platform_window_close(platform);
+   hw_window_close(hw);
 }
 
-static hw_input_type HW_input_type(const MSG* m)
-{
-   return HW_INPUT_TYPE_KEY;  // placeholder
-}
-
-void HW_platform_event_loop_start(hw_platform* platform, void (*App_frame_function)(hw_memory_buffer* frame_arena), void (*App_input_function)(app_input* input))
+void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(app_input* input))
 {
    // first window paint
-   InvalidateRect(platform->window.handle, NULL, TRUE);
-   UpdateWindow(platform->window.handle);
+   InvalidateRect(hw->window.handle, NULL, TRUE);
+   UpdateWindow(hw->window.handle);
 
    for(;;)
    {
       MSG msg;
       app_input input;
-      hw_memory_buffer frame_arena;
+      hw_buffer frame_arena;
       if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
       {
          if(msg.message == WM_QUIT) 
@@ -237,7 +236,7 @@ void HW_platform_event_loop_start(hw_platform* platform, void (*App_frame_functi
       }
 
       // random test code for input
-      input.input_type = HW_input_type(&msg);
+      input.input_type = HW_INPUT_TYPE_KEY;
       switch(input.input_type)
       {
          case HW_INPUT_TYPE_KEY:
@@ -248,27 +247,27 @@ void HW_platform_event_loop_start(hw_platform* platform, void (*App_frame_functi
             break;
          default: break;
       }
-      App_input_function(&input);
+      app_input_function(&input);
 
-      frame_arena = HW_sub_arena_create(&platform->memory);
-      App_frame_function(&frame_arena);
-      HW_sub_arena_clear(&frame_arena);
+      frame_arena = hw_sub_arena_create(&hw->memory);
+      app_frame_function(&frame_arena);
+      hw_sub_arena_clear(&frame_arena);
    }
 }
 
-static void HW_platform_error(hw_platform* platform, const char *s)
+static void hw_error(hw* hw, const char *s)
 {
    const usize buffer_size = strlen(s)+1; // string len + 1 for null
-   char* buffer = HW_arena_push_string(&platform->memory, buffer_size);
+   char* buffer = hw_arena_push_string(&hw->memory, buffer_size);
 
    memcpy(buffer, s, buffer_size);
    MessageBox(NULL,buffer,"Engine",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
-   HW_arena_pop_string(&platform->memory, buffer_size);
-   HW_platform_event_loop_end(platform);
+   hw_arena_pop_string(&hw->memory, buffer_size);
+   hw_event_loop_end(hw);
 }
 
-static int HW_cmd_parse(char* cmd, char** argv)
+static int hw_cmd_parse(char* cmd, char** argv)
 {
    int argc;
    char *arg_start,*arg_end;
@@ -293,20 +292,20 @@ static int HW_cmd_parse(char* cmd, char** argv)
    return argc;
 }
 
-void HW_platform_blit(hw_platform* platform)
+void hw_blit(hw* hw)
 {
    PAINTSTRUCT ps;
 
-   BeginPaint(platform->window.handle,&ps);                    /* store into a bitmap */
+   BeginPaint(hw->window.handle,&ps);                    /* store into a bitmap */
    SetMapMode(ps.hdc, MM_TEXT);                             /* blit a bitmap */
-   //SetBitmapBits(HW_bmp,HW_image_size*HW_pixel_size,(void*)G_c_buffer);
-   //BitBlt(ps.hdc,0,0,HW_screen_x_size,HW_screen_y_size,HW_mem,0,0,SRCCOPY);
-   EndPaint(platform->window.handle,&ps);
+   //SetBitmapBits(hw_bmp,hw_image_size*hw_pixel_size,(void*)G_c_buffer);
+   //BitBlt(ps.hdc,0,0,hw_screen_x_size,hw_screen_y_size,hw_mem,0,0,SRCCOPY);
+   EndPaint(hw->window.handle,&ps);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
-   hw_platform platform = {0};
+   hw hw = {0};
    MEMORYSTATUSEX memory_status;
    int argc;
    char **argv;
@@ -316,17 +315,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    if (!GlobalMemoryStatusEx(&memory_status))
       return 0;
 
-   platform.memory = HW_arena_create(virtual_memory_amount);
-   if (!platform.memory.base || (platform.memory.max_size != virtual_memory_amount))
+   hw.memory = hw_arena_create(virtual_memory_amount);
+   if (!hw.memory.base || (hw.memory.max_size != virtual_memory_amount))
       return 0;
 
-   argv = HW_arena_push_count(&platform.memory, MAX_ARGV, char*);
-   argc = HW_cmd_parse(lpszCmdLine, argv);
+   argv = hw_arena_push_count(&hw.memory, MAX_ARGV, char*);
+   argc = hw_cmd_parse(lpszCmdLine, argv);
 
    if (argc == 0)
-      HW_platform_error(&platform, "(Hardware) Invalid number of command line options given.\n");
+      hw_error(&hw, "(Hardware) Invalid number of command line options given.\n");
 
-   App_start(argc, argv, &platform);    // pass the options to the application
+   app_start(argc, argv, &hw);    // pass the options to the application
 
    return 0;
 }
