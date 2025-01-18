@@ -5,6 +5,16 @@
 #include "common.h"
 #include "hw_arena.h"
 
+typedef struct priority_queue_node
+{
+   usize index;
+   int element;
+} priority_queue_node;
+
+#define priority_queue_type priority_queue_node
+#define priority_queue_max_count 4096
+#include "priority_queue.h"
+
 #include <assert.h>
 
 typedef struct app_some_type
@@ -42,6 +52,16 @@ static void app_input_handle(app_input* input)
 void app_start(int argc, const char **argv, hw* hw)
 {
    g_frustum frustum = {0};
+   priority_queue queue = {0};
+   int i;
+
+   for(i = 0; i < priority_queue_max_count; ++i)
+   {
+      priority_queue_node node = {0};
+      node.element = i+1;
+      node.index = i;
+      priority_queue_insert(&queue, node);
+   }
 
    // cmd params from the system
    assert(implies(argc > 0, argv[argc-1]));

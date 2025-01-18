@@ -1,7 +1,7 @@
 // TODO: Rename HW to OS
 
-#if !defined(_hw_H)
-#define _hw_H
+#if !defined(_HW_H)
+#define _HW_H
 
 #if !defined(_WIN32)
 #error "Cannot include the file on a non-Win32 platforms"
