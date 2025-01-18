@@ -60,17 +60,6 @@ void HW_pixel(char* buf_address,int red,int green,int blue)
 * Rendering the bitmap into the window.                  *
 \**********************************************************/
 
-void HW_blit(void)
-{
-   PAINTSTRUCT ps;
-
-   BeginPaint(HW_wnd,&ps);                    /* store into a bitmap */
-   SetMapMode(ps.hdc,MM_TEXT);                /* blit a bitmap */
-   SetBitmapBits(HW_bmp,HW_image_size*HW_pixel_size,(void*)G_c_buffer);
-   BitBlt(ps.hdc,0,0,HW_screen_x_size,HW_screen_y_size,HW_mem,0,0,SRCCOPY);
-   EndPaint(HW_wnd,&ps);
-}
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
 * Windows main callback function. It is being called    *
 * as a result of executing our event loop.              *
@@ -124,7 +113,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 #endif
 
-void HW_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height)
+void HW_platform_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height)
 {
    RECT winrect;
    WNDCLASS wc;
@@ -194,7 +183,7 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
    wc.lpszMenuName = NULL;
    wc.lpszClassName = title;
    if(!RegisterClass(&wc)) 
-      HW_error(platform, "(Hardware) Failed to Win32 register class.");
+      HW_platform_error(platform, "(Hardware) Failed to Win32 register class.");
 
    dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
    dwStyle = WS_OVERLAPPEDWINDOW;
@@ -205,7 +194,7 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
       0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
 
    if(!platform->window.handle)
-      HW_error(platform, "(Hardware) Failed to create Win32 window.");
+      HW_platform_error(platform, "(Hardware) Failed to create Win32 window.");
 
    ShowWindow(platform->window.handle, SW_SHOW);
    SetForegroundWindow(platform->window.handle);
@@ -213,14 +202,14 @@ void HW_window_open(hw_platform* platform, const char *title, int x, int y, int 
    UpdateWindow(platform->window.handle);
 }
 
-void HW_window_close(hw_platform* platform)
+void HW_platform_window_close(hw_platform* platform)
 {
    PostMessage(platform->window.handle,WM_QUIT,0,0L);
 }
 
-void HW_event_loop_end(hw_platform* platform)
+void HW_platform_event_loop_end(hw_platform* platform)
 {
-   HW_window_close(platform);
+   HW_platform_window_close(platform);
 }
 
 static hw_input_type HW_input_type(const MSG* m)
@@ -228,7 +217,7 @@ static hw_input_type HW_input_type(const MSG* m)
    return HW_INPUT_TYPE_KEY;  // placeholder
 }
 
-void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory_buffer* frame_arena), void (*input_function)(app_input* input))
+void HW_platform_event_loop_start(hw_platform* platform, void (*App_frame_function)(hw_memory_buffer* frame_arena), void (*App_input_function)(app_input* input))
 {
    // first window paint
    InvalidateRect(platform->window.handle, NULL, TRUE);
@@ -259,15 +248,15 @@ void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory
             break;
          default: break;
       }
-      input_function(&input);
+      App_input_function(&input);
 
       frame_arena = HW_sub_arena_create(&platform->memory);
-      frame_function(&frame_arena);
+      App_frame_function(&frame_arena);
       HW_sub_arena_clear(&frame_arena);
    }
 }
 
-static void HW_error(hw_platform* platform, const char *s)
+static void HW_platform_error(hw_platform* platform, const char *s)
 {
    const usize buffer_size = strlen(s)+1; // string len + 1 for null
    char* buffer = HW_arena_push_string(&platform->memory, buffer_size);
@@ -276,10 +265,10 @@ static void HW_error(hw_platform* platform, const char *s)
    MessageBox(NULL,buffer,"Engine",MB_OK|MB_ICONSTOP|MB_SYSTEMMODAL);
 
    HW_arena_pop_string(&platform->memory, buffer_size);
-   HW_event_loop_end(platform);
+   HW_platform_event_loop_end(platform);
 }
 
-static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
+static int HW_cmd_parse(char* cmd, char** argv)
 {
    int argc;
    char *arg_start,*arg_end;
@@ -304,6 +293,17 @@ static int HW_parse_cmdline_into_arguments(char* cmd, char** argv)
    return argc;
 }
 
+void HW_platform_blit(hw_platform* platform)
+{
+   PAINTSTRUCT ps;
+
+   BeginPaint(platform->window.handle,&ps);                    /* store into a bitmap */
+   SetMapMode(ps.hdc, MM_TEXT);                             /* blit a bitmap */
+   //SetBitmapBits(HW_bmp,HW_image_size*HW_pixel_size,(void*)G_c_buffer);
+   //BitBlt(ps.hdc,0,0,HW_screen_x_size,HW_screen_y_size,HW_mem,0,0,SRCCOPY);
+   EndPaint(platform->window.handle,&ps);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    hw_platform platform = {0};
@@ -321,10 +321,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
       return 0;
 
    argv = HW_arena_push_count(&platform.memory, MAX_ARGV, char*);
-   argc = HW_parse_cmdline_into_arguments(lpszCmdLine, argv);
+   argc = HW_cmd_parse(lpszCmdLine, argv);
 
    if (argc == 0)
-      HW_error(&platform, "(Hardware) Invalid number of command line options given.\n");
+      HW_platform_error(&platform, "(Hardware) Invalid number of command line options given.\n");
 
    App_start(argc, argv, &platform);    // pass the options to the application
 

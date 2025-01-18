@@ -46,10 +46,10 @@ void App_start(int argc, const char **argv, hw_platform* platform)
    // cmd params from the system
    assert(implies(argc > 0, argv[argc-1]));
 
-   HW_window_open(platform, "App window", 0, 0, 800, 600);
+   HW_platform_window_open(platform, "App window", 0, 0, 800, 600);
 
    G_frustum_create(&frustum, 800, 600, 90.0f);
 
-   HW_event_loop_start(platform, App_frame_draw, App_input_handle);
-   HW_window_close(platform);
+   HW_platform_event_loop_start(platform, App_frame_draw, App_input_handle);
+   HW_platform_window_close(platform);
 }

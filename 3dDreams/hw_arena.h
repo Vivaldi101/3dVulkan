@@ -9,12 +9,6 @@
 #include <assert.h>
 #include "common.h"
 
-// TODO: Rename these apis to fit the module_object_action way
-
-//#define HW_get_array_elements(stack, type) ((type *)stack.base)
-//#define HW_get_at(stack, type, index) ((type *)_getat_(stack, sizeof(type), index))
-//#define HW_get_last(stack, type) ((type *)_get_last_element_(stack, sizeof(type)))
-
 #define HW_arena_push_struct(stack, type) ((type *)HW_memory_buffer_push(stack, sizeof(type)))  
 #define HW_arena_push_count(stack, count, type) ((type *)HW_memory_buffer_push(stack, (count)*sizeof(type)))  
 #define HW_arena_push_string(stack, count) HW_arena_push_count(stack, count, char)

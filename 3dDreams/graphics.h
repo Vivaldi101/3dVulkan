@@ -136,7 +136,6 @@ static void G_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
    G_plane_create(&frustum->b, &origin, &vbl, &vbr);
 }
 
-// Return the t-value instead?
 static bool G_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 vi[3])
 {
    f32 a,b,t;

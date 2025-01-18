@@ -10,16 +10,6 @@
 #include "common.h"
 #include <windows.h>                        /* MS-Windows API */
 
-#define HW_KEY_ARROW_LEFT  VK_LEFT
-#define HW_KEY_ARROW_RIGHT VK_RIGHT
-#define HW_KEY_ARROW_UP    VK_UP
-#define HW_KEY_ARROW_DOWN  VK_DOWN
-#define HW_KEY_PLUS        VK_ADD
-#define HW_KEY_MINUS       VK_SUBTRACT
-#define HW_KEY_ENTER       VK_RETURN
-#define HW_KEY_SPACE       VK_SPACE
-#define HW_KEY_TAB         VK_TAB           /* ids of some keys */
-
 typedef struct hw_platform hw_platform;
 typedef struct hw_memory_buffer hw_memory_buffer;
 typedef struct hw_window hw_window;
@@ -31,14 +21,14 @@ cache_align typedef struct app_input
    union { i32 pos[2]; u64 key; };
 } app_input;
 
-void HW_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height);
-void HW_window_close(hw_platform* platform);
+void HW_platform_window_open(hw_platform* platform, const char *title, int x, int y, int width, int height);
+void HW_platform_window_close(hw_platform* platform);
 
 void HW_draw_pixel(byte address, int r, int g, int b);
 void HW_draw_swap(void);
 
-void HW_event_loop_start(hw_platform* platform, void (*frame_function)(hw_memory_buffer* frame_arena), void (*input_function)(app_input* input));
-void HW_event_loop_end(hw_platform* platform);
-void HW_error(hw_platform* platform, const char *s);
+void HW_platform_event_loop_start(hw_platform* platform, void (*App_frame_function)(hw_memory_buffer* frame_arena), void (*App_input_function)(app_input* input));
+void HW_platform_event_loop_end(hw_platform* platform);
+static void HW_platform_error(hw_platform* platform, const char *s);
 
 #endif
