@@ -10,7 +10,7 @@
 
 typedef enum priority_queue_criteria 
 { 
-   PRIORITY_QUEUE_MAX, PRIORITY_QUEUE_MIN 
+   PRIORITY_QUEUE_CRITERIA_MAX, PRIORITY_QUEUE_CRITERIA_MIN 
 } priority_queue_criteria;
 
 typedef struct priority_queue
@@ -28,7 +28,7 @@ static void priority_queue_swap(priority_queue_type* a, priority_queue_type* b)
    *a = t;
 }
 
-static void priority_queue_invariant(priority_queue* queue) 
+static bool priority_queue_invariant(priority_queue* queue) 
 {
    usize root, lc, rc;
    usize i;
@@ -41,21 +41,25 @@ static void priority_queue_invariant(priority_queue* queue)
          lc = queue->elements[priority_queue_lc(i)].index;
          rc = queue->elements[priority_queue_rc(i)].index;
 
-         assert(root >= lc && root >= rc);
+         if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX)
+            if(root < lc || root < rc)
+               return false;
+         if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MIN)
+            if(root > lc || root > rc)
+               return false;
       }
       else break;
    }
-}
 
-// Assumes now that it is max heap
-// TODO: Use the boolean for min/max option
+   return true;
+}
 
 static void priority_queue_insert(priority_queue* queue, priority_queue_type data)
 {
    // indexes
    usize parent, child;
 
-   priority_queue_invariant(queue);
+   assert(priority_queue_invariant(queue));
    assert(queue->count < priority_queue_max_count);
 
    queue->count++;
@@ -66,16 +70,29 @@ static void priority_queue_insert(priority_queue* queue, priority_queue_type dat
 
    while(parent >= 0)
    {
-      if(queue->elements[parent].index < queue->elements[child].index)
+      if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX)
       {
-         priority_queue_swap(&queue->elements[parent], &queue->elements[child]);
-         child = parent;
-         parent = priority_queue_root(parent);
+         if(queue->elements[parent].index < queue->elements[child].index)
+         {
+            priority_queue_swap(&queue->elements[parent], &queue->elements[child]);
+            child = parent;
+            parent = priority_queue_root(parent);
+         }
+         else break;
       }
-      else break;
+      if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MIN)
+      {
+         if(queue->elements[parent].index > queue->elements[child].index)
+         {
+            priority_queue_swap(&queue->elements[parent], &queue->elements[child]);
+            child = parent;
+            parent = priority_queue_root(parent);
+         }
+         else break;
+      }
    }
 
-   priority_queue_invariant(queue);
+   assert(priority_queue_invariant(queue));
 }
 
 static priority_queue_type priority_queue_remove(priority_queue* queue)
@@ -84,7 +101,7 @@ static priority_queue_type priority_queue_remove(priority_queue* queue)
    // indexes
    usize parent, child;
 
-   priority_queue_invariant(queue);
+   assert(priority_queue_invariant(queue));
    assert(queue->count > 0);
 
    result = queue->elements[0];
@@ -95,41 +112,33 @@ static priority_queue_type priority_queue_remove(priority_queue* queue)
 
    while(child+1 < queue->count)
    {
-      if(queue->elements[child].index < queue->elements[child+1].index)
-         child = child + 1;
-      if(queue->elements[child].index > queue->elements[parent].index)
-      {
-         priority_queue_swap(&queue->elements[parent], &queue->elements[child]);
-         parent = child;
-         child = priority_queue_lc(child);
-      }
-      else break;
+      if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX)
+         if(queue->elements[child].index < queue->elements[child+1].index)
+            child = child + 1;
+      if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MIN)
+         if(queue->elements[child].index > queue->elements[child+1].index)
+            child = child + 1;
+      if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX)
+         if(queue->elements[child].index > queue->elements[parent].index)
+         {
+            priority_queue_swap(&queue->elements[parent], &queue->elements[child]);
+            parent = child;
+            child = priority_queue_lc(child);
+         }
+         else break;
+      if(queue->criteria == PRIORITY_QUEUE_CRITERIA_MIN)
+         if(queue->elements[child].index < queue->elements[parent].index)
+         {
+            priority_queue_swap(&queue->elements[parent], &queue->elements[child]);
+            parent = child;
+            child = priority_queue_lc(child);
+         }
+         else break;
    }
 
-   priority_queue_invariant(queue);
+   assert(priority_queue_invariant(queue));
 
    return result;
 }
 
 #endif
-
-// wp(child+1 < count)
-// child < count - 1
-
-// 2i + 1
-// 2i + 2
-
-// 2(2i + 1)
-// 4i + 2
-
-// 2(2i + 2)
-// 4i + 4
-
-// 4i + 4 - (2i + 2)
-// 4i + 4 - 2i - 2
-// 2i + 2
-
-// 4i + 2 - (2i + 1)
-// 4i + 2 - 2i - 1
-// 2i + 2 - 1
-// 2i + 1

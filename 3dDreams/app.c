@@ -56,6 +56,8 @@ void app_start(int argc, const char **argv, hw* hw)
    usize temp_arr[priority_queue_max_count];
    int i;
 
+   queue.criteria = PRIORITY_QUEUE_CRITERIA_MIN;
+
    for(i = 0; i < priority_queue_max_count; ++i)
    {
       priority_queue_node node = {0};
