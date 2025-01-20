@@ -53,6 +53,7 @@ void app_start(int argc, const char **argv, hw* hw)
 {
    g_frustum frustum = {0};
    priority_queue queue = {0};
+   usize temp_arr[priority_queue_max_count];
    int i;
 
    for(i = 0; i < priority_queue_max_count; ++i)
@@ -61,6 +62,12 @@ void app_start(int argc, const char **argv, hw* hw)
       node.element = i+1;
       node.index = i;
       priority_queue_insert(&queue, node);
+   }
+
+   for(i = 0; i < priority_queue_max_count; ++i)
+   {
+      priority_queue_node node = priority_queue_remove(&queue);
+      temp_arr[i] = node.index;
    }
 
    // cmd params from the system

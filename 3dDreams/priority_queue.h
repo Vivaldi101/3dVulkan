@@ -48,6 +48,7 @@ static void priority_queue_invariant(priority_queue* queue)
 }
 
 // Assumes now that it is max heap
+// TODO: Use the boolean for min/max option
 
 static void priority_queue_insert(priority_queue* queue, priority_queue_type data)
 {
@@ -55,8 +56,7 @@ static void priority_queue_insert(priority_queue* queue, priority_queue_type dat
    usize parent, child;
 
    priority_queue_invariant(queue);
-   if(queue->count == priority_queue_max_count) 
-      return;
+   assert(queue->count < priority_queue_max_count);
 
    queue->count++;
    queue->elements[queue->count-1] = data;
@@ -80,9 +80,56 @@ static void priority_queue_insert(priority_queue* queue, priority_queue_type dat
 
 static priority_queue_type priority_queue_remove(priority_queue* queue)
 {
-   priority_queue_type result = {0};
+   priority_queue_type result;
+   // indexes
+   usize parent, child;
+
+   priority_queue_invariant(queue);
+   assert(queue->count > 0);
+
+   result = queue->elements[0];
+   queue->elements[0] = queue->elements[queue->count-1];
+   queue->count--;
+   parent = 0;
+   child = 1;
+
+   while(child+1 < queue->count)
+   {
+      if(queue->elements[child].index < queue->elements[child+1].index)
+         child = child + 1;
+      if(queue->elements[child].index > queue->elements[parent].index)
+      {
+         priority_queue_swap(&queue->elements[parent], &queue->elements[child]);
+         parent = child;
+         child = priority_queue_lc(child);
+      }
+      else break;
+   }
+
+   priority_queue_invariant(queue);
 
    return result;
 }
 
 #endif
+
+// wp(child+1 < count)
+// child < count - 1
+
+// 2i + 1
+// 2i + 2
+
+// 2(2i + 1)
+// 4i + 2
+
+// 2(2i + 2)
+// 4i + 4
+
+// 4i + 4 - (2i + 2)
+// 4i + 4 - 2i - 2
+// 2i + 2
+
+// 4i + 2 - (2i + 1)
+// 4i + 2 - 2i - 1
+// 2i + 2 - 1
+// 2i + 1
