@@ -6,10 +6,7 @@
 #include "assert.h"
 #include <math.h>
 
-enum
-{
-   G_PLANE_FRONT, G_PLANE_BACK, G_PLANE_ON, G_PLANE_SPLIT
-};
+enum { G_PLANE_FRONT, G_PLANE_BACK, G_PLANE_ON, G_PLANE_SPLIT };
 
 #define DEG_TO_RAD(degrees) ((degrees) * (3.14159265358979323846f / 180.0f))
 
@@ -53,7 +50,7 @@ cache_align typedef struct g_plane { vec3 n; f32 d; } g_plane;
 
 cache_align typedef struct g_frustum { g_plane l,r,t,b,n,f; } g_frustum;
 
-static int G_plane_classify_vertex_side(g_plane* plane, f32 vertex[3])
+static int g_plane_classify_vertex_side(g_plane* plane, f32 vertex[3])
 {
    // normal plane equation
    f32 p = plane->n.x*vertex[0] + plane->n.y*vertex[1] + plane->n.z*vertex[2] + plane->d;
@@ -63,12 +60,12 @@ static int G_plane_classify_vertex_side(g_plane* plane, f32 vertex[3])
    return G_PLANE_ON;
 }
 
-static int G_plane_classify_face_side(g_plane* plane, f32 face[3*3])
+static int g_plane_classify_face_side(g_plane* plane, f32 face[3*3])
 {
    int fn = 0, bn = 0, i;
    for(i = 0; i < 3; ++i) // per vertex of face
    {
-      switch(G_plane_classify_vertex_side(plane, face + (i*3)))
+      switch(g_plane_classify_vertex_side(plane, face + (i*3)))
       {
       case G_PLANE_FRONT:
          ++fn; 
@@ -86,7 +83,7 @@ static int G_plane_classify_face_side(g_plane* plane, f32 face[3*3])
    return G_PLANE_SPLIT;
 }
 
-static void G_plane_create(g_plane* plane, const vec3* a, const vec3* b, const vec3* c)
+static void g_plane_create(g_plane* plane, const vec3* a, const vec3* b, const vec3* c)
 {
    vec3 ab = vec3_sub(a, b);
    vec3 ac = vec3_sub(a, c);
@@ -99,7 +96,7 @@ static void G_plane_create(g_plane* plane, const vec3* a, const vec3* b, const v
    plane->d = -vec3_dot(*a, n);
 }
 
-static void G_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
+static void g_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
 {
    f32 xr, xl, yb, yt;
    f32 z = w / (2.0f*tanf(DEG_TO_RAD(hfov/2.0f)));
@@ -130,13 +127,13 @@ static void G_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
    vbl.y = yb;    vbr.y = yb;
    vbl.z = z;     vbr.z = z;
 
-   G_plane_create(&frustum->l, &origin, &vlt, &vlb);
-   G_plane_create(&frustum->r, &origin, &vrb, &vrt);
-   G_plane_create(&frustum->t, &origin, &vtr, &vtl);
-   G_plane_create(&frustum->b, &origin, &vbl, &vbr);
+   g_plane_create(&frustum->l, &origin, &vlt, &vlb);
+   g_plane_create(&frustum->r, &origin, &vrb, &vrt);
+   g_plane_create(&frustum->t, &origin, &vtr, &vtl);
+   g_plane_create(&frustum->b, &origin, &vbl, &vbr);
 }
 
-static bool G_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 vi[3])
+static bool g_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 vi[3])
 {
    f32 a,b,t;
 

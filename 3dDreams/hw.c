@@ -8,6 +8,9 @@
 #include "hw.h"
 #include "hw_arena.h"
 #include "common.h"
+#include "app.h"
+
+#include "d3d12.c"
 
 #include <stdio.h>                          /* vsprintf */
 
@@ -267,7 +270,7 @@ static void hw_error(hw* hw, const char *s)
    hw_event_loop_end(hw);
 }
 
-static int hw_cmd_parse(char* cmd, char** argv)
+static int hw_cmd_parse(char* cmd, const char** argv)
 {
    int argc;
    char *arg_start,*arg_end;
@@ -308,7 +311,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw hw = {0};
    MEMORYSTATUSEX memory_status;
    int argc;
-   char **argv;
+   const char **argv;
    usize virtual_memory_amount = 10ull*1024*1024;
 
    memory_status.dwLength = sizeof(memory_status);
@@ -319,7 +322,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    if (!hw.memory.base || (hw.memory.max_size != virtual_memory_amount))
       return 0;
 
-   argv = hw_arena_push_count(&hw.memory, MAX_ARGV, char*);
+   argv = hw_arena_push_count(&hw.memory, MAX_ARGV, const char*);
    argc = hw_cmd_parse(lpszCmdLine, argv);
 
    if (argc == 0)

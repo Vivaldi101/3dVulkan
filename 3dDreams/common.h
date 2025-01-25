@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <assert.h>
+#include "hw.h"
 
 typedef uint8_t   u8;
 typedef uint16_t  u16;
@@ -25,9 +25,9 @@ typedef int32_t fp;
 
 typedef size_t usize;
 
-#define pre(p)  assert(p)
-#define post(p) assert(p)
-#define inv(p)  assert(p)
+#define pre(p)  {if(!p)hw_assert(p)}
+#define post(p) {if(!p)hw_assert(p)}
+#define inv(p)  {if(!p)hw_assert(p)}
 
 #define iff(p, q) (p) == (q)
 #define implies(p, q) (!(p) || (q))
