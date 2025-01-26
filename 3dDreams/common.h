@@ -25,6 +25,7 @@ typedef int32_t fp;
 
 typedef size_t usize;
 
+// TODO: Disable on release
 #define pre(p)  {if(!p)hw_assert(p)}
 #define post(p) {if(!p)hw_assert(p)}
 #define inv(p)  {if(!p)hw_assert(p)}

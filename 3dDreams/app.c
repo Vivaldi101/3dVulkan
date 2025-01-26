@@ -5,24 +5,28 @@
 #include "common.h"
 #include "hw_arena.h"
 #include "d3d12.h"
+#include "soft.h"
 
+#if 0
 typedef struct app_some_type
 {
    int arr[100];
    char* name;
    bool isvalid;
 } app_some_type;
+#endif
 
 // do frame drawing
-// TODO: Pass frame data
 static void app_frame_draw(hw_buffer* frame_arena)
 {
+#if 0
    int i;
    app_some_type* type = hw_arena_push_struct(frame_arena, app_some_type);
    type->isvalid = true;
    type->name = "foo";
-   for(i = 0; i < array_count(type->arr); ++i)
+   for (i = 0; i < array_count(type->arr); ++i)
       type->arr[i] = 42;
+#endif
 }
 
 // do input handling
@@ -30,24 +34,26 @@ static void app_input_handle(app_input* input)
 {
    u64 key;
    i32 pos[2], i;
-   if(input->input_type == HW_INPUT_TYPE_MOUSE)
-      if(input->pos[0] > 0 && input->pos[1] > 0)
-         for(i = 0; i < 2; ++i)
+   if (input->input_type == HW_INPUT_TYPE_MOUSE)
+      if (input->pos[0] > 0 && input->pos[1] > 0)
+         for (i = 0; i < 2; ++i)
             pos[i] = input->pos[i];
-   if(input->input_type == HW_INPUT_TYPE_KEY)
+   if (input->input_type == HW_INPUT_TYPE_KEY)
       key = input->key;
 }
 
-void app_start(int argc, const char **argv, hw* hw)
+void app_start(int argc, const char** argv, hw* hw)
 {
-   g_frustum frustum = {0};
+   g_frustum frustum = { 0 };
 
    // cmd params from the system
-   assert(implies(argc > 0, argv[argc-1]));
-
-   d3d_initialize(hw);
+   assert(implies(argc > 0, argv[argc - 1]));
 
    hw_window_open(hw, "App window", 0, 0, 800, 600);
+
+   // TODO: initialize the chosen backend based on hw params
+   d3d12_initialize(hw);
+   //soft_initialize(hw);
 
    g_frustum_create(&frustum, 800, 600, 90.0f);
 
