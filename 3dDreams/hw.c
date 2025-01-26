@@ -15,9 +15,12 @@ cache_align typedef struct hw_window
    HWND handle;
 } hw_window;
 
+typedef enum hw_command_list_type { } hw_command_list_type;
+
 cache_align typedef struct hw_renderer
 {
-  void(*present)();
+   hw_command_list_type command_list_type;
+   void(*present)(struct hw_renderer* renderer);
 
 } hw_renderer;
 
@@ -123,10 +126,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 #endif
 
-static void hw_graphics_open(hw* hw)
-{
-}
-
 void hw_window_open(hw* hw, const char* title, int x, int y, int width, int height)
 {
    RECT winrect;
@@ -226,7 +225,7 @@ void hw_event_loop_end(hw* hw)
    hw_window_close(hw);
 }
 
-void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(app_input* input))
+void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(struct app_input* input))
 {
    // first window paint
    InvalidateRect(hw->window.handle, NULL, TRUE);
@@ -251,7 +250,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       hw_sub_arena_clear(&frame_arena);
 
       pre(hw->renderer.present);
-      hw->renderer.present();
+      hw->renderer.present(&hw->renderer);
    }
 }
 
@@ -276,7 +275,7 @@ static int hw_cmd_parse(char* cmd, const char** argv)
    argv[argc++] = GetCommandLine();    // put program name as the first one
    arg_start = cmd;
 
-   while (arg_end = strchr(arg_start, ' '))
+   while ((arg_end = strchr(arg_start, ' ')))
    {
       if (argc >= MAX_ARGV)                   // exceeds our max number of arguments
          return 0;
