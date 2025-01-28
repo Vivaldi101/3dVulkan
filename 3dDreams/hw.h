@@ -10,7 +10,6 @@
 // hw is the main platform context
 typedef struct hw hw;
 typedef struct hw_buffer hw_buffer;
-typedef struct hw_window hw_window;
 typedef enum { HW_INPUT_TYPE_KEY, HW_INPUT_TYPE_MOUSE, HW_INPUT_TYPE_TOUCH } hw_input_type;
 void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height);
 void hw_window_close(hw* hw);

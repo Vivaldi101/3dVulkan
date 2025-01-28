@@ -3,7 +3,6 @@
 #define _GRAPHICS_H
 
 #include "common.h"
-#include "assert.h"
 #include <math.h>
 
 enum { G_PLANE_FRONT, G_PLANE_BACK, G_PLANE_ON, G_PLANE_SPLIT };

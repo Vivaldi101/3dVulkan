@@ -1,11 +1,6 @@
-#include "hw.h"
 #include "app.h"
 #include "graphics.h"
-#include "fixed_point.h"
-#include "common.h"
-#include "hw_arena.h"
 #include "d3d12.h"
-#include "soft.h"
 
 #if 0
 typedef struct app_some_type
@@ -44,16 +39,13 @@ static void app_input_handle(app_input* input)
 
 void app_start(int argc, const char** argv, hw* hw)
 {
-   g_frustum frustum = { 0 };
+   pre(implies(argc > 0, argv[argc - 1]));
 
-   // cmd params from the system
-   assert(implies(argc > 0, argv[argc - 1]));
+   g_frustum frustum = {0};
 
    hw_window_open(hw, "App window", 0, 0, 800, 600);
 
-   // TODO: initialize the chosen backend based on hw params
    d3d12_initialize(hw);
-   //soft_initialize(hw);
 
    g_frustum_create(&frustum, 800, 600, 90.0f);
 
