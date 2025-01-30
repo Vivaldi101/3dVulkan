@@ -9,6 +9,7 @@
 #include <assert.h>
 #include "common.h"
 
+// TODO: We need the concept of an empty stub struct in case of overflow allocation
 #define hw_arena_push_struct(stack, type) ((type *)hw_buffer_push(stack, sizeof(type)))  
 #define hw_arena_push_count(stack, count, type) ((type *)hw_buffer_push(stack, (count)*sizeof(type)))  
 #define hw_arena_push_string(stack, count) hw_arena_push_count(stack, count, char)

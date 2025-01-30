@@ -12,20 +12,15 @@ cache_align typedef struct hw_window
 
 cache_align typedef struct hw_renderer
 {
-	// void* could be opaque handles too
-	void* device;
-	void* queue;
-	void* swap_chain;
-	void* command_allocator;
-   void(*present)(struct hw_renderer* renderer);
+   void* d3d12_renderer;
+   void(*present)(struct d3d12_renderer* renderer);
    hw_window window;
-   usize command_list_type;
 } hw_renderer;
 
 cache_align typedef struct hw
 {
    hw_renderer renderer;
-   hw_buffer memory;
+   hw_buffer memory;				// TODO: we need concept of permanent storage here since sub arenas are temp
    u32 image_pixel_size;
    bool finished;
 } hw;
@@ -49,54 +44,6 @@ void hw_window_open(hw* hw, const char* title, int x, int y, int width, int heig
    WNDCLASS wc;
    DWORD dwExStyle, dwStyle;
 
-   // TODO: Move these into soft.c for software rasterizing
-#if 0
-   PAINTSTRUCT ps;
-
-   int i, remap;
-   COLORREF cr, cr2;
-   BYTE r, g, b;
-   hw_mem = CreateCompatibleDC(BeginPaint(hw_wnd, &ps));
-   if ((GetDeviceCaps(ps.hdc, PLANES)) != 1)
-      hw_error("(Hardware) Direct RGB color expected.");
-
-   hw_pixel_size = GetDeviceCaps(ps.hdc, BITSPIXEL) / 8;
-   if ((hw_pixel_size != 2) && (hw_pixel_size != 3) && (hw_pixel_size != 4))
-      hw_error("(Hardware) 16bpp, 24bpp or 32bpp expected.");
-
-   G_init_graphics();
-
-   hw_bmp = CreateCompatibleBitmap(ps.hdc, hw_screen_x_size, hw_screen_y_size);
-   SelectObject(hw_mem, hw_bmp);
-
-   cr2 = 0;                                     /* ugly way of doing something */
-   hw_red_mask = hw_green_mask = hw_blue_mask = 0;  /* trivial. Windows don't */
-   for (i = 1; i < 256; i++)                        /* have any service to report */
-   {                                          /* pixel bit layout */
-      cr = SetPixel(hw_mem, 0, 0, RGB(i, i, i));
-      if (GetRValue(cr) != GetRValue(cr2)) hw_red_mask++;
-      if (GetGValue(cr) != GetGValue(cr2)) hw_green_mask++;
-      if (GetBValue(cr) != GetBValue(cr2)) hw_blue_mask++;
-      cr2 = cr;                                   /* masks - which bits are masked */
-   }                                          /* by every color */
-   hw_red_size = hw_green_size = hw_blue_size = 0;
-   for (i = 0; i < 8; i++)                           /* finding how many bits */
-   {
-      if (hw_red_mask >> i) hw_red_size++;
-      if (hw_green_mask >> i) hw_green_size++;
-      if (hw_blue_mask >> i) hw_blue_size++;
-   }
-   hw_red_shift = hw_green_size + hw_blue_size;   /* finding how to pack colors */
-   hw_green_shift = hw_blue_size;               /* into a pixel */
-   hw_blue_shift = 0;
-
-   EndPaint(hw_wnd, &ps);
-
-   hw_rect.left = hw_rect.top = 0;
-   hw_rect.right = hw_screen_x_size;
-   hw_rect.bottom = hw_screen_y_size;
-
-#endif
    winrect.left = 0;
    winrect.right = width;
    winrect.top = 0;
@@ -168,7 +115,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       hw_sub_arena_clear(&frame_arena);
 
       pre(hw->renderer.present);
-      hw->renderer.present(&hw->renderer);
+      hw->renderer.present(hw->renderer.d3d12_renderer);
    }
 }
 

@@ -1,5 +1,6 @@
 #include <d3d12.h>
 #include <dxgi1_2.h>
+#include "hw_arena.h"
 
 #include "common.h"
 
@@ -9,7 +10,16 @@
 
 #define d3d_success(r) SUCCEEDED((r))
 
-void d3d12_present(hw_renderer* renderer)
+typedef struct d3d12_renderer
+{
+	void* device;
+	void* queue;
+	void* swap_chain;
+	void* command_allocator;
+   usize command_list_type;
+} d3d12_renderer;
+
+void d3d12_present(d3d12_renderer* renderer)
 {
    HRESULT hr = S_OK;
    ID3D12GraphicsCommandList* render_commands;
@@ -48,22 +58,24 @@ void d3d12_initialize(hw* hw)
    HRESULT hr = S_OK;
    ID3D12Device* d3d12_device = NULL;
    ID3D12CommandQueue* d3d12_command_queue = NULL;
-   D3D12_COMMAND_QUEUE_DESC graphics_command_queue_desc = {0};
-   DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
-   //D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_desc = {0};
    ID3D12Fence* fence = NULL;
    IDXGISwapChain1* dxgi_swap_chain = NULL;
    IDXGIFactory2* dxgi_factory = NULL;
    ID3D12CommandAllocator* d3d12_command_allocator = NULL;
+   //D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_desc = {0};
+   D3D12_COMMAND_QUEUE_DESC graphics_command_queue_desc = {0};
+   DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
 
    //ID3D12PipelineState* pipeline_state;
    pre(hw->renderer.window.handle);
+
+   d3d12_renderer* renderer = hw_arena_push_struct(&hw->memory, d3d12_renderer);
 
    hr |= D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_12_1, &IID_ID3D12Device, (void**)&d3d12_device);
    if (!d3d12_device)
       hw_assert("d3d12_device not created");
 
-   hw->renderer.device = d3d12_device;
+   renderer->device = d3d12_device;
 
    hr |= d3d12_device->lpVtbl->CreateFence(d3d12_device, 0, D3D12_FENCE_FLAG_NONE, &IID_ID3D12Fence, (void**)&fence);
    if (!fence)
@@ -79,7 +91,7 @@ void d3d12_initialize(hw* hw)
    if (!d3d12_command_queue)
       hw_assert("d3d12_command_queue not created");
 
-   hw->renderer.queue = d3d12_command_queue;
+   renderer->queue = d3d12_command_queue;
 
    swap_chain_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
    swap_chain_desc.SampleDesc.Count = 1;
@@ -90,13 +102,15 @@ void d3d12_initialize(hw* hw)
    if (!dxgi_swap_chain)
       hw_assert("dxgi_swap_chain not created");
 
-   hw->renderer.swap_chain = dxgi_swap_chain;
+
+   renderer->swap_chain = dxgi_swap_chain;
 
    hr |= d3d12_device->lpVtbl->CreateCommandAllocator(d3d12_device, graphics_command_queue_desc.Type, &IID_ID3D12CommandAllocator, (void**)&d3d12_command_allocator);
    if (!d3d12_command_allocator)
       hw_assert("d3d12_command_allocator not created");
 
-   hw->renderer.command_allocator = d3d12_command_allocator;
+
+   renderer->command_allocator = d3d12_command_allocator;
 
    //pipeline_state_desc.SampleMask = UINT_MAX;
    //pipeline_state_desc.NumRenderTargets = 1;
@@ -108,12 +122,14 @@ void d3d12_initialize(hw* hw)
       //hw_assert("pipeline_state not created");
 
    hw->renderer.present = d3d12_present;
-   hw->renderer.command_list_type = graphics_command_queue_desc.Type;
+   hw->renderer.d3d12_renderer = renderer;
+
+   renderer->command_list_type = graphics_command_queue_desc.Type;
 
    post(d3d_success(hr));
-   post(hw->renderer.device);
-   post(hw->renderer.queue);
-   post(hw->renderer.swap_chain);
-   post(hw->renderer.command_allocator);
-   post(hw->renderer.present);
+   post(hw->renderer.d3d12_renderer);
+   post(renderer->device);
+   post(renderer->queue);
+   post(renderer->swap_chain);
+   post(renderer->command_allocator);
 }
