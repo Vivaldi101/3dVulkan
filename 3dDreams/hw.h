@@ -4,7 +4,7 @@
 #if _WIN32
 #include <Windows.h>
 #define hw_assert(p) { MessageBoxA(0, #p, "Assertion", MB_OK); __debugbreak(); }
-// TODO: Add other plats
+#pragma comment(lib,	"winmm.lib")
 #endif
 
 // hw is the main platform context

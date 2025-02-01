@@ -3,20 +3,32 @@
   "WorkspaceRootPath": "C:\\Work\\3dDreams\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\common.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\common.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\d3d12.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\d3d12.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\app.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\app.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw_arena.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw_arena.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\priority_queue.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\priority_queue.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\graphics.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -27,20 +39,12 @@
       "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\d3d12.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\common.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\common.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\soft.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\soft.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\app.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\app.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\app.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\app.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\soft.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -64,7 +68,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 198,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -72,7 +76,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
+              "Title": "priority_queue.h",
+              "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\priority_queue.h",
+              "RelativeDocumentMoniker": "3dDreams\\priority_queue.h",
+              "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\priority_queue.h",
+              "RelativeToolTip": "3dDreams\\priority_queue.h",
+              "ViewState": "AgIAAFEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2025-01-31T18:49:21.541Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
               "Title": "d3d12.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\d3d12.h",
               "RelativeDocumentMoniker": "3dDreams\\d3d12.h",
@@ -80,63 +96,60 @@
               "RelativeToolTip": "3dDreams\\d3d12.h",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-01-25T14:00:34.21Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-25T14:00:34.21Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "hw.c",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\hw.c",
               "RelativeDocumentMoniker": "3dDreams\\hw.c",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\hw.c",
               "RelativeToolTip": "3dDreams\\hw.c",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAAAOIAAAAGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2025-01-26T11:55:21.469Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 4,
               "Title": "app.c",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\app.c",
               "RelativeDocumentMoniker": "3dDreams\\app.c",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\app.c",
               "RelativeToolTip": "3dDreams\\app.c",
-              "ViewState": "AgIAABQAAAAAAAAAAAAmwC8AAAADAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2025-01-25T10:22:51.599Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "d3d12.c",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\d3d12.c",
               "RelativeDocumentMoniker": "3dDreams\\d3d12.c",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\d3d12.c",
               "RelativeToolTip": "3dDreams\\d3d12.c",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
-              "WhenOpened": "2025-01-25T10:21:10.149Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-25T10:21:10.149Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "hw_arena.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\hw_arena.h",
               "RelativeDocumentMoniker": "3dDreams\\hw_arena.h",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\hw_arena.h",
               "RelativeToolTip": "3dDreams\\hw_arena.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAA4AAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABwAAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-01-30T16:23:01.976Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-30T16:23:01.976Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "soft.c",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\soft.c",
               "RelativeDocumentMoniker": "3dDreams\\soft.c",
@@ -144,25 +157,23 @@
               "RelativeToolTip": "3dDreams\\soft.c",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAA6AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
-              "WhenOpened": "2025-01-30T07:41:10.128Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-30T07:41:10.128Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "hw.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\hw.h",
               "RelativeDocumentMoniker": "3dDreams\\hw.h",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\hw.h",
               "RelativeToolTip": "3dDreams\\hw.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-01-26T19:56:06.917Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-26T19:56:06.917Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 13,
               "Title": "dxgi1_2.h",
               "DocumentMoniker": "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared\\dxgi1_2.h",
               "RelativeDocumentMoniker": "..\\..\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared\\dxgi1_2.h",
@@ -174,7 +185,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 7,
               "Title": "graphics.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\graphics.h",
               "RelativeDocumentMoniker": "3dDreams\\graphics.h",
@@ -182,12 +193,11 @@
               "RelativeToolTip": "3dDreams\\graphics.h",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-01-25T10:45:13.965Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-25T10:45:13.965Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "soft.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\soft.h",
               "RelativeDocumentMoniker": "3dDreams\\soft.h",
@@ -199,7 +209,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 12,
               "Title": "fixed_point.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\fixed_point.h",
               "RelativeDocumentMoniker": "3dDreams\\fixed_point.h",
@@ -211,7 +221,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 14,
               "Title": "d3d12.h",
               "DocumentMoniker": "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um\\d3d12.h",
               "RelativeDocumentMoniker": "..\\..\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um\\d3d12.h",
@@ -223,7 +233,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "app.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\app.h",
               "RelativeDocumentMoniker": "3dDreams\\app.h",
@@ -235,13 +245,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 1,
               "Title": "common.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\common.h",
               "RelativeDocumentMoniker": "3dDreams\\common.h",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\common.h",
               "RelativeToolTip": "3dDreams\\common.h",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABYAAAAAAAAAAAApwCcAAAAOAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2025-01-25T10:21:08.249Z",
               "EditorCaption": ""

@@ -19,7 +19,7 @@
 #define hw_arena_pop_string(stack, count) hw_arena_pop_count(stack, count, char)
 
 #define hw_sub_arena_clear(stack) hw_buffer_clear(stack)
-#define hw_sub_arena_create(stack) hw_submemory_buffer_create(stack)
+#define hw_sub_arena_create(stack) hw_sub_memory_buffer_create(stack)
 
 #define hw_arena_create(stack) hw_buffer_create(stack)
 
@@ -44,7 +44,7 @@ static hw_buffer hw_buffer_create(size_t num_bytes)
     return result;
 }
 
-static hw_buffer hw_submemory_buffer_create(hw_buffer *buffer)
+static hw_buffer hw_sub_memory_buffer_create(hw_buffer *buffer)
 {
    hw_buffer result = {0};
 

@@ -13,6 +13,7 @@ cache_align typedef struct hw_window
 cache_align typedef struct hw_renderer
 {
    void* d3d12_renderer;
+   void* soft_renderer;
    void(*present)(struct d3d12_renderer* renderer);
    hw_window window;
 } hw_renderer;
@@ -21,18 +22,18 @@ cache_align typedef struct hw
 {
    hw_renderer renderer;
    hw_buffer memory;				// TODO: we need concept of permanent storage here since sub arenas are temp
-   u32 image_pixel_size;
    bool finished;
 } hw;
 
 #include "d3d12.c"
 
+// TODO: Add all the extra garbage for handling window events
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
    switch (uMsg)
    {
-		case WM_CLOSE:
-		PostQuitMessage(0);
-		return 0;
+   case WM_CLOSE:
+   PostQuitMessage(0);
+   return 0;
    }
 
    return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -43,11 +44,6 @@ void hw_window_open(hw* hw, const char* title, int x, int y, int width, int heig
    RECT winrect;
    WNDCLASS wc;
    DWORD dwExStyle, dwStyle;
-
-   winrect.left = 0;
-   winrect.right = width;
-   winrect.top = 0;
-   winrect.bottom = height;
 
    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
    wc.lpfnWndProc = WndProc;
@@ -62,8 +58,13 @@ void hw_window_open(hw* hw, const char* title, int x, int y, int width, int heig
    if (!RegisterClass(&wc))
       hw_error(hw, "(Hardware) Failed to Win32 register class.");
 
-   dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
    dwStyle = WS_OVERLAPPEDWINDOW;
+   dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+
+   winrect.left = 0;
+   winrect.right = width;
+   winrect.top = 0;
+   winrect.bottom = height;
    AdjustWindowRectEx(&winrect, dwStyle, false, dwExStyle);
 
    hw->renderer.window.handle = CreateWindowEx(dwExStyle,
@@ -89,13 +90,66 @@ void hw_event_loop_end(hw* hw)
    hw_window_close(hw);
 }
 
+// TODO: Macro this init is not constants
+static DWORD hw_get_milliseconds()
+{
+   static DWORD sys_time_base = 0;
+   if (sys_time_base == 0) sys_time_base = timeGetTime();
+   return timeGetTime() - sys_time_base;
+}
+
+#define MAX_UPS (60)
+#define MSEC_PER_SIM (16)
+
+static f32 global_game_time_residual;
+static int global_game_frame;
+
+static void hw_sleep(DWORD ms)
+{
+   Sleep(ms);
+}
+
+static void hw_sync_to_frame()
+{
+	int num_frames_to_run = 0;
+   for (;;) 
+   {
+      const int current_frame_time = hw_get_milliseconds();
+      static int last_frame_time = 0;
+      if (last_frame_time == 0) 
+         last_frame_time = current_frame_time;
+
+      int delta_milli_seconds = current_frame_time - last_frame_time;
+      last_frame_time = current_frame_time;
+
+      global_game_time_residual += delta_milli_seconds;
+
+      for (;;) 
+      {
+         // how much to wait before running the next frame
+         if (global_game_time_residual < MSEC_PER_SIM)
+            break;
+         global_game_time_residual -= MSEC_PER_SIM;
+         global_game_frame++;
+         num_frames_to_run++;
+      }
+      if (num_frames_to_run > 0)
+         break;
+
+      hw_sleep(0);
+   }
+}
+
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(struct app_input* input))
 {
    // first window paint
    InvalidateRect(hw->renderer.window.handle, NULL, TRUE);
    UpdateWindow(hw->renderer.window.handle);
 
-   // TODO: 60 FPS cap
+	// init timers
+	timeBeginPeriod(1);
+   hw_get_milliseconds();
+
    for (;;)
    {
       MSG msg;
@@ -115,8 +169,12 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       hw_sub_arena_clear(&frame_arena);
 
       pre(hw->renderer.present);
+
+      hw_sync_to_frame();
       hw->renderer.present(hw->renderer.d3d12_renderer);
    }
+
+	timeEndPeriod(1);
 }
 
 static void hw_error(hw* hw, const char* s)
@@ -134,14 +192,14 @@ static void hw_error(hw* hw, const char* s)
 static int cmd_parse(char* cmd, char** argv)
 {
    int argc;
-   char* arg_start, *arg_end;
+   char* arg_start, * arg_end;
 
    pre(strlen(argv[0]) > 0);
-   for(usize i = strlen(argv[0])-1; i >= 0; --i)
+   for (usize i = strlen(argv[0]) - 1; i >= 0; --i)
    {
-		if(argv[0][i] == '\"') 
+      if (argv[0][i] == '\"')
       {
-			argv[0][i+1] = 0;
+         argv[0][i + 1] = 0;
          break;
       }
    }
@@ -166,7 +224,7 @@ static int cmd_parse(char* cmd, char** argv)
    return argc;
 }
 
-void hw_blit(hw* hw)
+static void hw_blit(hw* hw)
 {
    PAINTSTRUCT ps;
 
