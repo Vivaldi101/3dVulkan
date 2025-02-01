@@ -7,6 +7,14 @@
 #pragma comment(lib,	"winmm.lib")
 #endif
 
+enum
+{
+   vulkan_renderer_index, 
+	d3d12_renderer_index, 
+   soft_renderer_index,
+   renderer_count
+};
+
 // hw is the main platform context
 typedef struct hw hw;
 typedef struct hw_buffer hw_buffer;

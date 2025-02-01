@@ -1,7 +1,7 @@
 #include <d3d12.h>
 #include <dxgi1_2.h>
-#include "hw_arena.h"
 
+#include "hw_arena.h"
 #include "common.h"
 
 #pragma comment(lib,	"d3d12.lib")
@@ -56,36 +56,47 @@ void d3d12_present(d3d12_renderer* renderer)
 void d3d12_initialize(hw* hw)
 {
    HRESULT hr = S_OK;
-   ID3D12Device* d3d12_device = NULL;
-   ID3D12CommandQueue* d3d12_command_queue = NULL;
-   ID3D12Fence* fence = NULL;
-   IDXGISwapChain1* dxgi_swap_chain = NULL;
-   IDXGIFactory2* dxgi_factory = NULL;
-   ID3D12CommandAllocator* d3d12_command_allocator = NULL;
-   //D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_desc = {0};
+   ID3D12Device* d3d12_device;
+   ID3D12CommandQueue* d3d12_command_queue;
+   //ID3D12Fence* fence;
+   IDXGISwapChain1* dxgi_swap_chain;
+   IDXGIFactory2* dxgi_factory;
+   IDXGIAdapter1* dxgi_adapter;
+   ID3D12CommandAllocator* d3d12_command_allocator;
+   //ID3D12PipelineState* pipeline_state;
    D3D12_COMMAND_QUEUE_DESC graphics_command_queue_desc = {0};
    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
+   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_desc = {0};
+   u32 adapter_index;
 
-   //ID3D12PipelineState* pipeline_state;
    pre(hw->renderer.window.handle);
 
    d3d12_renderer* renderer = hw_arena_push_struct(&hw->memory, d3d12_renderer);
 
-   hr |= D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_12_1, &IID_ID3D12Device, (void**)&d3d12_device);
+   hr |= CreateDXGIFactory1(&IID_IDXGIFactory, (void**)&dxgi_factory);
+   if (!dxgi_factory)
+      hw_assert("dxgi_factory not created");
+
+   adapter_index = 0;
+
+   while(dxgi_factory->lpVtbl->EnumAdapters1(dxgi_factory, adapter_index, &dxgi_adapter) != DXGI_ERROR_NOT_FOUND)
+   {
+      DXGI_ADAPTER_DESC1 adapter_desc = {0};
+
+      dxgi_adapter->lpVtbl->GetDesc1(dxgi_adapter, &adapter_desc);
+
+      hr |= D3D12CreateDevice((IUnknown*)dxgi_adapter, D3D_FEATURE_LEVEL_12_1, &IID_ID3D12Device, NULL);
+      if (d3d_success(hr))
+         break;
+
+      ++adapter_index;
+   }
+
+   hr |= D3D12CreateDevice((IUnknown*)dxgi_adapter, D3D_FEATURE_LEVEL_12_1, &IID_ID3D12Device, (void**)&d3d12_device);
    if (!d3d12_device)
       hw_assert("d3d12_device not created");
 
    renderer->device = d3d12_device;
-
-   hr |= d3d12_device->lpVtbl->CreateFence(d3d12_device, 0, D3D12_FENCE_FLAG_NONE, &IID_ID3D12Fence, (void**)&fence);
-   if (!fence)
-      hw_assert("fence not created");
-
-   hr |= CreateDXGIFactory(&IID_IDXGIFactory, (void**)&dxgi_factory);
-   if (!dxgi_factory)
-      hw_assert("dxgi_factory not created");
-
-   graphics_command_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
    hr |= d3d12_device->lpVtbl->CreateCommandQueue(d3d12_device, &graphics_command_queue_desc, &IID_ID3D12CommandQueue, (void**)&d3d12_command_queue);
    if (!d3d12_command_queue)
@@ -112,22 +123,25 @@ void d3d12_initialize(hw* hw)
 
    renderer->command_allocator = d3d12_command_allocator;
 
-   //pipeline_state_desc.SampleMask = UINT_MAX;
-   //pipeline_state_desc.NumRenderTargets = 1;
-   //pipeline_state_desc.SampleDesc.Count = 1;
-   //pipeline_state_desc.RTVFormats[0] = swap_chain_desc.Format;
+   pipeline_state_desc.SampleMask = UINT_MAX;
+   pipeline_state_desc.NumRenderTargets = 1;
+   pipeline_state_desc.SampleDesc.Count = 1;
+   pipeline_state_desc.RTVFormats[0] = swap_chain_desc.Format;
 
-   //hr |= device->CreateGraphicsPipelineState(d3d12_device, &pipeline_state_desc, &IID_ID3D12PipelineState, (void**)&pipeline_state);
+   //hr |= d3d12_device->lpVtbl->CreateGraphicsPipelineState(d3d12_device, &pipeline_state_desc, &IID_ID3D12PipelineState, (void**)&pipeline_state);
    //if (!pipeline_state)
       //hw_assert("pipeline_state not created");
 
-   hw->renderer.present = d3d12_present;
-   hw->renderer.d3d12_renderer = renderer;
+   hw->renderer.renderers[d3d12_renderer_index] = renderer;
+   hw->renderer.frame_present = d3d12_present;
+   hw->renderer.renderer_index = d3d12_renderer_index;
 
    renderer->command_list_type = graphics_command_queue_desc.Type;
 
    post(d3d_success(hr));
-   post(hw->renderer.d3d12_renderer);
+   post(hw->renderer.frame_present);
+   post(hw->renderer.renderers[d3d12_renderer_index]);
+   post(hw->renderer.renderer_index == d3d12_renderer_index);
    post(renderer->device);
    post(renderer->queue);
    post(renderer->swap_chain);

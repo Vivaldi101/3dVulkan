@@ -10,11 +10,12 @@ cache_align typedef struct hw_window
    HWND handle;
 } hw_window;
 
-cache_align typedef struct hw_renderer
+cache_align typedef struct hw_frame_renderer
 {
-   void* d3d12_renderer;
-   void* soft_renderer;
-   void(*present)(struct d3d12_renderer* renderer);
+   void* renderers[renderer_count];
+   void(*frame_present)(void* renderer);
+   void(*frame_wait)(void* renderer);
+   u32 renderer_index;
    hw_window window;
 } hw_renderer;
 
@@ -26,6 +27,7 @@ cache_align typedef struct hw
 } hw;
 
 #include "d3d12.c"
+#include "vulkan.c"
 
 // TODO: Add all the extra garbage for handling window events
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -109,7 +111,7 @@ static void hw_sleep(DWORD ms)
    Sleep(ms);
 }
 
-static void hw_sync_to_frame()
+static void hw_frame_sync()
 {
 	int num_frames_to_run = 0;
    for (;;) 
@@ -140,14 +142,25 @@ static void hw_sync_to_frame()
    }
 }
 
+void hw_frame_render(hw* hw)
+{
+   void** renderers = hw->renderer.renderers;
+   const u32 renderer_index = hw->renderer.renderer_index;
+
+   pre(hw->renderer.frame_present);
+   pre(renderer_index < renderer_count);
+   pre(renderers[renderer_index]);
+   hw->renderer.frame_present(renderers[renderer_index]);
+}
+
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(struct app_input* input))
 {
    // first window paint
    InvalidateRect(hw->renderer.window.handle, NULL, TRUE);
    UpdateWindow(hw->renderer.window.handle);
 
-	// init timers
-	timeBeginPeriod(1);
+   // init timers
+   timeBeginPeriod(1);
    hw_get_milliseconds();
 
    for (;;)
@@ -168,13 +181,11 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       app_frame_function(&frame_arena);
       hw_sub_arena_clear(&frame_arena);
 
-      pre(hw->renderer.present);
-
-      hw_sync_to_frame();
-      hw->renderer.present(hw->renderer.d3d12_renderer);
+      hw_frame_sync();
+      hw_frame_render(hw);
    }
 
-	timeEndPeriod(1);
+   timeEndPeriod(1);
 }
 
 static void hw_error(hw* hw, const char* s)
