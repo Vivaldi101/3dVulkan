@@ -7,6 +7,7 @@
 #pragma comment(lib,	"winmm.lib")
 #endif
 
+// TODO: Move this to general renderer.h
 enum
 {
    vulkan_renderer_index, 

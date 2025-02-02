@@ -188,7 +188,6 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       frame_arena = hw_sub_arena_create(&hw->memory);
       app_frame_function(&frame_arena);
       hw_sub_arena_clear(&frame_arena);
-
       hw_frame_sync();
       hw_frame_render(hw);
    }
@@ -259,7 +258,7 @@ static void hw_blit(hw* hw)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    hw hw = {0};
-   usize virtual_memory_amount = 10ull * 1024 * 1024;
+   const usize virtual_memory_amount = 10ull * 1024 * 1024;	// 10 megs
    MEMORYSTATUSEX memory_status;
    int argc;
    char** argv;

@@ -1,3 +1,6 @@
+#define WIN32_LEAN_AND_MEAN
+#define VK_USE_PLATFORM_WIN32_KHR
+
 #include "hw_arena.h"
 #include "common.h"
 #include "vulkan.h"
@@ -8,27 +11,29 @@
 
 // TODO: this is dumb - we need to query the swapchain count from vulkan
 #define VULKAN_IMAGE_COUNT 3		
+#define VK_VALID(v) (v) == VK_SUCCESS
 // TODO: rename these to snake
+
 typedef struct vulkan_renderer
 {
    VkInstance instance;
    VkSurfaceKHR surface;
-   VkPhysicalDevice physicalDevice;
-   VkDevice logicalDevice;
-   VkSwapchainKHR swapChain;
-   VkCommandBuffer drawCmdBuffer;
-   VkRenderPass renderPass;
-   VkFramebuffer frameBuffers[VULKAN_IMAGE_COUNT];
+   VkPhysicalDevice physical_device;
+   VkDevice logical_device;
+   VkSwapchainKHR swap_chain;
+   VkCommandBuffer draw_cmd_buffer;
+   VkRenderPass render_pass;
+   VkFramebuffer frame_buffers[VULKAN_IMAGE_COUNT];
    VkImage images[VULKAN_IMAGE_COUNT];
-   VkImageView imageViews[VULKAN_IMAGE_COUNT];
+   VkImageView image_views[VULKAN_IMAGE_COUNT];
    VkQueue queue;
    VkFormat format;
-   VkSemaphore semaphoreImageAvailable;
-   VkSemaphore semaphoreRenderFinished;
-   VkFence fenceFrame;
-   u32    surfaceWidth;
-   u32    surfaceHeight;
-   u32    swapChainCount;
+   VkSemaphore semaphore_image_available;
+   VkSemaphore semaphore_render_finished;
+   VkFence fence_frame;
+   u32    surface_width;
+   u32    surface_height;
+   u32    swap_chain_count;
 } vulkan_renderer;
 
 typedef struct queue_family_indices
@@ -39,7 +44,7 @@ typedef struct queue_family_indices
 } queue_family_indices;
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
-static VkResult VulkanCreateDebugUtilsMessengerEXT(VkInstance instance,
+static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                       const VkAllocationCallbacks* pAllocator,
                                       VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -49,7 +54,8 @@ static VkResult VulkanCreateDebugUtilsMessengerEXT(VkInstance instance,
    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 }
 
-static void DebugMessage(const char* format, ...)
+// TODO: Move to win32_utils
+static void debug_message(const char* format, ...)
 {
    char temp[1024];
    va_list args;
@@ -65,30 +71,30 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT* data,
     void* pUserData) {
 
-   DebugMessage("Validation layer: %s\n", data->pMessage);
+   debug_message("Validation layer: %s\n", data->pMessage);
 
    return VK_FALSE;
 }
 
-static bool VulkanAreExtensionsSupported(VkPhysicalDevice device)
+static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
 {
    return true;
 }
 
 // TODO: This allocates from the subarena
-static void* Allocate(size_t size)
+static void* allocate(size_t size)
 {
    return _malloca(size);
 }
 
-static queue_family_indices VulkanFindQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
+static queue_family_indices vulkan_find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
    queue_family_indices indices = {};
 
    uint32_t queueFamilyCount = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, 0);
 
-   VkQueueFamilyProperties* queueFamilies = Allocate(queueFamilyCount * sizeof(VkQueueFamilyProperties));
+   VkQueueFamilyProperties* queueFamilies = allocate(queueFamilyCount * sizeof(VkQueueFamilyProperties));
    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
 
    for (u32 i = 0; i < queueFamilyCount; ++i)
@@ -116,42 +122,42 @@ static queue_family_indices VulkanFindQueueFamilies(VkPhysicalDevice device, VkS
    return indices;
 }
 
-static bool VulkanIsDeviceCompatible(VkPhysicalDevice device, VkSurfaceKHR surface)
+static bool vulkan_is_device_compatible(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-   const QueueFamilyIndices result = VulkanFindQueueFamilies(device, surface);
-   return result.isValid && VulkanAreExtensionsSupported(device);
+   const queue_family_indices result = vulkan_find_queue_families(device, surface);
+   return result.valid && vulkan_are_extensions_supported(device);
 }
 
-static void VulkanCreateSyncObjects(VulkanContext* context)
+static void vulkan_create_sync_objects(vulkan_renderer* context)
 {
-   Pre(context);
+   pre(context);
    VkSemaphoreCreateInfo semaphoreInfo = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
    VkFenceCreateInfo fenceInfo = { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
 
-   if (!VK_VALID(vkCreateSemaphore(context->logicalDevice, &semaphoreInfo, 0, &context->semaphoreImageAvailable)))
-      Post(0);
-   if (!VK_VALID(vkCreateSemaphore(context->logicalDevice, &semaphoreInfo, 0, &context->semaphoreRenderFinished)))
-      Post(0);
-   if (!VK_VALID(vkCreateFence(context->logicalDevice, &fenceInfo, 0, &context->fenceFrame)))
-      Post(0);
+   if (!VK_VALID(vkCreateSemaphore(context->logical_device, &semaphoreInfo, 0, &context->semaphore_image_available)))
+      post(0);
+   if (!VK_VALID(vkCreateSemaphore(context->logical_device, &semaphoreInfo, 0, &context->semaphore_render_finished)))
+      post(0);
+   if (!VK_VALID(vkCreateFence(context->logical_device, &fenceInfo, 0, &context->fence_frame)))
+      post(0);
 }
 
-static VulkanContext VulkanInitContext(HWND windowHandle)
+static vulkan_renderer vulkan_create_renderer(HWND windowHandle)
 {
-   VulkanContext result = {};
+   vulkan_renderer result = {};
    u32 extensionCount = 0;
    if (!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, 0)))
-      Post(0);
+      post(0);
 
-   Invariant(extensionCount > 0);
-   VkExtensionProperties* extensions = Allocate(extensionCount * sizeof(VkExtensionProperties));
-   Invariant(extensions);
+   inv(extensionCount > 0);
+   VkExtensionProperties* extensions = allocate(extensionCount * sizeof(VkExtensionProperties));
+   inv(extensions);
 
    if (!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, extensions)))
-      Post(0);
+      post(0);
 
-   const char** extensionNames = Allocate(extensionCount * sizeof(const char*));
-   Invariant(extensionNames);
+   const char** extensionNames = allocate(extensionCount * sizeof(const char*));
+   inv(extensionNames);
    for (size_t i = 0; i < extensionCount; ++i)
       extensionNames[i] = extensions[i].extensionName;
 
@@ -168,13 +174,13 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
    VkInstanceCreateInfo instanceInfo = { 0 };
    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
    instanceInfo.pApplicationInfo = &appInfo;
-   instanceInfo.enabledLayerCount = ArrayCount(validationLayers);
+   instanceInfo.enabledLayerCount = array_count(validationLayers);
    instanceInfo.ppEnabledLayerNames = validationLayers;
    instanceInfo.enabledExtensionCount = extensionCount;
    instanceInfo.ppEnabledExtensionNames = extensionNames;
 
    if (!VK_VALID(vkCreateInstance(&instanceInfo, 0, &result.instance)))
-      Post(0);
+      post(0);
 
    VkDebugUtilsMessengerEXT debugMessenger;
    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = { 0 };
@@ -186,8 +192,8 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
    debugCreateInfo.pfnUserCallback = VulkanDebugCallback;
 
-   if (!VK_VALID(VulkanCreateDebugUtilsMessengerEXT(result.instance, &debugCreateInfo, 0, &debugMessenger)))
-      Post(0);
+   if (!VK_VALID(vulkan_create_debugutils_messenger_ext(result.instance, &debugCreateInfo, 0, &debugMessenger)))
+      post(0);
 
    bool isWin32Surface = false;
    for (size_t i = 0; i < extensionCount; ++i)
@@ -197,12 +203,12 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
       }
 
    if (!isWin32Surface)
-      Post(0);
+      post(0);
 
    PFN_vkCreateWin32SurfaceKHR vkWin32SurfaceFunction = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(result.instance, "vkCreateWin32SurfaceKHR");
 
    if (!vkWin32SurfaceFunction)
-      Post(0);
+      post(0);
 
    VkWin32SurfaceCreateInfoKHR win32SurfaceInfo = { 0 };
    win32SurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
@@ -213,47 +219,47 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
 
    u32 deviceCount = 0;
    if (!VK_VALID(vkEnumeratePhysicalDevices(result.instance, &deviceCount, 0)))
-      Post(0);
-   Post(deviceCount > 0);   // Just use the first device for now
+      post(0);
+   post(deviceCount > 0);   // Just use the first device for now
 
-   VkPhysicalDevice* devices = Allocate(deviceCount * sizeof(VkPhysicalDevice));
+   VkPhysicalDevice* devices = allocate(deviceCount * sizeof(VkPhysicalDevice));
    if (!devices)
-      Post(0);
+      post(0);
 
    if (!VK_VALID(vkEnumeratePhysicalDevices(result.instance, &deviceCount, devices)))
-      Post(0);
+      post(0);
 
    for (u32 i = 0; i < deviceCount; ++i)
-      if (VulkanIsDeviceCompatible(devices[i], result.surface))
+      if (vulkan_is_device_compatible(devices[i], result.surface))
       {
-         result.physicalDevice = devices[i];
+         result.physical_device = devices[i];
          break;
       }
 
-   Post(result.physicalDevice != VK_NULL_HANDLE);
+   post(result.physical_device != VK_NULL_HANDLE);
 
    VkDeviceQueueCreateInfo queueInfo = { 0 };
-   const QueueFamilyIndices queueFamilies = VulkanFindQueueFamilies(result.physicalDevice, result.surface);
-   Post(queueFamilies.isValid);
+   const queue_family_indices queueFamilies = vulkan_find_queue_families(result.physical_device, result.surface);
+   post(queueFamilies.valid);
    queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-   queueInfo.queueFamilyIndex = queueFamilies.graphicsFamily;
+   queueInfo.queueFamilyIndex = queueFamilies.graphics_family;
    queueInfo.queueCount = 1;
    const float queuePriorities[] = { 1.0f };
    queueInfo.pQueuePriorities = queuePriorities;
 
    extensionCount = 0;
-   if (!VK_VALID(vkEnumerateDeviceExtensionProperties(result.physicalDevice, 0, &extensionCount, 0)))
-      Post(0);
+   if (!VK_VALID(vkEnumerateDeviceExtensionProperties(result.physical_device, 0, &extensionCount, 0)))
+      post(0);
 
-   Invariant(extensionCount > 0);
-   extensions = Allocate(extensionCount * sizeof(VkExtensionProperties));
-   Invariant(extensions);
+   inv(extensionCount > 0);
+   extensions = allocate(extensionCount * sizeof(VkExtensionProperties));
+   inv(extensions);
 
-   if (!VK_VALID(vkEnumerateDeviceExtensionProperties(result.physicalDevice, 0, &extensionCount, extensions)))
-      Post(0);
+   if (!VK_VALID(vkEnumerateDeviceExtensionProperties(result.physical_device, 0, &extensionCount, extensions)))
+      post(0);
 
-   extensionNames = Allocate(extensionCount * sizeof(const char*));
-   Invariant(extensionNames);
+   extensionNames = allocate(extensionCount * sizeof(const char*));
+   inv(extensionNames);
    for (size_t i = 0; i < extensionCount; ++i)
       extensionNames[i] = extensions[i].extensionName;
 
@@ -273,16 +279,16 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
       physicalFeatures.shaderClipDistance = VK_TRUE;
       info.pEnabledFeatures = &physicalFeatures;
 
-      if (!VK_VALID(vkCreateDevice(result.physicalDevice, &info, 0, &result.logicalDevice)))
-         Post(0);
+      if (!VK_VALID(vkCreateDevice(result.physical_device, &info, 0, &result.logical_device)))
+         post(0);
    }
 
    VkSurfaceCapabilitiesKHR surfaceCaps = { 0 };
-   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(result.physicalDevice, result.surface, &surfaceCaps);
+   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(result.physical_device, result.surface, &surfaceCaps);
 
    VkExtent2D surfaceExtent = surfaceCaps.currentExtent;
-   result.surfaceWidth = surfaceExtent.width;
-   result.surfaceHeight = surfaceExtent.height;
+   result.surface_width = surfaceExtent.width;
+   result.surface_height = surfaceExtent.height;
 
    {
       VkSwapchainCreateInfoKHR info =
@@ -302,39 +308,39 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
        .clipped = true,
        .oldSwapchain = 0,
           .queueFamilyIndexCount = 1,
-          .pQueueFamilyIndices = &queueFamilies.graphicsFamily,
+          .pQueueFamilyIndices = &queueFamilies.graphics_family,
       };
-      if (!VK_VALID(vkCreateSwapchainKHR(result.logicalDevice, &info, 0, &result.swapChain)))
-         Post(0);
+      if (!VK_VALID(vkCreateSwapchainKHR(result.logical_device, &info, 0, &result.swap_chain)))
+         post(0);
 
       result.format = info.imageFormat;
    }
 
-   u32 swapChainCount = 0;
-   if (!VK_VALID(vkGetSwapchainImagesKHR(result.logicalDevice, result.swapChain, &swapChainCount, 0)))
-      Post(0);
+   u32 swap_chain_count = 0;
+   if (!VK_VALID(vkGetSwapchainImagesKHR(result.logical_device, result.swap_chain, &swap_chain_count, 0)))
+      post(0);
 
-   if (swapChainCount != VULKAN_IMAGE_COUNT)
-      Post(0);
+   if (swap_chain_count != VULKAN_IMAGE_COUNT)
+      post(0);
 
-   result.swapChainCount = swapChainCount;
+   result.swap_chain_count = swap_chain_count;
 
-   VkImage* swapChainImages = Allocate(swapChainCount * sizeof(VkImage));
+   VkImage* swapChainImages = allocate(swap_chain_count * sizeof(VkImage));
    if (!swapChainImages)
-      Post(0);
+      post(0);
 
-   if (!VK_VALID(vkGetSwapchainImagesKHR(result.logicalDevice, result.swapChain, &swapChainCount, swapChainImages)))
-      Post(0);
+   if (!VK_VALID(vkGetSwapchainImagesKHR(result.logical_device, result.swap_chain, &swap_chain_count, swapChainImages)))
+      post(0);
 
-   for (u32 i = 0; i < swapChainCount; ++i)
+   for (u32 i = 0; i < swap_chain_count; ++i)
       result.images[i] = swapChainImages[i];
 
-   VkImageView* imageViews = Allocate(swapChainCount * sizeof(VkImageView));
-   if (!imageViews)
-      Post(0);
+   VkImageView* image_views = allocate(swap_chain_count * sizeof(VkImageView));
+   if (!image_views)
+      post(0);
 
-   result.swapChainCount = swapChainCount;
-   for (u32 i = 0; i < swapChainCount; ++i) {
+   result.swap_chain_count = swap_chain_count;
+   for (u32 i = 0; i < swap_chain_count; ++i) {
       VkImageViewCreateInfo info =
       {
        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -352,20 +358,20 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
           .image = swapChainImages[i]
       };
 
-      if (!VK_VALID(vkCreateImageView(result.logicalDevice, &info, 0, &imageViews[i])))
-         Post(0);
-      result.imageViews[i] = imageViews[i];
+      if (!VK_VALID(vkCreateImageView(result.logical_device, &info, 0, &image_views[i])))
+         post(0);
+      result.image_views[i] = image_views[i];
    }
 
    u32 queueFamilyCount = 0;
-   vkGetPhysicalDeviceQueueFamilyProperties(result.physicalDevice, &queueFamilyCount, 0);
-   VkQueueFamilyProperties* queueProperties = Allocate(queueFamilyCount * sizeof(VkQueueFamilyProperties));
+   vkGetPhysicalDeviceQueueFamilyProperties(result.physical_device, &queueFamilyCount, 0);
+   VkQueueFamilyProperties* queueProperties = allocate(queueFamilyCount * sizeof(VkQueueFamilyProperties));
    if (!queueProperties)
-      Post(0);
-   Post(queueFamilyCount > 0);
-   vkGetPhysicalDeviceQueueFamilyProperties(result.physicalDevice, &queueFamilyCount, queueProperties);
+      post(0);
+   post(queueFamilyCount > 0);
+   vkGetPhysicalDeviceQueueFamilyProperties(result.physical_device, &queueFamilyCount, queueProperties);
 
-   vkGetDeviceQueue(result.logicalDevice, queueFamilies.presentFamily, 0, &result.queue);
+   vkGetDeviceQueue(result.logical_device, queueFamilies.present_family, 0, &result.queue);
 
    // TODO: Use the above similar to these
    // TODO: Wrap these
@@ -376,13 +382,13 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
           .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
           .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
           .pNext = 0,
-          .queueFamilyIndex = queueFamilies.graphicsFamily,
+          .queueFamilyIndex = queueFamilies.graphics_family,
       };
-      if (!VK_VALID(vkCreateCommandPool(result.logicalDevice, &info, 0, &commandPool)))
-         Post(0);
+      if (!VK_VALID(vkCreateCommandPool(result.logical_device, &info, 0, &commandPool)))
+         post(0);
    }
 
-   VkCommandBuffer drawCmdBuffer = 0;
+   VkCommandBuffer draw_cmd_buffer = 0;
    {
       VkCommandBufferAllocateInfo info =
       {
@@ -391,12 +397,12 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
           .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
           .commandBufferCount = 1,
       };
-      if (!VK_VALID(vkAllocateCommandBuffers(result.logicalDevice, &info, &drawCmdBuffer)))
-         Post(0);
-      result.drawCmdBuffer = drawCmdBuffer;
+      if (!VK_VALID(vkAllocateCommandBuffers(result.logical_device, &info, &draw_cmd_buffer)))
+         post(0);
+      result.draw_cmd_buffer = draw_cmd_buffer;
    }
 
-   VkRenderPass renderPass = 0;
+   VkRenderPass render_pass = 0;
 
    VkAttachmentDescription pass[1] = { 0 };
    pass[0].format = VK_FORMAT_B8G8R8A8_SRGB;
@@ -426,78 +432,78 @@ static VulkanContext VulkanInitContext(HWND windowHandle)
           .subpassCount = 1,
           .pSubpasses = &subpass,
       };
-      if (!VK_VALID(vkCreateRenderPass(result.logicalDevice, &info, 0, &renderPass)))
-         Post(0);
-      result.renderPass = renderPass;
+      if (!VK_VALID(vkCreateRenderPass(result.logical_device, &info, 0, &render_pass)))
+         post(0);
+      result.render_pass = render_pass;
    }
 
    VkImageView frameBufferAttachments = 0;
-   VkFramebuffer* frameBuffers = Allocate(swapChainCount * sizeof(VkFramebuffer));
-   if (!frameBuffers)
-      Post(0);
+   VkFramebuffer* frame_buffers = allocate(swap_chain_count * sizeof(VkFramebuffer));
+   if (!frame_buffers)
+      post(0);
    {
       VkFramebufferCreateInfo info =
       {
        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
           .attachmentCount = 1,
           .pAttachments = &frameBufferAttachments,
-          .width = result.surfaceWidth,
-          .height = result.surfaceHeight,
+          .width = result.surface_width,
+          .height = result.surface_height,
           .layers = 1,
-          .renderPass = renderPass,
+          .renderPass = render_pass,
       };
-      for (u32 i = 0; i < swapChainCount; ++i) {
-         frameBufferAttachments = imageViews[i];
-         if (!VK_VALID(vkCreateFramebuffer(result.logicalDevice, &info, 0, &frameBuffers[i])))
-            Post(0);
-         result.frameBuffers[i] = frameBuffers[i];
+      for (u32 i = 0; i < swap_chain_count; ++i) {
+         frameBufferAttachments = image_views[i];
+         if (!VK_VALID(vkCreateFramebuffer(result.logical_device, &info, 0, &frame_buffers[i])))
+            post(0);
+         result.frame_buffers[i] = frame_buffers[i];
       }
    }
 
-   VulkanCreateSyncObjects(&result);
+   vulkan_create_sync_objects(&result);
 
    // post conditions for the context
-   Post(result.instance);
-   Post(result.surface);
-   Post(result.physicalDevice);
-   Post(result.logicalDevice);
-   Post(result.swapChain);
-   Post(result.swapChainCount == VULKAN_IMAGE_COUNT);
-   Post(result.renderPass);
-   Post(result.frameBuffers);
-   Post(result.queue);
-   Post(result.drawCmdBuffer);
-   Post(result.format);
-   Post(result.images);
+   post(result.instance);
+   post(result.surface);
+   post(result.physical_device);
+   post(result.logical_device);
+   post(result.swap_chain);
+   post(result.swap_chain_count == VULKAN_IMAGE_COUNT);
+   post(result.render_pass);
+   post(result.frame_buffers);
+   post(result.queue);
+   post(result.draw_cmd_buffer);
+   post(result.format);
+   post(result.images);
 
-   Post(result.fenceFrame);
-   Post(result.semaphoreImageAvailable);
-   Post(result.semaphoreRenderFinished);
+   post(result.fence_frame);
+   post(result.semaphore_image_available);
+   post(result.semaphore_render_finished);
 
    return result;
 }
 
 // TODO: Use this
-static void VulkanRecordCommandBuffer(VulkanContext* context, u32 imageIndex)
+static void vulkan_record_command_buffer(vulkan_renderer* context, u32 imageIndex)
 {
-   Pre(context);
+   pre(context);
 }
 
-static void VulkanRender(VulkanContext* context)
+static void vulkan_render(vulkan_renderer* context)
 {
-   Pre(context);
-   if (!VK_VALID(vkWaitForFences(context->logicalDevice, 1, &context->fenceFrame, VK_TRUE, UINT64_MAX)))
-      Post(0);
+   pre(context);
+   if (!VK_VALID(vkWaitForFences(context->logical_device, 1, &context->fence_frame, VK_TRUE, UINT64_MAX)))
+      post(0);
 
-   if (!VK_VALID(vkResetFences(context->logicalDevice, 1, &context->fenceFrame)))
-      Post(0);
+   if (!VK_VALID(vkResetFences(context->logical_device, 1, &context->fence_frame)))
+      post(0);
 
    u32 nextImageIndex = 0;
-   if (!VK_VALID(vkAcquireNextImageKHR(context->logicalDevice, context->swapChain, UINT64_MAX, context->semaphoreImageAvailable, VK_NULL_HANDLE, &nextImageIndex)))
+   if (!VK_VALID(vkAcquireNextImageKHR(context->logical_device, context->swap_chain, UINT64_MAX, context->semaphore_image_available, VK_NULL_HANDLE, &nextImageIndex)))
       ;
 
-   if (!VK_VALID(vkResetCommandBuffer(context->drawCmdBuffer, 0)))
-      Post(0);
+   if (!VK_VALID(vkResetCommandBuffer(context->draw_cmd_buffer, 0)))
+      post(0);
 
    {
       VkCommandBufferBeginInfo info =
@@ -507,8 +513,8 @@ static void VulkanRender(VulkanContext* context)
           .flags = 0, .pInheritanceInfo = 0, .pNext = 0,
       };
       // start this cmd buffer
-      if (!VK_VALID(vkBeginCommandBuffer(context->drawCmdBuffer, &info)))
-         Post(0);
+      if (!VK_VALID(vkBeginCommandBuffer(context->draw_cmd_buffer, &info)))
+         post(0);
    }
    {
       // temporary float that oscilates between 0 and 1
@@ -530,28 +536,28 @@ static void VulkanRender(VulkanContext* context)
       VkRenderPassBeginInfo info =
       {
        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-          .renderPass = context->renderPass,
-          .framebuffer = context->frameBuffers[nextImageIndex],
+          .renderPass = context->render_pass,
+          .framebuffer = context->frame_buffers[nextImageIndex],
           .renderArea.offset = {0,0},
-          .renderArea.extent = {context->surfaceWidth, context->surfaceHeight},
+          .renderArea.extent = {context->surface_width, context->surface_height},
       };
       VkOffset2D a = { 0, 0 };
-      VkExtent2D b = { context->surfaceWidth, context->surfaceHeight };
+      VkExtent2D b = { context->surface_width, context->surface_height };
       VkRect2D c = { a,b };
       info.renderArea = c;
       info.clearValueCount = 2;
       info.pClearValues = clearValue;
 
-      vkCmdBeginRenderPass(context->drawCmdBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(context->draw_cmd_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
       {
          // draw cmds
       }
-      vkCmdEndRenderPass(context->drawCmdBuffer);
+      vkCmdEndRenderPass(context->draw_cmd_buffer);
    }
 
    // end this cmd buffer
-   if (!VK_VALID(vkEndCommandBuffer(context->drawCmdBuffer)))
-      Post(0);
+   if (!VK_VALID(vkEndCommandBuffer(context->draw_cmd_buffer)))
+      post(0);
 
    {
       const VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -559,16 +565,16 @@ static void VulkanRender(VulkanContext* context)
       {
        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
           .waitSemaphoreCount = 1,
-          .pWaitSemaphores = &context->semaphoreImageAvailable,
+          .pWaitSemaphores = &context->semaphore_image_available,
           .pWaitDstStageMask = waitStages,
           .commandBufferCount = 1,
-          .pCommandBuffers = &context->drawCmdBuffer,
+          .pCommandBuffers = &context->draw_cmd_buffer,
           .signalSemaphoreCount = 1,
-          .pSignalSemaphores = &context->semaphoreRenderFinished,
+          .pSignalSemaphores = &context->semaphore_render_finished,
       };
 
-      if (!VK_VALID(vkQueueSubmit(context->queue, 1, &info, context->fenceFrame)))
-         Post(0);
+      if (!VK_VALID(vkQueueSubmit(context->queue, 1, &info, context->fence_frame)))
+         post(0);
    }
    // present the image on the screen (flip the swap-chain image)
    {
@@ -577,9 +583,9 @@ static void VulkanRender(VulkanContext* context)
           .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
           .pNext = NULL,
           .waitSemaphoreCount = 1,
-          .pWaitSemaphores = &context->semaphoreRenderFinished,
+          .pWaitSemaphores = &context->semaphore_render_finished,
           .swapchainCount = 1,
-          .pSwapchains = &context->swapChain,
+          .pSwapchains = &context->swap_chain,
           .pImageIndices = &nextImageIndex,
           .pResults = NULL,
       };
@@ -588,10 +594,10 @@ static void VulkanRender(VulkanContext* context)
    }
 }
 
-static void VulkanReset(VulkanContext* context)
+static void vulkan_reset(vulkan_renderer* context)
 {
-   Pre(context);
-   Pre(context->instance);
+   pre(context);
+   pre(context->instance);
    // TODO: Clear all teh resources like vulkan image views framebuffers, fences and semaphores etc.
    vkDestroyInstance(context->instance, 0);
 }
