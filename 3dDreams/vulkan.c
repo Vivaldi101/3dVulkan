@@ -81,7 +81,7 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
    return true;
 }
 
-// TODO: This allocates from the subarena
+// TODO: Make this allocate from a subarena
 static void* allocate(size_t size)
 {
    return malloc(size);
