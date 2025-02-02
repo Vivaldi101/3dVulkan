@@ -58,7 +58,10 @@ void hw_window_open(hw* hw, const char* title, int x, int y, int width, int heig
    wc.lpszMenuName = NULL;
    wc.lpszClassName = title;
    if (!RegisterClass(&wc))
+   {
       hw_error(hw, "(Hardware) Failed to Win32 register class.");
+		return;
+   }
 
    dwStyle = WS_OVERLAPPEDWINDOW;
    dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
@@ -74,7 +77,10 @@ void hw_window_open(hw* hw, const char* title, int x, int y, int width, int heig
       0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
 
    if (!hw->renderer.window.handle)
+   {
       hw_error(hw, "(Hardware) Failed to create Win32 window.");
+		return;
+   }
 
    ShowWindow(hw->renderer.window.handle, SW_SHOW);
    SetForegroundWindow(hw->renderer.window.handle);
@@ -90,7 +96,8 @@ void hw_window_close(hw* hw)
 
 void hw_event_loop_end(hw* hw)
 {
-   hw_window_close(hw);
+   if (hw->renderer.window.handle)
+      hw_window_close(hw);
 }
 
 static DWORD hw_get_milliseconds()
@@ -204,7 +211,8 @@ static void hw_error(hw* hw, const char* s)
 static int cmd_parse(char* cmd, char** argv)
 {
    int argc;
-   char* arg_start, * arg_end;
+   char* arg_start;
+   char* arg_end;
 
    pre(strlen(argv[0]) > 0);
    for (usize i = strlen(argv[0]) - 1; i >= 0; --i)
@@ -250,7 +258,7 @@ static void hw_blit(hw* hw)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
-   hw hw = { 0 };
+   hw hw = {0};
    usize virtual_memory_amount = 10ull * 1024 * 1024;
    MEMORYSTATUSEX memory_status;
    int argc;

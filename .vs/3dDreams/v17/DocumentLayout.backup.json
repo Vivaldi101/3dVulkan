@@ -3,20 +3,20 @@
   "WorkspaceRootPath": "C:\\Work\\3dDreams\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\vulkan.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\vulkan.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\d3d12.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\d3d12.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\vulkan.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\vulkan.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+      "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|solutionrelative:3dDreams\\hw.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{93A17D6D-D25D-45E5-A018-23D69C3EB43A}|3dDreams\\3dDreams.vcxproj|C:\\Work\\3dDreams\\3dDreams\\app.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -80,7 +80,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 198,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -100,13 +100,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
               "Title": "vulkan.c",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\vulkan.c",
               "RelativeDocumentMoniker": "3dDreams\\vulkan.c",
-              "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\vulkan.c",
-              "RelativeToolTip": "3dDreams\\vulkan.c",
-              "ViewState": "AgIAABgAAAAAAAAAAAApwC0AAAAcAAAAAAAAAA==",
+              "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\vulkan.c*",
+              "RelativeToolTip": "3dDreams\\vulkan.c*",
+              "ViewState": "AgIAADYCAAAAAAAAAAAowFUCAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
               "WhenOpened": "2025-02-01T20:58:53.62Z",
               "EditorCaption": ""
@@ -149,16 +149,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "hw.c",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\hw.c",
               "RelativeDocumentMoniker": "3dDreams\\hw.c",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\hw.c",
               "RelativeToolTip": "3dDreams\\hw.c",
-              "ViewState": "AgIAAPYAAAAAAAAAAAAAAJQAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAACoAAAAAAAAAAAAAADYAAAApAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
-              "WhenOpened": "2025-01-26T11:55:21.469Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-26T11:55:21.469Z"
             },
             {
               "$type": "Document",
@@ -180,10 +179,9 @@
               "RelativeDocumentMoniker": "3dDreams\\d3d12.c",
               "ToolTip": "C:\\Work\\3dDreams\\3dDreams\\d3d12.c",
               "RelativeToolTip": "3dDreams\\d3d12.c",
-              "ViewState": "AgIAAHUAAAAAAAAAAAApwI4AAAAcAAAAAAAAAA==",
+              "ViewState": "AgIAAGYAAAAAAAAAAAApwI4AAAAcAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
-              "WhenOpened": "2025-01-25T10:21:10.149Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-25T10:21:10.149Z"
             },
             {
               "$type": "Document",
@@ -211,7 +209,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "hw.h",
               "DocumentMoniker": "C:\\Work\\3dDreams\\3dDreams\\hw.h",
               "RelativeDocumentMoniker": "3dDreams\\hw.h",
@@ -219,8 +217,7 @@
               "RelativeToolTip": "3dDreams\\hw.h",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2025-01-26T19:56:06.917Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-01-26T19:56:06.917Z"
             },
             {
               "$type": "Document",
