@@ -132,7 +132,7 @@ void d3d12_initialize(hw* hw)
    //if (!pipeline_state)
       //hw_assert("pipeline_state not created");
 
-   hw->renderer.renderers[d3d12_renderer_index] = renderer;
+   hw->renderer.backends[d3d12_renderer_index] = renderer;
    hw->renderer.frame_present = d3d12_present;
    hw->renderer.renderer_index = d3d12_renderer_index;
 
@@ -140,7 +140,7 @@ void d3d12_initialize(hw* hw)
 
    post(d3d_success(hr));
    post(hw->renderer.frame_present);
-   post(hw->renderer.renderers[d3d12_renderer_index]);
+   post(hw->renderer.backends[d3d12_renderer_index]);
    post(hw->renderer.renderer_index == d3d12_renderer_index);
    post(renderer->device);
    post(renderer->queue);

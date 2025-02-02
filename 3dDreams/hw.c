@@ -10,12 +10,12 @@ cache_align typedef struct hw_window
    HWND handle;
 } hw_window;
 
-cache_align typedef struct hw_frame_renderer
+cache_align typedef struct hw_renderer
 {
-   void* renderers[renderer_count];
+   void* backends[renderer_count];
    void(*frame_present)(void* renderer);
    void(*frame_wait)(void* renderer);
-   u32 renderer_index;
+   u32 renderer_index;	// ZII - change this so that zero is actually the software renderer
    hw_window window;
 } hw_renderer;
 
@@ -84,6 +84,7 @@ void hw_window_open(hw* hw, const char* title, int x, int y, int width, int heig
 
 void hw_window_close(hw* hw)
 {
+	pre(hw->renderer.window.handle);
    PostMessage(hw->renderer.window.handle, WM_QUIT, 0, 0L);
 }
 
@@ -92,7 +93,6 @@ void hw_event_loop_end(hw* hw)
    hw_window_close(hw);
 }
 
-// TODO: Macro this init is not constants
 static DWORD hw_get_milliseconds()
 {
    static DWORD sys_time_base = 0;
@@ -142,14 +142,15 @@ static void hw_frame_sync()
    }
 }
 
-void hw_frame_render(hw* hw)
+static void hw_frame_render(hw* hw)
 {
-   void** renderers = hw->renderer.renderers;
+   void** renderers = hw->renderer.backends;
    const u32 renderer_index = hw->renderer.renderer_index;
 
    pre(hw->renderer.frame_present);
-   pre(renderer_index < renderer_count);
+   pre(renderer_index < (u32)renderer_count);
    pre(renderers[renderer_index]);
+
    hw->renderer.frame_present(renderers[renderer_index]);
 }
 
@@ -235,6 +236,7 @@ static int cmd_parse(char* cmd, char** argv)
    return argc;
 }
 
+// TODO: Used by the software renderer
 static void hw_blit(hw* hw)
 {
    PAINTSTRUCT ps;
