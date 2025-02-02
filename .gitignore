@@ -7,3 +7,4 @@ x64/
 *.suo
 *.ipch
 *.vcxproj*
+*.vs*
