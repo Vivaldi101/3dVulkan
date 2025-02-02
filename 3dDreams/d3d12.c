@@ -5,6 +5,7 @@
 #include "common.h"
 
 #pragma comment(lib,	"d3d12.lib")
+#pragma comment(lib,	"d3dcompiler.lib")
 #pragma comment(lib,	"dxguid.lib")
 #pragma comment(lib,	"dxgi.lib")
 
@@ -58,20 +59,28 @@ void d3d12_initialize(hw* hw)
    HRESULT hr = S_OK;
    ID3D12Device* d3d12_device;
    ID3D12CommandQueue* d3d12_command_queue;
-   //ID3D12Fence* fence;
+   //ID3D12Fence* fence;	todo: enable
    IDXGISwapChain1* dxgi_swap_chain;
    IDXGIFactory2* dxgi_factory;
    IDXGIAdapter1* dxgi_adapter;
    ID3D12CommandAllocator* d3d12_command_allocator;
-   //ID3D12PipelineState* pipeline_state;
+   ID3D12PipelineState* pipeline_state;
+   ID3D12Debug* debug;
    D3D12_COMMAND_QUEUE_DESC graphics_command_queue_desc = {0};
    DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
-   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_state_desc = {0};
+   D3D12_GRAPHICS_PIPELINE_STATE_DESC pso = {0};
+   D3D12_RASTERIZER_DESC rasterizer_desc = {0};
    u32 adapter_index;
 
    pre(hw->renderer.window.handle);
 
    d3d12_renderer* renderer = hw_arena_push_struct(&hw->memory, d3d12_renderer);
+
+   hr |= D3D12GetDebugInterface(&IID_ID3D12Debug, (void**)&debug);
+   if (!debug)
+      hw_assert("debug not created");
+
+   debug->lpVtbl->EnableDebugLayer(debug);
 
    hr |= CreateDXGIFactory1(&IID_IDXGIFactory, (void**)&dxgi_factory);
    if (!dxgi_factory)
@@ -120,17 +129,21 @@ void d3d12_initialize(hw* hw)
    if (!d3d12_command_allocator)
       hw_assert("d3d12_command_allocator not created");
 
-
    renderer->command_allocator = d3d12_command_allocator;
 
-   pipeline_state_desc.SampleMask = UINT_MAX;
-   pipeline_state_desc.NumRenderTargets = 1;
-   pipeline_state_desc.SampleDesc.Count = 1;
-   pipeline_state_desc.RTVFormats[0] = swap_chain_desc.Format;
+	// TODO: root signature and VS shader
+   pso.pRootSignature = 0;
+   pso.RasterizerState = rasterizer_desc;
+   pso.SampleMask = UINT_MAX;
+   pso.NumRenderTargets = 1;
+   pso.SampleDesc.Count = 1;
+   pso.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+   pso.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+   pso.RTVFormats[0] = swap_chain_desc.Format;
 
-   //hr |= d3d12_device->lpVtbl->CreateGraphicsPipelineState(d3d12_device, &pipeline_state_desc, &IID_ID3D12PipelineState, (void**)&pipeline_state);
-   //if (!pipeline_state)
-      //hw_assert("pipeline_state not created");
+   hr |= d3d12_device->lpVtbl->CreateGraphicsPipelineState(d3d12_device, &pso, &IID_ID3D12PipelineState, (void**)&pipeline_state);
+   if (!pipeline_state)
+      hw_assert("pipeline_state not created");
 
    hw->renderer.backends[d3d12_renderer_index] = renderer;
    hw->renderer.frame_present = d3d12_present;
