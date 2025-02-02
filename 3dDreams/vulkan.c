@@ -84,7 +84,7 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
 // TODO: This allocates from the subarena
 static void* allocate(size_t size)
 {
-   return _malloca(size);
+   return malloc(size);
 }
 
 static queue_family_indices vulkan_find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
@@ -170,7 +170,7 @@ static void vulkan_create_renderer(vulkan_renderer* renderer, HWND windowHandle)
    appInfo.pEngineName = "No Engine";
    appInfo.apiVersion = VK_API_VERSION_1_0;
 
-   VkInstanceCreateInfo instanceInfo = { 0 };
+   VkInstanceCreateInfo instanceInfo = {0};
    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
    instanceInfo.pApplicationInfo = &appInfo;
    instanceInfo.enabledLayerCount = array_count(validationLayers);
