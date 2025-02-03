@@ -37,6 +37,9 @@ typedef size_t usize;
 
 #define array_count(a) sizeof((a)) / sizeof((a)[0])
 
+#define defer(start, end) \
+    for (int _defer = ((start), 0); !_defer; (_defer = 1), (end))
+
 typedef enum {false, true} bool;
 
 cache_align typedef struct

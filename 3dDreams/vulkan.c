@@ -707,10 +707,11 @@ void vulkan_initialize(hw* hw)
    pre(hw->renderer.window.handle);
 
    vulkan_renderer* renderer = hw_arena_push_struct(&hw->memory, vulkan_renderer);
-   hw_buffer vulkan_arena = hw_sub_arena_create(&hw->memory);
 
-   vulkan_create_renderer(&vulkan_arena, renderer, hw->renderer.window.handle);
-   hw_sub_arena_clear(&vulkan_arena);
+   hw_buffer vulkan_arena = {0};
+   defer(vulkan_arena = hw_sub_arena_create(&hw->memory), 
+      hw_sub_arena_clear(&vulkan_arena))
+      vulkan_create_renderer(&vulkan_arena, renderer, hw->renderer.window.handle);
 
    hw->renderer.backends[vulkan_renderer_index] = renderer;
    hw->renderer.frame_present = vulkan_present;
