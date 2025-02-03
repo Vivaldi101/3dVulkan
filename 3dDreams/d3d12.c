@@ -12,6 +12,11 @@
 
 #define d3d_success(r) SUCCEEDED((r))
 
+enum 
+{
+	FRAME_BUFFER_COUNT = 3
+};
+
 typedef struct d3d12_renderer
 {
 	void* device;
@@ -25,6 +30,7 @@ void d3d12_present(d3d12_renderer* renderer)
 {
    HRESULT hr = S_OK;
    ID3D12GraphicsCommandList* render_commands;
+
    pre(renderer->device);
    pre(renderer->queue);
    pre(renderer->swap_chain);
@@ -40,7 +46,7 @@ void d3d12_present(d3d12_renderer* renderer)
       (void**)&render_commands);
 
    if (!render_commands)
-      hw_assert("render_commands not created");
+      hw_message("render_commands not created");
 
    render_commands->lpVtbl->Close(render_commands);
 
@@ -60,9 +66,9 @@ void d3d12_initialize(hw* hw)
    HRESULT hr = S_OK;
 
    // interfaces
-   ID3D12Device* d3d12_device;
+   ID3D12Device* device;
    ID3D12CommandQueue* d3d12_command_queue;
-   IDXGISwapChain1* dxgi_swap_chain;
+   IDXGISwapChain1* swap_chain;
    IDXGIFactory2* dxgi_factory;
    IDXGIAdapter1* dxgi_adapter;
    ID3D12CommandAllocator* d3d12_command_allocator;
@@ -76,18 +82,21 @@ void d3d12_initialize(hw* hw)
 
 	// descriptors
    D3D12_COMMAND_QUEUE_DESC graphics_command_queue_desc = {0};
-   DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso = {0};
    D3D12_RASTERIZER_DESC rasterizer_desc = {0};
+   D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {0};
+   D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {0};
+   DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {0};
 
    // signatures
    void* root_signature;
    ID3DBlob* root_signature_blob;
    ID3DBlob* root_signature_blob_error;
-   D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {0};
 
    // select the d3d12 capable gpu
    u32 adapter_index;
+
+   //ID3D12Resource* rtv_heap_desc;
 
    pre(hw->renderer.window.handle);
 
@@ -95,13 +104,13 @@ void d3d12_initialize(hw* hw)
 
    hr = D3D12GetDebugInterface(&IID_ID3D12Debug, (void**)&debug);
    if (!debug)
-      hw_assert("debug not created");
+      hw_message("debug not created");
 
    debug->lpVtbl->EnableDebugLayer(debug);
 
    hr = CreateDXGIFactory1(&IID_IDXGIFactory, (void**)&dxgi_factory);
    if (!dxgi_factory)
-      hw_assert("dxgi_factory not created");
+      hw_message("dxgi_factory not created");
 
    adapter_index = 0;
 
@@ -118,47 +127,58 @@ void d3d12_initialize(hw* hw)
       ++adapter_index;
    }
 
-   hr = D3D12CreateDevice((IUnknown*)dxgi_adapter, D3D_FEATURE_LEVEL_12_1, &IID_ID3D12Device, (void**)&d3d12_device);
-   if (!d3d12_device)
-      hw_assert("d3d12_device not created");
+   hr = D3D12CreateDevice((IUnknown*)dxgi_adapter, D3D_FEATURE_LEVEL_12_1, &IID_ID3D12Device, (void**)&device);
+   if (!device)
+      hw_message("device not created");
 
-   renderer->device = d3d12_device;
+   renderer->device = device;
 
-   hr = d3d12_device->lpVtbl->CreateCommandQueue(d3d12_device, &graphics_command_queue_desc, &IID_ID3D12CommandQueue, (void**)&d3d12_command_queue);
+   hr = device->lpVtbl->CreateCommandQueue(device, &graphics_command_queue_desc, &IID_ID3D12CommandQueue, (void**)&d3d12_command_queue);
    if (!d3d12_command_queue)
-      hw_assert("d3d12_command_queue not created");
+      hw_message("d3d12_command_queue not created");
 
    renderer->queue = d3d12_command_queue;
 
    swap_chain_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
    swap_chain_desc.SampleDesc.Count = 1;
-   swap_chain_desc.BufferCount = 3;
+   swap_chain_desc.BufferCount = FRAME_BUFFER_COUNT;
    swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
-   hr = dxgi_factory->lpVtbl->CreateSwapChainForHwnd(dxgi_factory, (IUnknown*)d3d12_command_queue, hw->renderer.window.handle, &swap_chain_desc, 0, 0, &dxgi_swap_chain);
-   if (!dxgi_swap_chain)
-      hw_assert("dxgi_swap_chain not created");
+   hr = dxgi_factory->lpVtbl->CreateSwapChainForHwnd(dxgi_factory, (IUnknown*)d3d12_command_queue, hw->renderer.window.handle, &swap_chain_desc, 0, 0, &swap_chain);
+   if (!swap_chain)
+      hw_message("swap_chain not created");
 
-   renderer->swap_chain = dxgi_swap_chain;
+   renderer->swap_chain = swap_chain;
 
-   hr = d3d12_device->lpVtbl->CreateCommandAllocator(d3d12_device, graphics_command_queue_desc.Type, &IID_ID3D12CommandAllocator, (void**)&d3d12_command_allocator);
+   rtv_heap_desc.NumDescriptors = FRAME_BUFFER_COUNT;
+   rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+
+   for(u32 frame = 0; frame < FRAME_BUFFER_COUNT; ++frame)
+   {
+      //D3D12_RENDER_TARGET_VIEW_DESC handle;
+      //ID3D12Resource* buffer_resource;
+		//device->lpVtbl->CreateRenderTargetView(device, 
+         //swap_chain->lpVtbl->GetBuffer(swap_chain, frame, &IID_IDXGISwapChain1, (void**)&buffer_resource), &handle);
+   }
+
+   hr = device->lpVtbl->CreateCommandAllocator(device, graphics_command_queue_desc.Type, &IID_ID3D12CommandAllocator, (void**)&d3d12_command_allocator);
    if (!d3d12_command_allocator)
-      hw_assert("d3d12_command_allocator not created");
+      hw_message("d3d12_command_allocator not created");
 
    renderer->command_allocator = d3d12_command_allocator;
 
 	compiler_flags = D3DCOMPILE_DEBUG;
-   hr = D3DCompileFromFile(L"C:\\Work\\3dDreams\\3dDreams\\shader.hlsl", 0, 0, "main", "vs_5_0", compiler_flags, 0, &vertex_shader, 0);
+   hr = D3DCompileFromFile(L"C:\\Work\\3dDreams\\3dDreams\\shader.hlsl", 0, 0, "vs_main", "vs_5_0", compiler_flags, 0, &vertex_shader, 0);
 
    hr = D3D12SerializeRootSignature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, &root_signature_blob, &root_signature_blob_error);
 
-   hr = d3d12_device->lpVtbl->CreateRootSignature(d3d12_device,
+   hr = device->lpVtbl->CreateRootSignature(device,
       0,
       root_signature_blob->lpVtbl->GetBufferPointer(root_signature_blob),
       root_signature_blob->lpVtbl->GetBufferSize(root_signature_blob),
       &IID_ID3D12RootSignature, (void**)&root_signature);
    if (!root_signature)
-      hw_assert("d3d12_command_allocator not created");
+      hw_message("d3d12_command_allocator not created");
 
 	pso.pRootSignature = root_signature;
    pso.VS.pShaderBytecode = vertex_shader->lpVtbl->GetBufferPointer(vertex_shader);
@@ -172,9 +192,10 @@ void d3d12_initialize(hw* hw)
    pso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
    pso.RTVFormats[0] = swap_chain_desc.Format;
 
-   hr = d3d12_device->lpVtbl->CreateGraphicsPipelineState(d3d12_device, &pso, &IID_ID3D12PipelineState, (void**)&pipeline_state);
+   hr = device->lpVtbl->CreateGraphicsPipelineState(device, &pso, &IID_ID3D12PipelineState, (void**)&pipeline_state);
    if (!pipeline_state)
-      hw_assert("pipeline_state not created");
+      hw_message("pipeline_state not created");
+
 
    hw->renderer.backends[d3d12_renderer_index] = renderer;
    hw->renderer.frame_present = d3d12_present;

@@ -3,7 +3,9 @@
 
 #if _WIN32
 #include <Windows.h>
-#define hw_assert(p) { MessageBoxA(0, #p, "Assertion", MB_OK); __debugbreak(); }
+#define hw_message(p) { MessageBoxA(0, #p, "Assertion", MB_OK); __debugbreak(); }
+#define hw_fail __debugbreak();
+#define hw_assert(p) if(!(p)) hw_message(p)
 #pragma comment(lib,	"winmm.lib")
 #endif
 

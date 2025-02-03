@@ -10,18 +10,19 @@
 #include "common.h"
 
 // TODO: We need the concept of an empty stub struct in case of overflow allocation
-#define hw_arena_push_struct(stack, type) ((type *)hw_buffer_push(stack, sizeof(type)))  
-#define hw_arena_push_count(stack, count, type) ((type *)hw_buffer_push(stack, (count)*sizeof(type)))  
-#define hw_arena_push_string(stack, count) hw_arena_push_count(stack, count, char)
+#define hw_arena_push_struct(arena, type) ((type *)hw_buffer_push(arena, sizeof(type)))  
+#define hw_arena_push_count(arena, count, type) ((type *)hw_buffer_push(arena, (count)*sizeof(type)))  
+#define hw_arena_push_size(arena, count) ((void *)hw_buffer_push(arena, (count)*sizeof(byte)))  
+#define hw_arena_push_string(arena, count) hw_arena_push_count(arena, count, char)
 
-#define hw_arena_pop_struct(stack, type) ((type *)_pop_(stack, sizeof(type)))  
-#define hw_arena_pop_count(stack, count, type) ((type *)hw_buffer_pop(stack, (count)*sizeof(type)))  
-#define hw_arena_pop_string(stack, count) hw_arena_pop_count(stack, count, char)
+#define hw_arena_pop_struct(arena, type) ((type *)_pop_(arena, sizeof(type)))  
+#define hw_arena_pop_count(arena, count, type) ((type *)hw_buffer_pop(arena, (count)*sizeof(type)))  
+#define hw_arena_pop_string(arena, count) hw_arena_pop_count(arena, count, char)
 
-#define hw_sub_arena_clear(stack) hw_buffer_clear(stack)
-#define hw_sub_arena_create(stack) hw_sub_memory_buffer_create(stack)
+#define hw_sub_arena_clear(arena) hw_buffer_clear(arena)
+#define hw_sub_arena_create(arena) hw_sub_memory_buffer_create(arena)
 
-#define hw_arena_create(stack) hw_buffer_create(stack)
+#define hw_arena_create(arena) hw_buffer_create(arena)
 
 #define hw_check_memory(cond) do { if (!(cond)) { MessageBoxA(0, "Out of memory in: " ##__FILE__, 0, 0); DebugBreak(); } } while(0)
 #define hw_print_message_box(msg) MessageBoxA(0, msg, 0, 0)
@@ -44,7 +45,7 @@ static hw_buffer hw_buffer_create(size_t num_bytes)
     return result;
 }
 
-static hw_buffer hw_sub_memory_buffer_create(hw_buffer *buffer)
+static hw_buffer hw_sub_memory_buffer_create(const hw_buffer *buffer)
 {
    hw_buffer result = {0};
 
