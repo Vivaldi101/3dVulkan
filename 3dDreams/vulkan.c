@@ -9,8 +9,11 @@
 
 #pragma comment(lib,	"vulkan-1.lib")
 
-// TODO: this is dumb - we need to query the swapchain count from vulkan
-#define VULKAN_IMAGE_COUNT 3		
+enum 
+{
+	VULKAN_FRAME_BUFFER_COUNT = 3
+};
+
 #define VK_VALID(v) (v) == VK_SUCCESS
 // TODO: rename these to snake
 
@@ -23,9 +26,9 @@ typedef struct vulkan_renderer
    VkSwapchainKHR swap_chain;
    VkCommandBuffer draw_cmd_buffer;
    VkRenderPass render_pass;
-   VkFramebuffer frame_buffers[VULKAN_IMAGE_COUNT];
-   VkImage images[VULKAN_IMAGE_COUNT];
-   VkImageView image_views[VULKAN_IMAGE_COUNT];
+   VkFramebuffer frame_buffers[VULKAN_FRAME_BUFFER_COUNT];
+   VkImage images[VULKAN_FRAME_BUFFER_COUNT];
+   VkImageView image_views[VULKAN_FRAME_BUFFER_COUNT];
    VkQueue queue;
    VkFormat format;
    VkSemaphore semaphore_image_available;
@@ -293,7 +296,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
       {
        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
        .surface = renderer->surface,
-       .minImageCount = VULKAN_IMAGE_COUNT,
+       .minImageCount = VULKAN_FRAME_BUFFER_COUNT,
        .imageFormat = VK_FORMAT_B8G8R8A8_SRGB,
        .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
        .imageExtent = surfaceExtent,
@@ -308,8 +311,11 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
           .queueFamilyIndexCount = 1,
           .pQueueFamilyIndices = &queueFamilies.graphics_family,
       };
+
+      // TODO: test if swap chain is already created and re-create it
       if (!VK_VALID(vkCreateSwapchainKHR(renderer->logical_device, &info, 0, &renderer->swap_chain)))
          hw_assert(0);
+
 
       renderer->format = info.imageFormat;
    }
@@ -318,7 +324,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    if (!VK_VALID(vkGetSwapchainImagesKHR(renderer->logical_device, renderer->swap_chain, &swap_chain_count, 0)))
       hw_assert(0);
 
-   if (swap_chain_count != VULKAN_IMAGE_COUNT)
+   if (swap_chain_count != VULKAN_FRAME_BUFFER_COUNT)
       hw_assert(0);
 
    renderer->swap_chain_count = swap_chain_count;
@@ -465,7 +471,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    hw_assert(renderer->physical_device);
    hw_assert(renderer->logical_device);
    hw_assert(renderer->swap_chain);
-   hw_assert(renderer->swap_chain_count == VULKAN_IMAGE_COUNT);
+   hw_assert(renderer->swap_chain_count == VULKAN_FRAME_BUFFER_COUNT);
    hw_assert(renderer->render_pass);
    hw_assert(renderer->frame_buffers);
    hw_assert(renderer->queue);
@@ -709,8 +715,7 @@ void vulkan_initialize(hw* hw)
    vulkan_renderer* renderer = hw_arena_push_struct(&hw->memory, vulkan_renderer);
 
    hw_buffer vulkan_arena = {0};
-   defer(vulkan_arena = hw_sub_arena_create(&hw->memory), 
-      hw_sub_arena_clear(&vulkan_arena))
+   defer(vulkan_arena = hw_sub_arena_create(&hw->memory), hw_sub_arena_clear(&vulkan_arena))
       vulkan_create_renderer(&vulkan_arena, renderer, hw->renderer.window.handle);
 
    hw->renderer.backends[vulkan_renderer_index] = renderer;

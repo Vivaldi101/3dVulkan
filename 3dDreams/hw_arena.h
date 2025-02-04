@@ -33,6 +33,18 @@ cache_align typedef struct hw_buffer
    size_t max_size, bytes_used;
 } hw_buffer;
 
+cache_align typedef struct hw_buffer_stub
+{
+	byte blob[1024];
+} hw_buffer_stub;
+
+static hw_buffer_stub global_hw_buffer_stub;
+
+static void* hw_arena_get_stub() 
+{
+	return &global_hw_buffer_stub;
+}
+
 static hw_buffer hw_buffer_create(size_t num_bytes) 
 {
     hw_buffer result = {0};
@@ -72,7 +84,8 @@ static void* hw_buffer_top(hw_buffer *buffer)
 static void* hw_buffer_push(hw_buffer *buffer, size_t bytes) 
 {
    void* result;
-   assert(buffer->bytes_used + bytes <= buffer->max_size);
+   if(buffer->bytes_used + bytes > buffer->max_size)
+		return hw_arena_get_stub();
 
    result = buffer->base + buffer->bytes_used;
    buffer->bytes_used += bytes;

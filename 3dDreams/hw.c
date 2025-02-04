@@ -185,8 +185,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       }
 
       app_input_function(&input);
-      defer(frame_arena = hw_sub_arena_create(&hw->memory), 
-         hw_sub_arena_clear(&frame_arena))
+      defer(frame_arena = hw_sub_arena_create(&hw->memory), hw_sub_arena_clear(&frame_arena))
          app_frame_function(&frame_arena);
       hw_frame_sync();
       hw_frame_render(hw);
@@ -268,7 +267,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
       return 0;
 
    hw.memory = hw_arena_create(virtual_memory_amount);
-   if (!hw.memory.base || (hw.memory.max_size != virtual_memory_amount))
+   if (!hw.memory.base)
       return 0;
 
    argv = hw_arena_push_count(&hw.memory, MAX_ARGV, const char*);
