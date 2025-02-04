@@ -100,7 +100,7 @@ void d3d12_initialize(hw* hw)
 
    pre(hw->renderer.window.handle);
 
-   d3d12_renderer* renderer = hw_arena_push_struct(&hw->memory, d3d12_renderer);
+   d3d12_renderer* renderer = arena_push_struct(&hw->memory, d3d12_renderer);
 
    hr = D3D12GetDebugInterface(&IID_ID3D12Debug, &debug);
    if (!debug)

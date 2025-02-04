@@ -3,8 +3,11 @@
 #include "common.h"
 #include "app.h"
 
+#include <stdio.h>
+
 #define MAX_ARGV 32
 
+// This needs to go win32.c
 cache_align typedef struct hw_window
 {
    HWND handle;
@@ -30,7 +33,7 @@ cache_align typedef struct hw
 #include "vulkan.c"
 
 // TODO: Add all the extra garbage for handling window events
-LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK win32_win_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
    switch (uMsg)
    {
    case WM_CLOSE:
@@ -48,7 +51,7 @@ void hw_window_open(hw* hw, const char* title, int x, int y, int width, int heig
    DWORD dwExStyle, dwStyle;
 
    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-   wc.lpfnWndProc = WndProc;
+   wc.lpfnWndProc = win32_win_proc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 0;
    wc.hInstance = GetModuleHandle(NULL);
@@ -107,7 +110,7 @@ static DWORD hw_get_milliseconds()
    return timeGetTime() - sys_time_base;
 }
 
-#define MAX_UPS (60)
+//#define MAX_UPS (60)
 #define MSEC_PER_SIM (16)
 
 static f32 global_game_time_residual;
@@ -176,6 +179,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       MSG msg;
       app_input input;
       hw_buffer frame_arena;
+
       if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
       {
          if (msg.message == WM_QUIT)
@@ -185,7 +189,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       }
 
       app_input_function(&input);
-      defer(frame_arena = hw_sub_arena_create(&hw->memory), hw_sub_arena_clear(&frame_arena))
+      defer(frame_arena = sub_arena_create(&hw->memory), sub_arena_clear(&frame_arena))
          app_frame_function(&frame_arena);
       hw_frame_sync();
       hw_frame_render(hw);
@@ -197,12 +201,12 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
 static void hw_error(hw* hw, const char* s)
 {
    const usize buffer_size = strlen(s) + 1; // string len + 1 for null
-   char* buffer = hw_arena_push_string(&hw->memory, buffer_size);
+   char* buffer = arena_push_string(&hw->memory, buffer_size);
 
    memcpy(buffer, s, buffer_size);
    MessageBox(NULL, buffer, "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
 
-   hw_arena_pop_string(&hw->memory, buffer_size);
+   arena_pop_string(&hw->memory, buffer_size);
    hw_event_loop_end(hw);
 }
 
@@ -243,6 +247,7 @@ static int cmd_parse(char* cmd, char** argv)
 }
 
 // TODO: Used by the software renderer
+#if 0
 static void hw_blit(hw* hw)
 {
    PAINTSTRUCT ps;
@@ -253,6 +258,7 @@ static void hw_blit(hw* hw)
    //BitBlt(ps.hdc,0,0,hw_screen_x_size,hw_screen_y_size,hw_mem,0,0,SRCCOPY);
    EndPaint(hw->renderer.window.handle, &ps);
 }
+#endif
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
@@ -266,11 +272,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    if (!GlobalMemoryStatusEx(&memory_status))
       return 0;
 
-   hw.memory = hw_arena_create(virtual_memory_amount);
+   hw.memory = arena_create(virtual_memory_amount);
    if (!hw.memory.base)
       return 0;
 
-   argv = hw_arena_push_count(&hw.memory, MAX_ARGV, const char*);
+   argv = arena_push_count(&hw.memory, MAX_ARGV, const char*);
    argv[0] = GetCommandLine();				 // put program name as the first one
    argc = cmd_parse(lpszCmdLine, argv);
 

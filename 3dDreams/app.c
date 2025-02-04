@@ -18,7 +18,7 @@ static void app_frame_draw(hw_buffer* frame_arena)
 {
 #if 1
    int i;
-   app_some_type* type = hw_arena_push_struct(frame_arena, app_some_type);
+   app_some_type* type = arena_push_struct(frame_arena, app_some_type);
    type->isvalid = true;
    type->name = "foo";
    for (i = 0; i < array_count(type->arr); ++i)
@@ -47,8 +47,8 @@ void app_start(int argc, const char** argv, hw* hw)
 
    hw_window_open(hw, "App window", 0, 0, 800, 600);
 
-   //vulkan_initialize(hw);
-   d3d12_initialize(hw);
+   vulkan_initialize(hw);
+   //d3d12_initialize(hw);
 
    g_frustum_create(&frustum, 800, 600, 90.0f);
 

@@ -10,19 +10,19 @@
 #include "common.h"
 
 // TODO: We need the concept of an empty stub struct in case of overflow allocation
-#define hw_arena_push_struct(arena, type) ((type *)hw_buffer_push(arena, sizeof(type)))  
-#define hw_arena_push_count(arena, count, type) ((type *)hw_buffer_push(arena, (count)*sizeof(type)))  
-#define hw_arena_push_size(arena, count) ((void *)hw_buffer_push(arena, (count)*sizeof(byte)))  
-#define hw_arena_push_string(arena, count) hw_arena_push_count(arena, count, char)
+#define arena_push_struct(arena, type) ((type *)hw_buffer_push(arena, sizeof(type)))  
+#define arena_push_count(arena, count, type) ((type *)hw_buffer_push(arena, (count)*sizeof(type)))  
+#define arena_push_size(arena, count) ((void *)hw_buffer_push(arena, (count)*sizeof(byte)))  
+#define arena_push_string(arena, count) arena_push_count(arena, count, char)
 
-#define hw_arena_pop_struct(arena, type) ((type *)_pop_(arena, sizeof(type)))  
-#define hw_arena_pop_count(arena, count, type) ((type *)hw_buffer_pop(arena, (count)*sizeof(type)))  
-#define hw_arena_pop_string(arena, count) hw_arena_pop_count(arena, count, char)
+#define arena_pop_struct(arena, type) ((type *)_pop_(arena, sizeof(type)))  
+#define arena_pop_count(arena, count, type) ((type *)hw_buffer_pop(arena, (count)*sizeof(type)))  
+#define arena_pop_string(arena, count) arena_pop_count(arena, count, char)
 
-#define hw_sub_arena_clear(arena) hw_buffer_clear(arena)
-#define hw_sub_arena_create(arena) hw_sub_memory_buffer_create(arena)
+#define sub_arena_clear(arena) hw_buffer_clear(arena)
+#define sub_arena_create(arena) hw_sub_memory_buffer_create(arena)
 
-#define hw_arena_create(arena) hw_buffer_create(arena)
+#define arena_create(arena) hw_buffer_create(arena)
 
 #define hw_check_memory(cond) do { if (!(cond)) { MessageBoxA(0, "Out of memory in: " ##__FILE__, 0, 0); DebugBreak(); } } while(0)
 #define hw_print_message_box(msg) MessageBoxA(0, msg, 0, 0)

@@ -86,7 +86,7 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
 
 static void* allocate(hw_buffer* vulkan_arena, size_t size)
 {
-   return hw_arena_push_size(vulkan_arena, size);
+   return arena_push_size(vulkan_arena, size);
 }
 
 static queue_family_indices vulkan_find_queue_families(hw_buffer* vulkan_arena, VkPhysicalDevice device, VkSurfaceKHR surface)
@@ -712,10 +712,10 @@ void vulkan_initialize(hw* hw)
 {
    pre(hw->renderer.window.handle);
 
-   vulkan_renderer* renderer = hw_arena_push_struct(&hw->memory, vulkan_renderer);
+   vulkan_renderer* renderer = arena_push_struct(&hw->memory, vulkan_renderer);
 
    hw_buffer vulkan_arena = {0};
-   defer(vulkan_arena = hw_sub_arena_create(&hw->memory), hw_sub_arena_clear(&vulkan_arena))
+   defer(vulkan_arena = sub_arena_create(&hw->memory), sub_arena_clear(&vulkan_arena))
       vulkan_create_renderer(&vulkan_arena, renderer, hw->renderer.window.handle);
 
    hw->renderer.backends[vulkan_renderer_index] = renderer;

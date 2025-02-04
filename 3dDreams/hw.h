@@ -7,6 +7,8 @@
 #define hw_fail __debugbreak();
 #define hw_assert(p) if(!(p)) hw_message(p)
 #pragma comment(lib,	"winmm.lib")
+#elif
+// other plats like linux, osx and ios
 #endif
 
 // TODO: Move this to general renderer.h
