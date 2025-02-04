@@ -25,15 +25,21 @@ typedef int32_t fp;
 
 typedef size_t usize;
 
-// TODO: Disable on release
+#ifdef _DEBUG
 #define pre(p)  {if(!(p))hw_message(p)}
 #define post(p) {if(!(p))hw_message(p)}
 #define inv(p)  {if(!(p))hw_message(p)}
+#else
+#define pre(p)
+#define post(p)
+#define inv(p)
+#endif
 
 #define iff(p, q) (p) == (q)
 #define implies(p, q) (!(p) || (q))
 
 #define cache_align __declspec(align(64))    // assume 64 byte cacheline size.
+//#define cache_align 
 
 #define array_count(a) sizeof((a)) / sizeof((a)[0])
 

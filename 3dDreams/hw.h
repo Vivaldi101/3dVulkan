@@ -2,14 +2,14 @@
 #define _HW_H
 
 #if _WIN32
-#include <Windows.h>
 #define hw_message(p) { MessageBoxA(0, #p, "Assertion", MB_OK); __debugbreak(); }
-#define hw_fail __debugbreak();
-#define hw_assert(p) if(!(p)) hw_message(p)
-#pragma comment(lib,	"winmm.lib")
+#pragma comment(lib,	"winmm.lib") // timers etc.
 #elif
 // other plats like linux, osx and ios
 #endif
+
+// Every platform should define hw_message
+#define hw_assert(p) if(!(p)) hw_message(p)
 
 // TODO: Move this to general renderer.h
 enum
