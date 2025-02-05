@@ -4,6 +4,7 @@
 
 #include <Windows.h>
 
+#include "hw_arena.h"
 #include "common.h"
 
 cache_align typedef struct hw_window
@@ -140,6 +141,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    MEMORYSTATUSEX memory_status;
    int argc;
    char** argv;
+
+   hw_virtual_allocate_init();
 
    memory_status.dwLength = sizeof(memory_status);
    if (!GlobalMemoryStatusEx(&memory_status))
