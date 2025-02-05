@@ -127,15 +127,25 @@ static int cmd_parse(char* cmd, char** argv)
    char* arg_start;
    char* arg_end;
 
+	// program name as the first one
+   argv[0] = GetCommandLine();
+	// program name should be valid
    pre(strlen(argv[0]) > 0);
-   for (int i = (int)strlen(argv[0]) - 1; i >= 0; --i)
+
+   //usize i = strlen(argv[0]) - 1;
+   //do if (argv[0][i] == '\"') {argv[0][i + 1] = 0; break;}
+   //while(i-- != 0);
+   for(usize i = strlen(argv[0]); i--;)
    {
-      if (argv[0][i] == '\"')
-      {
-         argv[0][i + 1] = 0;
-         break;
+      if (argv[0][i] == '\"') 
+      { 
+         argv[0][i + 1] = 0; 
+         break; 
       }
    }
+
+   //post(implies(i != 0, argv[0][i] == '\"'));	// break if slash found
+   //post(implies(argv[0][i] != '\"', i == (usize)-1));	// end if no slash found
 
    // offset by the program name and just parse the arguments
    argc = 1;

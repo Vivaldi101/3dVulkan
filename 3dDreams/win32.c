@@ -153,7 +153,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
       return 0;
 
    argv = arena_push_count(&hw.memory, MAX_ARGV, const char*);
-   argv[0] = GetCommandLine();				 // put program name as the first one
    argc = cmd_parse(lpszCmdLine, argv);
 
    if (argc == 0)
