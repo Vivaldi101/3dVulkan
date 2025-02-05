@@ -16,10 +16,18 @@ cache_align typedef struct hw_renderer
    hw_window window;
 } hw_renderer;
 
+cache_align typedef struct hw_timer
+{
+   void(*sleep)(u32 ms);
+   u32(*get_milliseconds)();
+} hw_timer;
+
 cache_align typedef struct hw
 {
    hw_renderer renderer;
    hw_buffer memory;				// TODO: we need concept of permanent storage here since sub arenas are temp
+   hw_timer timer;
+   bool(*pump)();
    bool finished;
 } hw;
 
@@ -50,26 +58,12 @@ void hw_event_loop_end(hw* hw)
 static f32 global_game_time_residual;
 static int global_game_frame;
 
-// Move to win32.c
-static void hw_sleep(DWORD ms)
-{
-   Sleep(ms);
-}
-	
-// Move to win32.c
-static DWORD hw_get_milliseconds()
-{
-   static DWORD sys_time_base = 0;
-   if (sys_time_base == 0) sys_time_base = timeGetTime();
-   return timeGetTime() - sys_time_base;
-}
-
-static void hw_frame_sync()
+static void hw_frame_sync(hw* hw)
 {
 	int num_frames_to_run = 0;
    for (;;) 
    {
-      const int current_frame_time = hw_get_milliseconds();
+      const int current_frame_time = hw->timer.get_milliseconds();
       static int last_frame_time = 0;
       if (last_frame_time == 0) 
          last_frame_time = current_frame_time;
@@ -91,7 +85,7 @@ static void hw_frame_sync()
       if (num_frames_to_run > 0)
          break;
 
-      hw_sleep(0);
+      hw->timer.sleep(0);
    }
 }
 
@@ -109,39 +103,21 @@ static void hw_frame_render(hw* hw)
 
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(struct app_input* input))
 {
-   // first window paint
-   InvalidateRect(hw->renderer.window.handle, NULL, TRUE);
-   UpdateWindow(hw->renderer.window.handle);
-
-   // init timers
-   // TDOO: mvoe to win32.c
-   timeBeginPeriod(1);
-   hw_get_milliseconds();
+   hw->timer.get_milliseconds();
 
    for (;;)
    {
-      MSG msg;
       app_input input;
       hw_buffer frame_arena;
 
-		// TDOO: mvoe to win32.c
-      if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-      {
-         if (msg.message == WM_QUIT)
-            break;
-         TranslateMessage(&msg);
-         DispatchMessage(&msg);
-      }
+      if (!hw->pump()) break;
 
       app_input_function(&input);
       defer(frame_arena = sub_arena_create(&hw->memory), sub_arena_clear(&frame_arena))
          app_frame_function(&frame_arena);
-      hw_frame_sync();
+      hw_frame_sync(hw);
       hw_frame_render(hw);
    }
-
-   // TDOO: mvoe to win32.c
-   timeEndPeriod(1);
 }
 
 static int cmd_parse(char* cmd, char** argv)
@@ -179,17 +155,3 @@ static int cmd_parse(char* cmd, char** argv)
 
    return argc;
 }
-
-// Move to win32.c
-static void hw_error(hw* hw, const char* s)
-{
-   const usize buffer_size = strlen(s) + 1; // string len + 1 for null
-   char* buffer = arena_push_string(&hw->memory, buffer_size);
-
-   memcpy(buffer, s, buffer_size);
-   MessageBox(NULL, buffer, "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
-
-   arena_pop_string(&hw->memory, buffer_size);
-   hw_event_loop_end(hw);
-}
-

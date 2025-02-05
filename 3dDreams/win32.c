@@ -6,9 +6,6 @@
 
 #include "common.h"
 
-#define hw_fail __debugbreak();
-#define MAX_ARGV 32
-
 cache_align typedef struct hw_window
 {
    HWND (*open)(const char* title, int x, int y, int width, int height);
@@ -17,6 +14,32 @@ cache_align typedef struct hw_window
 } hw_window;
 
 #include "hw.c"
+
+static void win32_sleep(u32 ms)
+{
+   Sleep(ms);
+}
+	
+static u32 win32_get_milliseconds()
+{
+   static DWORD sys_time_base = 0;
+   if (sys_time_base == 0) sys_time_base = timeGetTime();
+   return timeGetTime() - sys_time_base;
+}
+
+static bool win32_pump()
+{
+   MSG msg;
+   if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+   {
+      if (msg.message == WM_QUIT)
+         return false;
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+   }
+
+   return true;
+}
 
 // TODO: Add all the extra garbage for handling window events
 static LRESULT CALLBACK win32_win_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -96,6 +119,19 @@ static void hw_blit(hw* hw)
 }
 #endif
 
+static void hw_error(hw* hw, const char* s)
+{
+   const usize buffer_size = strlen(s) + 1; // string len + 1 for null
+   char* buffer = arena_push_string(&hw->memory, buffer_size);
+
+   memcpy(buffer, s, buffer_size);
+   MessageBox(NULL, buffer, "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
+
+   arena_pop_string(&hw->memory, buffer_size);
+   hw_event_loop_end(hw);
+}
+
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    hw hw = {0};
@@ -123,7 +159,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;
 
+   hw.timer.sleep = win32_sleep;
+   hw.timer.get_milliseconds = win32_get_milliseconds;
+
+   hw.pump = win32_pump;
+
+   timeBeginPeriod(1);
    app_start(argc, argv, &hw);    // pass the options to the application
+   timeEndPeriod(1);
 
    return 0;
 }
