@@ -21,14 +21,14 @@ static void win32_sleep(u32 ms)
    Sleep(ms);
 }
 	
-static u32 win32_get_milliseconds()
+static u32 win32_time()
 {
    static DWORD sys_time_base = 0;
    if (sys_time_base == 0) sys_time_base = timeGetTime();
    return timeGetTime() - sys_time_base;
 }
 
-static bool win32_pump()
+static bool win32_message_pump()
 {
    MSG msg;
    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -163,9 +163,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw.renderer.window.close = win32_window_close;
 
    hw.timer.sleep = win32_sleep;
-   hw.timer.get_milliseconds = win32_get_milliseconds;
+   hw.timer.time = win32_time;
 
-   hw.pump = win32_pump;
+   hw.message_pump = win32_message_pump;
 
    timeBeginPeriod(1);
    app_start(argc, argv, &hw);    // pass the options to the application

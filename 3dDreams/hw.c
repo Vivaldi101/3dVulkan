@@ -19,7 +19,7 @@ cache_align typedef struct hw_renderer
 cache_align typedef struct hw_timer
 {
    void(*sleep)(u32 ms);
-   u32(*get_milliseconds)();
+   u32(*time)();
 } hw_timer;
 
 cache_align typedef struct hw
@@ -27,7 +27,7 @@ cache_align typedef struct hw
    hw_renderer renderer;
    hw_buffer memory;				// TODO: we need concept of permanent storage here since sub arenas are temp
    hw_timer timer;
-   bool(*pump)();
+   bool(*message_pump)();
    bool finished;
 } hw;
 
@@ -63,7 +63,7 @@ static void hw_frame_sync(hw* hw)
 	int num_frames_to_run = 0;
    for (;;) 
    {
-      const int current_frame_time = hw->timer.get_milliseconds();
+      const int current_frame_time = hw->timer.time();
       static int last_frame_time = 0;
       if (last_frame_time == 0) 
          last_frame_time = current_frame_time;
@@ -103,14 +103,15 @@ static void hw_frame_render(hw* hw)
 
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(struct app_input* input))
 {
-   hw->timer.get_milliseconds();
+   hw->timer.time();
 
    for (;;)
    {
       app_input input;
       hw_buffer frame_arena;
 
-      if (!hw->pump()) break;
+      if (!hw->message_pump()) 
+         break;
 
       app_input_function(&input);
       defer(frame_arena = sub_arena_create(&hw->memory), sub_arena_clear(&frame_arena))
@@ -127,7 +128,7 @@ static int cmd_parse(char* cmd, char** argv)
    char* arg_end;
 
    pre(strlen(argv[0]) > 0);
-   for (usize i = strlen(argv[0]) - 1; i >= 0; --i)
+   for (int i = (int)strlen(argv[0]) - 1; i >= 0; --i)
    {
       if (argv[0][i] == '\"')
       {
