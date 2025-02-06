@@ -27,6 +27,7 @@ typedef struct vulkan_device
 typedef struct vulkan_context
 {
 	vulkan_device device;
+   VkInstance instance;
 } vulkan_context;
 
 typedef struct vulkan_renderer
@@ -728,15 +729,39 @@ static void vulkan_device_destroy(vulkan_context* context)
 {
 }
 
-void vulkan_initialize(hw* hw)
+static bool vulkan_create_renderer_new(hw_buffer* vulkan_arena, vulkan_context* context, HWND windowHandle)
 {
+   VkApplicationInfo app_info = {};
+   app_info.apiVersion = VK_API_VERSION_1_0;
+   app_info.pApplicationName = "Engine";
+   app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+   app_info.pEngineName = "Engine";
+   app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+
+   VkInstanceCreateInfo instance_info = {};
+   instance_info.pApplicationInfo = &app_info;
+   instance_info.enabledExtensionCount = 0;
+   instance_info.ppEnabledExtensionNames = 0;
+   instance_info.enabledLayerCount = 0;
+   instance_info.ppEnabledExtensionNames = 0;
+
+	if (!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
+		return false;
+
+	return true;
+}
+
+bool vulkan_initialize(hw* hw)
+{
+	bool result;
    pre(hw->renderer.window.handle);
 
    vulkan_renderer* renderer = arena_push_struct(&hw->memory, vulkan_renderer);
+   vulkan_context* context = arena_push_struct(&hw->memory, vulkan_context);
 
    hw_buffer vulkan_arena = {0};
    defer(vulkan_arena = sub_arena_create(&hw->memory), sub_arena_clear(&vulkan_arena))
-      vulkan_create_renderer(&vulkan_arena, renderer, hw->renderer.window.handle);
+      result = vulkan_create_renderer_new(&vulkan_arena, context, hw->renderer.window.handle);
 
    hw->renderer.backends[vulkan_renderer_index] = renderer;
    hw->renderer.frame_present = vulkan_present;
@@ -745,4 +770,6 @@ void vulkan_initialize(hw* hw)
    post(hw->renderer.backends[vulkan_renderer_index]);
    post(hw->renderer.frame_present);
    post(hw->renderer.renderer_index == vulkan_renderer_index);
+
+   return result;
 }
