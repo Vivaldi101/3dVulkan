@@ -17,6 +17,18 @@ enum
 #define VK_VALID(v) (v) == VK_SUCCESS
 // TODO: rename these to snake
 
+// TODO: wrap this inside the vulkan renderer
+typedef struct vulkan_device
+{
+   VkPhysicalDevice physical_device;
+   VkDevice logical_device;
+} vulkan_device;
+
+typedef struct vulkan_context
+{
+	vulkan_device device;
+} vulkan_context;
+
 typedef struct vulkan_renderer
 {
    VkInstance instance;
@@ -706,6 +718,14 @@ void vulkan_present(vulkan_renderer* renderer)
       if (!VK_VALID(vkQueuePresentKHR(renderer->queue, &info)))
          ;
    }
+}
+
+static void vulkan_device_create(vulkan_context* context)
+{
+}
+
+static void vulkan_device_destroy(vulkan_context* context)
+{
 }
 
 void vulkan_initialize(hw* hw)
