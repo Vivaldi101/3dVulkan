@@ -29,38 +29,59 @@ static VirtualAllocPtr global_allocate;
 cache_align typedef struct hw_buffer
 {
    byte* base;
-   size_t max_size, bytes_used;
+   usize max_size, bytes_used;
 } hw_buffer;
 
-cache_align typedef struct hw_buffer_stub
+static void* hw_stub_range()
 {
-   byte blob[1024];
-} hw_buffer_stub;
+   static void* stubPage = 0;
+   if(!stubPage)
+   {
+      MEMORYSTATUSEX memory_status;
+      memory_status.dwLength = sizeof(memory_status);
 
-static hw_buffer_stub global_hw_buffer_stub;
+      GlobalMemoryStatusEx(&memory_status);
 
-static void* hw_arena_get_stub()
+      stubPage = global_allocate(0, memory_status.ullAvailPhys, MEM_RESERVE, PAGE_READWRITE);
+      post(stubPage);
+   }
+
+   return stubPage;
+}
+
+static void* hw_arena_get_stub(usize bytes)
 {
-   return &global_hw_buffer_stub;
+   return hw_stub_range();
+}
+
+static void* hw_stub_memory_allocate(usize size)
+{
+   void* stub = hw_stub_range();
+   void* base = global_allocate(stub, size, MEM_COMMIT, PAGE_READWRITE);
+
+   if(!base)
+      return stub;  // Fallback to stub page
+
+   return base;
 }
 
 static void hw_virtual_allocate_init()
 {
-   typedef LPVOID(*VirtualAllocPtr)(LPVOID, SIZE_T, DWORD, DWORD);
+   typedef LPVOID(*VirtualAllocPtr)(LPVOID, usize, DWORD, DWORD);
 
    HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
    if (hKernel32)
       global_allocate = (VirtualAllocPtr)(GetProcAddress(hKernel32, "VirtualAlloc"));
 
-   post(global_allocate);
+	post(global_allocate);
 }
 
-static hw_buffer hw_buffer_create(size_t num_bytes) 
+static hw_buffer hw_buffer_create(usize num_bytes) 
 {
     hw_buffer result = {0};
     pre(global_allocate);
 
-    void* ptr = global_allocate(0, num_bytes, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    const void* ptr = hw_stub_memory_allocate(num_bytes);
     
     result.base = (byte *)ptr;
     result.max_size = num_bytes;
@@ -92,11 +113,11 @@ static void* hw_buffer_top(hw_buffer *buffer)
 }
 
 // FIXME: pass alignment
-static void* hw_buffer_push(hw_buffer *buffer, size_t bytes) 
+static void* hw_buffer_push(hw_buffer *buffer, usize bytes) 
 {
    void* result;
    if(buffer->bytes_used + bytes > buffer->max_size)
-		return hw_arena_get_stub();
+		return hw_arena_get_stub(bytes);
 
    result = buffer->base + buffer->bytes_used;
    buffer->bytes_used += bytes;
@@ -104,7 +125,7 @@ static void* hw_buffer_push(hw_buffer *buffer, size_t bytes)
    return result;
 }
 
-static void* hw_buffer_pop(hw_buffer *buffer, size_t bytes) 
+static void* hw_buffer_pop(hw_buffer *buffer, usize bytes) 
 {
    void *result;
    pre(buffer->bytes_used >= bytes);
