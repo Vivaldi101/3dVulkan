@@ -94,10 +94,10 @@ static void hw_frame_render(hw* hw)
    void** renderers = hw->renderer.backends;
    const u32 renderer_index = hw->renderer.renderer_index;
 
-   pre(hw->renderer.frame_present);
-   pre(renderer_index < (u32)renderer_count);
-   pre(renderers[renderer_index]);
+   if(!hw->renderer.frame_present)
+      return;
 
+   pre(renderer_index < (u32)renderer_count);
    hw->renderer.frame_present(renderers[renderer_index]);
 }
 
