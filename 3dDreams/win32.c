@@ -43,15 +43,26 @@ static bool win32_message_pump()
 }
 
 // TODO: Add all the extra garbage for handling window events
-static LRESULT CALLBACK win32_win_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-   switch(uMsg)
+static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam) {
+   switch(umsg)
    {
-   case WM_CLOSE:
-   PostQuitMessage(0);
-   return 0;
+      case WM_CLOSE:
+         PostQuitMessage(0);
+         return 0;
+      case WM_PAINT:
+      {
+         PAINTSTRUCT ps;
+         HDC hdc = BeginPaint(hwnd, &ps);
+         FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1)); // Default white background
+         EndPaint(hwnd, &ps);
+      } break;
+
+      case WM_SIZE:
+         InvalidateRect(hwnd, NULL, TRUE); // Forces a repaint when resizing
+         break;
    }
 
-   return DefWindowProc(hWnd, uMsg, wParam, lParam);
+   return DefWindowProc(hwnd, umsg, wparam, lparam);
 }
 
 static HWND win32_window_open(const char* title, int x, int y, int width, int height)
