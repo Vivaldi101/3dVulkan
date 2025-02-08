@@ -7,11 +7,18 @@
 #include "malloc.h"
 #include <vulkan/vulkan.h>
 
+// TODO: string type
+typedef struct string
+{
+   void* data;
+   usize size;
+} string;
+
 #pragma comment(lib,	"vulkan-1.lib")
 
-enum 
+enum
 {
-	VULKAN_FRAME_BUFFER_COUNT = 3
+   VULKAN_FRAME_BUFFER_COUNT = 3
 };
 
 #define VK_VALID(v) (v) == VK_SUCCESS
@@ -26,7 +33,7 @@ typedef struct vulkan_device
 
 typedef struct vulkan_context
 {
-	vulkan_device device;
+   vulkan_device device;
    VkInstance instance;
 } vulkan_context;
 
@@ -65,7 +72,7 @@ static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
                                       const VkAllocationCallbacks* pAllocator,
                                       VkDebugUtilsMessengerEXT* pDebugMessenger) {
    PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-   if (!func)
+   if(!func)
       return VK_ERROR_EXTENSION_NOT_PRESENT;
    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 }
@@ -112,21 +119,21 @@ static queue_family_indices vulkan_find_queue_families(hw_buffer* vulkan_arena, 
    VkQueueFamilyProperties* queueFamilies = allocate(vulkan_arena, queueFamilyCount * sizeof(VkQueueFamilyProperties));
    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
 
-   for (u32 i = 0; i < queueFamilyCount; ++i)
+   for(u32 i = 0; i < queueFamilyCount; ++i)
    {
       VkQueueFamilyProperties queueFamily = queueFamilies[i];
-      if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+      if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
          indices.graphics_family = i;
 
       VkBool32 presentSupport = false;
       vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-      if (presentSupport)
+      if(presentSupport)
       {
          indices.present_family = i;
          indices.valid = true;
       }
-      if (indices.valid)
+      if(indices.valid)
          break;
       i++;
    }
@@ -146,38 +153,38 @@ static bool vulkan_is_device_compatible(hw_buffer* vulkan_arena, VkPhysicalDevic
 static void vulkan_create_sync_objects(vulkan_renderer* renderer)
 {
    pre(renderer);
-   VkSemaphoreCreateInfo semaphoreInfo = { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-   VkFenceCreateInfo fenceInfo = { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT };
+   VkSemaphoreCreateInfo semaphoreInfo = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+   VkFenceCreateInfo fenceInfo = {.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-   if (!VK_VALID(vkCreateSemaphore(renderer->logical_device, &semaphoreInfo, 0, &renderer->semaphore_image_available)))
+   if(!VK_VALID(vkCreateSemaphore(renderer->logical_device, &semaphoreInfo, 0, &renderer->semaphore_image_available)))
       hw_assert(0);
-   if (!VK_VALID(vkCreateSemaphore(renderer->logical_device, &semaphoreInfo, 0, &renderer->semaphore_render_finished)))
+   if(!VK_VALID(vkCreateSemaphore(renderer->logical_device, &semaphoreInfo, 0, &renderer->semaphore_render_finished)))
       hw_assert(0);
-   if (!VK_VALID(vkCreateFence(renderer->logical_device, &fenceInfo, 0, &renderer->fence_frame)))
+   if(!VK_VALID(vkCreateFence(renderer->logical_device, &fenceInfo, 0, &renderer->fence_frame)))
       hw_assert(0);
 }
 
 static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* renderer, HWND windowHandle)
 {
    u32 extensionCount = 0;
-   if (!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, 0)))
+   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, 0)))
       hw_assert(0);
 
    inv(extensionCount > 0);
    VkExtensionProperties* extensions = allocate(vulkan_arena, extensionCount * sizeof(VkExtensionProperties));
    inv(extensions);
 
-   if (!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, extensions)))
+   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, extensions)))
       hw_assert(0);
 
    const char** extensionNames = allocate(vulkan_arena, extensionCount * sizeof(const char*));
    inv(extensionNames);
-   for (size_t i = 0; i < extensionCount; ++i)
+   for(size_t i = 0; i < extensionCount; ++i)
       extensionNames[i] = extensions[i].extensionName;
 
-   const char* validationLayers[] = { "VK_LAYER_KHRONOS_validation" };
+   const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
 
-   VkApplicationInfo appInfo = { 0 };
+   VkApplicationInfo appInfo = {0};
    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
    appInfo.pApplicationName = "VulkanApp";
    appInfo.applicationVersion = VK_API_VERSION_1_0;
@@ -193,11 +200,11 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    instanceInfo.enabledExtensionCount = extensionCount;
    instanceInfo.ppEnabledExtensionNames = extensionNames;
 
-   if (!VK_VALID(vkCreateInstance(&instanceInfo, 0, &renderer->instance)))
+   if(!VK_VALID(vkCreateInstance(&instanceInfo, 0, &renderer->instance)))
       hw_assert(0);
 
    VkDebugUtilsMessengerEXT debugMessenger;
-   VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = { 0 };
+   VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {0};
    debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
    debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
       VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
@@ -206,25 +213,25 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
    debugCreateInfo.pfnUserCallback = VulkanDebugCallback;
 
-   if (!VK_VALID(vulkan_create_debugutils_messenger_ext(renderer->instance, &debugCreateInfo, 0, &debugMessenger)))
+   if(!VK_VALID(vulkan_create_debugutils_messenger_ext(renderer->instance, &debugCreateInfo, 0, &debugMessenger)))
       hw_assert(0);
 
    bool isWin32Surface = false;
-   for (size_t i = 0; i < extensionCount; ++i)
-      if (strcmp(extensionNames[i], VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0) {
+   for(size_t i = 0; i < extensionCount; ++i)
+      if(strcmp(extensionNames[i], VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0) {
          isWin32Surface = true;
          break;
       }
 
-   if (!isWin32Surface)
+   if(!isWin32Surface)
       hw_assert(0);
 
    PFN_vkCreateWin32SurfaceKHR vkWin32SurfaceFunction = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(renderer->instance, "vkCreateWin32SurfaceKHR");
 
-   if (!vkWin32SurfaceFunction)
+   if(!vkWin32SurfaceFunction)
       hw_assert(0);
 
-   VkWin32SurfaceCreateInfoKHR win32SurfaceInfo = { 0 };
+   VkWin32SurfaceCreateInfoKHR win32SurfaceInfo = {0};
    win32SurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
    win32SurfaceInfo.hinstance = GetModuleHandleA(0);
    win32SurfaceInfo.hwnd = windowHandle;
@@ -232,19 +239,19 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    vkWin32SurfaceFunction(renderer->instance, &win32SurfaceInfo, 0, &renderer->surface);
 
    u32 deviceCount = 0;
-   if (!VK_VALID(vkEnumeratePhysicalDevices(renderer->instance, &deviceCount, 0)))
+   if(!VK_VALID(vkEnumeratePhysicalDevices(renderer->instance, &deviceCount, 0)))
       hw_assert(0);
    hw_assert(deviceCount > 0);   // Just use the first device for now
 
    VkPhysicalDevice* devices = allocate(vulkan_arena, deviceCount * sizeof(VkPhysicalDevice));
-   if (!devices)
+   if(!devices)
       hw_assert(0);
 
-   if (!VK_VALID(vkEnumeratePhysicalDevices(renderer->instance, &deviceCount, devices)))
+   if(!VK_VALID(vkEnumeratePhysicalDevices(renderer->instance, &deviceCount, devices)))
       hw_assert(0);
 
-   for (u32 i = 0; i < deviceCount; ++i)
-      if (vulkan_is_device_compatible(vulkan_arena, devices[i], renderer->surface))
+   for(u32 i = 0; i < deviceCount; ++i)
+      if(vulkan_is_device_compatible(vulkan_arena, devices[i], renderer->surface))
       {
          renderer->physical_device = devices[i];
          break;
@@ -252,29 +259,29 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
 
    hw_assert(renderer->physical_device != VK_NULL_HANDLE);
 
-   VkDeviceQueueCreateInfo queueInfo = { 0 };
+   VkDeviceQueueCreateInfo queueInfo = {0};
    const queue_family_indices queueFamilies = vulkan_find_queue_families(vulkan_arena, renderer->physical_device, renderer->surface);
    hw_assert(queueFamilies.valid);
    queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
    queueInfo.queueFamilyIndex = queueFamilies.graphics_family;
    queueInfo.queueCount = 1;
-   const float queuePriorities[] = { 1.0f };
+   const float queuePriorities[] = {1.0f};
    queueInfo.pQueuePriorities = queuePriorities;
 
    extensionCount = 0;
-   if (!VK_VALID(vkEnumerateDeviceExtensionProperties(renderer->physical_device, 0, &extensionCount, 0)))
+   if(!VK_VALID(vkEnumerateDeviceExtensionProperties(renderer->physical_device, 0, &extensionCount, 0)))
       hw_assert(0);
 
    inv(extensionCount > 0);
    extensions = allocate(vulkan_arena, extensionCount * sizeof(VkExtensionProperties));
    inv(extensions);
 
-   if (!VK_VALID(vkEnumerateDeviceExtensionProperties(renderer->physical_device, 0, &extensionCount, extensions)))
+   if(!VK_VALID(vkEnumerateDeviceExtensionProperties(renderer->physical_device, 0, &extensionCount, extensions)))
       hw_assert(0);
 
    extensionNames = allocate(vulkan_arena, extensionCount * sizeof(const char*));
    inv(extensionNames);
-   for (size_t i = 0; i < extensionCount; ++i)
+   for(size_t i = 0; i < extensionCount; ++i)
       extensionNames[i] = extensions[i].extensionName;
 
    {
@@ -289,15 +296,15 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
        .ppEnabledLayerNames = 0,
       };
 
-      VkPhysicalDeviceFeatures physicalFeatures = { 0 };
+      VkPhysicalDeviceFeatures physicalFeatures = {0};
       physicalFeatures.shaderClipDistance = VK_TRUE;
       info.pEnabledFeatures = &physicalFeatures;
 
-      if (!VK_VALID(vkCreateDevice(renderer->physical_device, &info, 0, &renderer->logical_device)))
+      if(!VK_VALID(vkCreateDevice(renderer->physical_device, &info, 0, &renderer->logical_device)))
          hw_assert(0);
    }
 
-   VkSurfaceCapabilitiesKHR surfaceCaps = { 0 };
+   VkSurfaceCapabilitiesKHR surfaceCaps = {0};
    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(renderer->physical_device, renderer->surface, &surfaceCaps);
 
    VkExtent2D surfaceExtent = surfaceCaps.currentExtent;
@@ -326,7 +333,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
       };
 
       // TODO: test if swap chain is already created and re-create it
-      if (!VK_VALID(vkCreateSwapchainKHR(renderer->logical_device, &info, 0, &renderer->swap_chain)))
+      if(!VK_VALID(vkCreateSwapchainKHR(renderer->logical_device, &info, 0, &renderer->swap_chain)))
          hw_assert(0);
 
 
@@ -334,30 +341,30 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    }
 
    u32 swap_chain_count = 0;
-   if (!VK_VALID(vkGetSwapchainImagesKHR(renderer->logical_device, renderer->swap_chain, &swap_chain_count, 0)))
+   if(!VK_VALID(vkGetSwapchainImagesKHR(renderer->logical_device, renderer->swap_chain, &swap_chain_count, 0)))
       hw_assert(0);
 
-   if (swap_chain_count != VULKAN_FRAME_BUFFER_COUNT)
+   if(swap_chain_count != VULKAN_FRAME_BUFFER_COUNT)
       hw_assert(0);
 
    renderer->swap_chain_count = swap_chain_count;
 
    VkImage* swapChainImages = allocate(vulkan_arena, swap_chain_count * sizeof(VkImage));
-   if (!swapChainImages)
+   if(!swapChainImages)
       hw_assert(0);
 
-   if (!VK_VALID(vkGetSwapchainImagesKHR(renderer->logical_device, renderer->swap_chain, &swap_chain_count, swapChainImages)))
+   if(!VK_VALID(vkGetSwapchainImagesKHR(renderer->logical_device, renderer->swap_chain, &swap_chain_count, swapChainImages)))
       hw_assert(0);
 
-   for (u32 i = 0; i < swap_chain_count; ++i)
+   for(u32 i = 0; i < swap_chain_count; ++i)
       renderer->images[i] = swapChainImages[i];
 
    VkImageView* image_views = allocate(vulkan_arena, swap_chain_count * sizeof(VkImageView));
-   if (!image_views)
+   if(!image_views)
       hw_assert(0);
 
    renderer->swap_chain_count = swap_chain_count;
-   for (u32 i = 0; i < swap_chain_count; ++i) {
+   for(u32 i = 0; i < swap_chain_count; ++i) {
       VkImageViewCreateInfo info =
       {
        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -375,7 +382,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
           .image = swapChainImages[i]
       };
 
-      if (!VK_VALID(vkCreateImageView(renderer->logical_device, &info, 0, &image_views[i])))
+      if(!VK_VALID(vkCreateImageView(renderer->logical_device, &info, 0, &image_views[i])))
          hw_assert(0);
       renderer->image_views[i] = image_views[i];
    }
@@ -383,7 +390,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    u32 queueFamilyCount = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(renderer->physical_device, &queueFamilyCount, 0);
    VkQueueFamilyProperties* queueProperties = allocate(vulkan_arena, queueFamilyCount * sizeof(VkQueueFamilyProperties));
-   if (!queueProperties)
+   if(!queueProperties)
       hw_assert(0);
    hw_assert(queueFamilyCount > 0);
    vkGetPhysicalDeviceQueueFamilyProperties(renderer->physical_device, &queueFamilyCount, queueProperties);
@@ -401,7 +408,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
           .pNext = 0,
           .queueFamilyIndex = queueFamilies.graphics_family,
       };
-      if (!VK_VALID(vkCreateCommandPool(renderer->logical_device, &info, 0, &commandPool)))
+      if(!VK_VALID(vkCreateCommandPool(renderer->logical_device, &info, 0, &commandPool)))
          hw_assert(0);
    }
 
@@ -414,14 +421,14 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
           .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
           .commandBufferCount = 1,
       };
-      if (!VK_VALID(vkAllocateCommandBuffers(renderer->logical_device, &info, &draw_cmd_buffer)))
+      if(!VK_VALID(vkAllocateCommandBuffers(renderer->logical_device, &info, &draw_cmd_buffer)))
          hw_assert(0);
       renderer->draw_cmd_buffer = draw_cmd_buffer;
    }
 
    VkRenderPass render_pass = 0;
 
-   VkAttachmentDescription pass[1] = { 0 };
+   VkAttachmentDescription pass[1] = {0};
    pass[0].format = VK_FORMAT_B8G8R8A8_SRGB;
    pass[0].samples = VK_SAMPLE_COUNT_1_BIT;
    pass[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -431,11 +438,11 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    pass[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
    pass[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-   VkAttachmentReference ref = { 0 };
+   VkAttachmentReference ref = {0};
    ref.attachment = 0;
    ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-   VkSubpassDescription subpass = { 0 };
+   VkSubpassDescription subpass = {0};
    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
    subpass.colorAttachmentCount = 1;
    subpass.pColorAttachments = &ref;
@@ -449,14 +456,14 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
           .subpassCount = 1,
           .pSubpasses = &subpass,
       };
-      if (!VK_VALID(vkCreateRenderPass(renderer->logical_device, &info, 0, &render_pass)))
+      if(!VK_VALID(vkCreateRenderPass(renderer->logical_device, &info, 0, &render_pass)))
          hw_assert(0);
       renderer->render_pass = render_pass;
    }
 
    VkImageView frameBufferAttachments = 0;
    VkFramebuffer* frame_buffers = allocate(vulkan_arena, swap_chain_count * sizeof(VkFramebuffer));
-   if (!frame_buffers)
+   if(!frame_buffers)
       hw_assert(0);
    {
       VkFramebufferCreateInfo info =
@@ -469,9 +476,9 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
           .layers = 1,
           .renderPass = render_pass,
       };
-      for (u32 i = 0; i < swap_chain_count; ++i) {
+      for(u32 i = 0; i < swap_chain_count; ++i) {
          frameBufferAttachments = image_views[i];
-         if (!VK_VALID(vkCreateFramebuffer(renderer->logical_device, &info, 0, &frame_buffers[i])))
+         if(!VK_VALID(vkCreateFramebuffer(renderer->logical_device, &info, 0, &frame_buffers[i])))
             hw_assert(0);
          renderer->frame_buffers[i] = frame_buffers[i];
       }
@@ -506,17 +513,17 @@ static void vulkan_record_command_buffer(vulkan_renderer* renderer, u32 imageInd
 static void vulkan_render(vulkan_renderer* renderer)
 {
    pre(renderer);
-   if (!VK_VALID(vkWaitForFences(renderer->logical_device, 1, &renderer->fence_frame, VK_TRUE, UINT64_MAX)))
+   if(!VK_VALID(vkWaitForFences(renderer->logical_device, 1, &renderer->fence_frame, VK_TRUE, UINT64_MAX)))
       post(0);
 
-   if (!VK_VALID(vkResetFences(renderer->logical_device, 1, &renderer->fence_frame)))
+   if(!VK_VALID(vkResetFences(renderer->logical_device, 1, &renderer->fence_frame)))
       post(0);
 
    u32 nextImageIndex = 0;
-   if (!VK_VALID(vkAcquireNextImageKHR(renderer->logical_device, renderer->swap_chain, UINT64_MAX, renderer->semaphore_image_available, VK_NULL_HANDLE, &nextImageIndex)))
+   if(!VK_VALID(vkAcquireNextImageKHR(renderer->logical_device, renderer->swap_chain, UINT64_MAX, renderer->semaphore_image_available, VK_NULL_HANDLE, &nextImageIndex)))
       ;
 
-   if (!VK_VALID(vkResetCommandBuffer(renderer->draw_cmd_buffer, 0)))
+   if(!VK_VALID(vkResetCommandBuffer(renderer->draw_cmd_buffer, 0)))
       post(0);
 
    {
@@ -527,7 +534,7 @@ static void vulkan_render(vulkan_renderer* renderer)
           .flags = 0, .pInheritanceInfo = 0, .pNext = 0,
       };
       // start this cmd buffer
-      if (!VK_VALID(vkBeginCommandBuffer(renderer->draw_cmd_buffer, &info)))
+      if(!VK_VALID(vkBeginCommandBuffer(renderer->draw_cmd_buffer, &info)))
          post(0);
    }
    {
@@ -537,7 +544,7 @@ static void vulkan_render(vulkan_renderer* renderer)
       // slowly increment
       aa += 0.011f;
       // when value reaches 1.0 reset to 0
-      if (aa >= 1.0) aa = 0;
+      if(aa >= 1.0) aa = 0;
       // activate render pass:
       // clear color (r,g,b,a)
       VkClearValue clearValue[] =
@@ -555,9 +562,9 @@ static void vulkan_render(vulkan_renderer* renderer)
           .renderArea.offset = {0,0},
           .renderArea.extent = {renderer->surface_width, renderer->surface_height},
       };
-      VkOffset2D a = { 0, 0 };
-      VkExtent2D b = { renderer->surface_width, renderer->surface_height };
-      VkRect2D c = { a,b };
+      VkOffset2D a = {0, 0};
+      VkExtent2D b = {renderer->surface_width, renderer->surface_height};
+      VkRect2D c = {a,b};
       info.renderArea = c;
       info.clearValueCount = 2;
       info.pClearValues = clearValue;
@@ -570,11 +577,11 @@ static void vulkan_render(vulkan_renderer* renderer)
    }
 
    // end this cmd buffer
-   if (!VK_VALID(vkEndCommandBuffer(renderer->draw_cmd_buffer)))
+   if(!VK_VALID(vkEndCommandBuffer(renderer->draw_cmd_buffer)))
       post(0);
 
    {
-      const VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+      const VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
       VkSubmitInfo info =
       {
        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -587,7 +594,7 @@ static void vulkan_render(vulkan_renderer* renderer)
           .pSignalSemaphores = &renderer->semaphore_render_finished,
       };
 
-      if (!VK_VALID(vkQueueSubmit(renderer->queue, 1, &info, renderer->fence_frame)))
+      if(!VK_VALID(vkQueueSubmit(renderer->queue, 1, &info, renderer->fence_frame)))
          post(0);
    }
    // present the image on the screen (flip the swap-chain image)
@@ -603,7 +610,7 @@ static void vulkan_render(vulkan_renderer* renderer)
           .pImageIndices = &nextImageIndex,
           .pResults = NULL,
       };
-      if (!VK_VALID(vkQueuePresentKHR(renderer->queue, &info)))
+      if(!VK_VALID(vkQueuePresentKHR(renderer->queue, &info)))
          ;
    }
 }
@@ -619,17 +626,17 @@ static void vulkan_reset(vulkan_renderer* renderer)
 void vulkan_present(vulkan_renderer* renderer)
 {
    pre(renderer);
-   if (!VK_VALID(vkWaitForFences(renderer->logical_device, 1, &renderer->fence_frame, VK_TRUE, UINT64_MAX)))
+   if(!VK_VALID(vkWaitForFences(renderer->logical_device, 1, &renderer->fence_frame, VK_TRUE, UINT64_MAX)))
       post(0);
 
-   if (!VK_VALID(vkResetFences(renderer->logical_device, 1, &renderer->fence_frame)))
+   if(!VK_VALID(vkResetFences(renderer->logical_device, 1, &renderer->fence_frame)))
       post(0);
 
    u32 nextImageIndex = 0;
-   if (!VK_VALID(vkAcquireNextImageKHR(renderer->logical_device, renderer->swap_chain, UINT64_MAX, renderer->semaphore_image_available, VK_NULL_HANDLE, &nextImageIndex)))
+   if(!VK_VALID(vkAcquireNextImageKHR(renderer->logical_device, renderer->swap_chain, UINT64_MAX, renderer->semaphore_image_available, VK_NULL_HANDLE, &nextImageIndex)))
       ;
 
-   if (!VK_VALID(vkResetCommandBuffer(renderer->draw_cmd_buffer, 0)))
+   if(!VK_VALID(vkResetCommandBuffer(renderer->draw_cmd_buffer, 0)))
       post(0);
 
    {
@@ -640,7 +647,7 @@ void vulkan_present(vulkan_renderer* renderer)
           .flags = 0, .pInheritanceInfo = 0, .pNext = 0,
       };
       // start this cmd buffer
-      if (!VK_VALID(vkBeginCommandBuffer(renderer->draw_cmd_buffer, &info)))
+      if(!VK_VALID(vkBeginCommandBuffer(renderer->draw_cmd_buffer, &info)))
          post(0);
    }
    {
@@ -650,7 +657,7 @@ void vulkan_present(vulkan_renderer* renderer)
       // slowly increment
       aa += 0.001f;
       // when value reaches 1.0 reset to 0
-      if (aa >= 1.0) aa = 0;
+      if(aa >= 1.0) aa = 0;
       // activate render pass:
       // clear color (r,g,b,a)
       VkClearValue clearValue[] =
@@ -668,9 +675,9 @@ void vulkan_present(vulkan_renderer* renderer)
           .renderArea.offset = {0,0},
           .renderArea.extent = {renderer->surface_width, renderer->surface_height},
       };
-      VkOffset2D a = { 0, 0 };
-      VkExtent2D b = { renderer->surface_width, renderer->surface_height };
-      VkRect2D c = { a,b };
+      VkOffset2D a = {0, 0};
+      VkExtent2D b = {renderer->surface_width, renderer->surface_height};
+      VkRect2D c = {a,b};
       info.renderArea = c;
       info.clearValueCount = 2;
       info.pClearValues = clearValue;
@@ -683,11 +690,11 @@ void vulkan_present(vulkan_renderer* renderer)
    }
 
    // end this cmd buffer
-   if (!VK_VALID(vkEndCommandBuffer(renderer->draw_cmd_buffer)))
+   if(!VK_VALID(vkEndCommandBuffer(renderer->draw_cmd_buffer)))
       post(0);
 
    {
-      const VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+      const VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
       VkSubmitInfo info =
       {
        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -700,7 +707,7 @@ void vulkan_present(vulkan_renderer* renderer)
           .pSignalSemaphores = &renderer->semaphore_render_finished,
       };
 
-      if (!VK_VALID(vkQueueSubmit(renderer->queue, 1, &info, renderer->fence_frame)))
+      if(!VK_VALID(vkQueueSubmit(renderer->queue, 1, &info, renderer->fence_frame)))
          post(0);
    }
    // present the image on the screen (flip the swap-chain image)
@@ -716,7 +723,7 @@ void vulkan_present(vulkan_renderer* renderer)
           .pImageIndices = &nextImageIndex,
           .pResults = NULL,
       };
-      if (!VK_VALID(vkQueuePresentKHR(renderer->queue, &info)))
+      if(!VK_VALID(vkQueuePresentKHR(renderer->queue, &info)))
          ;
    }
 }
@@ -729,37 +736,39 @@ static void vulkan_device_destroy(vulkan_context* context)
 {
 }
 
+// TODO: this is the new one
+// TODO: change name vulkan_create_renderer
 static bool vulkan_create_renderer_new(hw_buffer* vulkan_arena, vulkan_context* context, HWND windowHandle)
 {
-   VkApplicationInfo app_info = {};
+   VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
    app_info.apiVersion = VK_API_VERSION_1_0;
    app_info.pApplicationName = "Engine";
    app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
    app_info.pEngineName = "Engine";
    app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
-   VkInstanceCreateInfo instance_info = {};
+   VkInstanceCreateInfo instance_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
    instance_info.pApplicationInfo = &app_info;
    instance_info.enabledExtensionCount = 0;
    instance_info.ppEnabledExtensionNames = 0;
    instance_info.enabledLayerCount = 0;
    instance_info.ppEnabledExtensionNames = 0;
 
-	if (!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
-		return false;
+   if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
+      return false;
 
-	return true;
+   return true;
 }
 
 bool vulkan_initialize(hw* hw)
 {
-	bool result;
+   bool result = true;
    pre(hw->renderer.window.handle);
 
    vulkan_renderer* renderer = arena_push_struct(&hw->memory, vulkan_renderer);
    vulkan_context* context = arena_push_struct(&hw->memory, vulkan_context);
 
-   hw_buffer vulkan_arena = {0};
+   hw_buffer vulkan_arena;
    defer(vulkan_arena = sub_arena_create(&hw->memory), sub_arena_clear(&vulkan_arena))
       result = vulkan_create_renderer_new(&vulkan_arena, context, hw->renderer.window.handle);
 

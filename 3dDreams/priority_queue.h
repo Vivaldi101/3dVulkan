@@ -20,9 +20,9 @@ typedef struct priority_queue_node
 #define priority_queue_rc(i) (2*(i))+2
 #define priority_queue_root(i) (usize)(((f32)(i)/2.0f)-0.5f)
 
-typedef enum priority_queue_criteria 
-{ 
-   PRIORITY_QUEUE_CRITERIA_MAX, PRIORITY_QUEUE_CRITERIA_MIN 
+typedef enum priority_queue_criteria
+{
+   PRIORITY_QUEUE_CRITERIA_MAX, PRIORITY_QUEUE_CRITERIA_MIN
 } priority_queue_criteria;
 
 typedef struct priority_queue
@@ -40,7 +40,7 @@ static void priority_queue_swap(priority_queue_type* a, priority_queue_type* b)
    *a = t;
 }
 
-static bool priority_queue_invariant(priority_queue* queue) 
+static bool priority_queue_invariant(priority_queue* queue)
 {
    usize root, lc, rc;
    usize i;
@@ -77,9 +77,9 @@ static void priority_queue_insert(priority_queue* queue, priority_queue_type dat
    assert(queue->count < priority_queue_max_count);
 
    queue->count++;
-   queue->elements[queue->count-1] = data;
+   queue->elements[queue->count - 1] = data;
 
-   child = queue->count-1;
+   child = queue->count - 1;
    parent = priority_queue_root(child);
 
    while(parent >= 0)
@@ -117,16 +117,16 @@ static priority_queue_type priority_queue_remove(priority_queue* queue)
    assert(queue->count > 0);
 
    result = queue->elements[0];
-   queue->elements[0] = queue->elements[queue->count-1];
+   queue->elements[0] = queue->elements[queue->count - 1];
    queue->count--;
    parent = 0;
    child = 1;
 
-   while(child+1 < queue->count)
+   while(child + 1 < queue->count)
    {
       if(is_max)
       {
-         if(queue->elements[child].index < queue->elements[child+1].index)
+         if(queue->elements[child].index < queue->elements[child + 1].index)
             child = child + 1;
          if(queue->elements[child].index > queue->elements[parent].index)
          {
@@ -138,7 +138,7 @@ static priority_queue_type priority_queue_remove(priority_queue* queue)
       }
       if(!is_max)
       {
-         if(queue->elements[child].index > queue->elements[child+1].index)
+         if(queue->elements[child].index > queue->elements[child + 1].index)
             child = child + 1;
          if(queue->elements[child].index < queue->elements[parent].index)
          {

@@ -21,7 +21,7 @@ static void app_frame_draw(hw_buffer* frame_arena)
    app_some_type* type = arena_push_struct(frame_arena, app_some_type);
    type->isvalid = true;
    type->name = "foo";
-   for (i = 0; i < array_count(type->arr); ++i)
+   for(i = 0; i < array_count(type->arr); ++i)
       type->arr[i] = 42;
 #endif
 }
@@ -31,11 +31,11 @@ static void app_input_handle(app_input* input)
 {
    u64 key;
    i32 pos[2], i;
-   if (input->input_type == HW_INPUT_TYPE_MOUSE)
-      if (input->pos[0] > 0 && input->pos[1] > 0)
-         for (i = 0; i < 2; ++i)
+   if(input->input_type == HW_INPUT_TYPE_MOUSE)
+      if(input->pos[0] > 0 && input->pos[1] > 0)
+         for(i = 0; i < 2; ++i)
             pos[i] = input->pos[i];
-   if (input->input_type == HW_INPUT_TYPE_KEY)
+   if(input->input_type == HW_INPUT_TYPE_KEY)
       key = input->key;
 }
 

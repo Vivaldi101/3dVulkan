@@ -9,7 +9,7 @@
 
 cache_align typedef struct hw_window
 {
-   HWND (*open)(const char* title, int x, int y, int width, int height);
+   HWND(*open)(const char* title, int x, int y, int width, int height);
    void (*close)(struct hw_window window);
    HWND handle;
 } hw_window;
@@ -20,20 +20,20 @@ static void win32_sleep(u32 ms)
 {
    Sleep(ms);
 }
-	
+
 static u32 win32_time()
 {
    static DWORD sys_time_base = 0;
-   if (sys_time_base == 0) sys_time_base = timeGetTime();
+   if(sys_time_base == 0) sys_time_base = timeGetTime();
    return timeGetTime() - sys_time_base;
 }
 
 static bool win32_message_pump()
 {
    MSG msg;
-   if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+   if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
    {
-      if (msg.message == WM_QUIT)
+      if(msg.message == WM_QUIT)
          return false;
       TranslateMessage(&msg);
       DispatchMessage(&msg);
@@ -44,7 +44,7 @@ static bool win32_message_pump()
 
 // TODO: Add all the extra garbage for handling window events
 static LRESULT CALLBACK win32_win_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-   switch (uMsg)
+   switch(uMsg)
    {
    case WM_CLOSE:
    PostQuitMessage(0);
@@ -73,7 +73,7 @@ static HWND win32_window_open(const char* title, int x, int y, int width, int he
    wc.lpszMenuName = NULL;
    wc.lpszClassName = title;
 
-   if (!RegisterClass(&wc))
+   if(!RegisterClass(&wc))
       return 0;
 
    dwStyle = WS_OVERLAPPEDWINDOW;
@@ -90,7 +90,7 @@ static HWND win32_window_open(const char* title, int x, int y, int width, int he
       wc.lpszClassName, title, WS_CLIPSIBLINGS | WS_CLIPCHILDREN | dwStyle,
       0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
 
-   if (!result)
+   if(!result)
       return 0;
 
    ShowWindow(result, SW_SHOW);
@@ -145,17 +145,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw_virtual_allocate_init();
 
    memory_status.dwLength = sizeof(memory_status);
-   if (!GlobalMemoryStatusEx(&memory_status))
+   if(!GlobalMemoryStatusEx(&memory_status))
       return 0;
 
    hw.memory = arena_create(virtual_memory_amount);
-   if (!hw.memory.base)
+   if(!hw.memory.base)
       return 0;
 
    argv = arena_push_count(&hw.memory, MAX_ARGV, const char*);
    argc = cmd_parse(lpszCmdLine, argv);
 
-   if (argc == 0)
+   if(argc == 0)
       hw_error(&hw, "(Hardware) Invalid number of command line options given.\n");
 
    hw.renderer.window.open = win32_window_open;
