@@ -51,7 +51,9 @@ static void* hw_stub_range()
 
 static void* hw_arena_get_stub(usize bytes)
 {
-   return hw_stub_range();
+   byte* stub = hw_stub_range();
+   memset(stub, 0, bytes);
+   return stub;
 }
 
 static void* hw_stub_memory_allocate(usize size)

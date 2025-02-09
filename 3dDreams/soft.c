@@ -51,3 +51,17 @@ void soft_rasterizer_initialize(hw* hw)
 
 #endif
 }
+
+// TODO: Used by the software renderer
+#if 0
+static void hw_blit(hw* hw)
+{
+   PAINTSTRUCT ps;
+
+   BeginPaint(hw->renderer.window.handle, &ps);                    /* store into a bitmap */
+   SetMapMode(ps.hdc, MM_TEXT);                             /* blit a bitmap */
+   //SetBitmapBits(hw_bmp,hw_image_size*hw_pixel_size,(void*)G_c_buffer);
+   //BitBlt(ps.hdc,0,0,hw_screen_x_size,hw_screen_y_size,hw_mem,0,0,SRCCOPY);
+   EndPaint(hw->renderer.window.handle, &ps);
+}
+#endif

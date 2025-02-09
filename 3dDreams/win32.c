@@ -14,6 +14,16 @@ cache_align typedef struct hw_window
    HWND handle;
 } hw_window;
 
+static void debug_message(const char* format, ...)
+{
+   char temp[1024];
+   va_list args;
+   va_start(args, format);
+   wvsprintfA(temp, format, args);
+   va_end(args);
+   OutputDebugStringA(temp);
+}
+
 #include "hw.c"
 
 static void win32_sleep(u32 ms)
@@ -28,7 +38,7 @@ static u32 win32_time()
    return timeGetTime() - sys_time_base;
 }
 
-static bool win32_message_pump()
+static bool win32_platform_loop()
 {
    MSG msg;
    if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -117,20 +127,6 @@ static void win32_window_close(hw_window window)
    PostMessage(window.handle, WM_QUIT, 0, 0L);
 }
 
-// TODO: Used by the software renderer
-#if 0
-static void hw_blit(hw* hw)
-{
-   PAINTSTRUCT ps;
-
-   BeginPaint(hw->renderer.window.handle, &ps);                    /* store into a bitmap */
-   SetMapMode(ps.hdc, MM_TEXT);                             /* blit a bitmap */
-   //SetBitmapBits(hw_bmp,hw_image_size*hw_pixel_size,(void*)G_c_buffer);
-   //BitBlt(ps.hdc,0,0,hw_screen_x_size,hw_screen_y_size,hw_mem,0,0,SRCCOPY);
-   EndPaint(hw->renderer.window.handle, &ps);
-}
-#endif
-
 static void hw_error(hw* hw, const char* s)
 {
    const usize buffer_size = strlen(s) + 1; // string len + 1 for null
@@ -143,11 +139,11 @@ static void hw_error(hw* hw, const char* s)
    hw_event_loop_end(hw);
 }
 
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    hw hw = {0};
    const usize virtual_memory_amount = 10ull * 1024 * 1024;	// 10 megs
+   //const usize virtual_memory_amount = 1024;	// 10 megs
 
    MEMORYSTATUSEX memory_status;
    int argc;
@@ -175,7 +171,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw.timer.sleep = win32_sleep;
    hw.timer.time = win32_time;
 
-   hw.message_pump = win32_message_pump;
+   hw.platform_loop = win32_platform_loop;
 
    timeBeginPeriod(1);
    app_start(argc, argv, &hw);    // pass the options to the application

@@ -39,7 +39,6 @@ typedef size_t usize;
 #define implies(p, q) (!(p) || (q))
 
 #define cache_align __declspec(align(64))    // assume 64 byte cacheline size.
-//#define cache_align 
 
 #define array_count(a) sizeof((a)) / sizeof((a)[0])
 

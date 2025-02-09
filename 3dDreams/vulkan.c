@@ -1,42 +1,13 @@
-#define WIN32_LEAN_AND_MEAN
-#define VK_USE_PLATFORM_WIN32_KHR
-
 #include "hw_arena.h"
 #include "common.h"
-#include "vulkan.h"
 #include "malloc.h"
-#include <vulkan/vulkan.h>
+#include "vulkan.h"
 
-// TODO: string type
-typedef struct string
-{
-   void* data;
-   usize size;
-} string;
+// unity
+#include "vulkan_device.c"
+#include "vulkan_surface.c"
 
-#pragma comment(lib,	"vulkan-1.lib")
-
-enum
-{
-   VULKAN_FRAME_BUFFER_COUNT = 3
-};
-
-#define VK_VALID(v) (v) == VK_SUCCESS
-// TODO: rename these to snake
-
-// TODO: wrap this inside the vulkan renderer
-typedef struct vulkan_device
-{
-   VkPhysicalDevice physical_device;
-   VkDevice logical_device;
-} vulkan_device;
-
-typedef struct vulkan_context
-{
-   vulkan_device device;
-   VkInstance instance;
-} vulkan_context;
-
+#if 0
 typedef struct vulkan_renderer
 {
    VkInstance instance;
@@ -65,6 +36,7 @@ typedef struct queue_family_indices
    u32 present_family;
    bool valid;
 } queue_family_indices;
+#endif
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
@@ -77,18 +49,7 @@ static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 }
 
-// TODO: Move to win32_utils
-static void debug_message(const char* format, ...)
-{
-   char temp[1024];
-   va_list args;
-   va_start(args, format);
-   wvsprintfA(temp, format, args);
-   va_end(args);
-   OutputDebugStringA(temp);
-}
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
+static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     VkDebugUtilsMessageTypeFlagsEXT type,
     const VkDebugUtilsMessengerCallbackDataEXT* data,
@@ -109,6 +70,97 @@ static void* allocate(hw_buffer* vulkan_arena, size_t size)
    return arena_push_size(vulkan_arena, size);
 }
 
+static bool vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_context* context, const hw_window* window)
+{
+   u32 extension_count = 0;
+   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, 0)))
+      return false;
+
+   VkExtensionProperties* extensions = allocate(vulkan_arena, extension_count * sizeof(VkExtensionProperties));
+   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
+      return false;
+
+   VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
+   app_info.pApplicationName = "VulkanApp";
+   app_info.applicationVersion = VK_API_VERSION_1_0;
+   app_info.engineVersion = VK_API_VERSION_1_0;
+   app_info.pEngineName = "3dDreams";
+   app_info.apiVersion = VK_API_VERSION_1_0;
+
+   VkInstanceCreateInfo instance_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+   instance_info.pApplicationInfo = &app_info;
+
+#ifdef _DEBUG
+   {
+      const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
+      instance_info.enabledLayerCount = array_count(validationLayers);
+      instance_info.ppEnabledLayerNames = validationLayers;
+   }
+#endif
+
+   const char** extension_names = allocate(vulkan_arena, extension_count * sizeof(const char*));
+   for(size_t i = 0; i < extension_count; ++i)
+      extension_names[i] = extensions[i].extensionName;
+
+   instance_info.enabledExtensionCount = extension_count;
+   instance_info.ppEnabledExtensionNames = extension_names;
+
+   if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
+      return false;
+
+#ifdef _DEBUG 
+   {
+      VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+      debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+      debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+      debugCreateInfo.pfnUserCallback = vulkan_debug_callback;
+
+      VkDebugUtilsMessengerEXT messenger;
+
+      if(!VK_VALID(vulkan_create_debugutils_messenger_ext(context->instance, &debugCreateInfo, 0, &messenger)))
+         return false;
+   }
+#endif
+
+   if(!vulkan_device_create(context))
+		return false;
+
+   // TODO: compress extension names and count to info struct
+   if(!vulkan_window_surface_create(context, window, extension_names, extension_count))
+		return false;
+
+   return true;
+}
+
+bool vulkan_initialize(hw* hw)
+{
+   bool result = true;
+   pre(hw->renderer.window.handle);
+
+   hw_buffer vulkan_arena;
+   vulkan_context* context = arena_push_struct(&hw->memory, vulkan_context);
+
+   defer(vulkan_arena = sub_arena_create(&hw->memory), sub_arena_clear(&vulkan_arena))
+      result = vulkan_create_renderer(&vulkan_arena, context, &hw->renderer.window);
+
+   //hw->renderer.backends[vulkan_renderer_index] = renderer;
+   //hw->renderer.frame_present = vulkan_present;
+   //hw->renderer.renderer_index = vulkan_renderer_index;
+
+   //post(hw->renderer.backends[vulkan_renderer_index]);
+   //post(hw->renderer.frame_present);
+   //post(hw->renderer.renderer_index == vulkan_renderer_index);
+
+   if(!result)
+		hw_error(hw, "Vulkan not created successfully");
+
+   return result;
+}
+
+#if 0
 static queue_family_indices vulkan_find_queue_families(hw_buffer* vulkan_arena, VkPhysicalDevice device, VkSurfaceKHR surface)
 {
    queue_family_indices indices = {};
@@ -211,7 +263,7 @@ static void vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_renderer* ren
    debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
       VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-   debugCreateInfo.pfnUserCallback = VulkanDebugCallback;
+   debugCreateInfo.pfnUserCallback = vulkan_debug_callback;
 
    if(!VK_VALID(vulkan_create_debugutils_messenger_ext(renderer->instance, &debugCreateInfo, 0, &debugMessenger)))
       hw_assert(0);
@@ -727,58 +779,4 @@ void vulkan_present(vulkan_renderer* renderer)
          ;
    }
 }
-
-static void vulkan_device_create(vulkan_context* context)
-{
-}
-
-static void vulkan_device_destroy(vulkan_context* context)
-{
-}
-
-// TODO: this is the new one
-// TODO: change name vulkan_create_renderer
-static bool vulkan_create_renderer_new(hw_buffer* vulkan_arena, vulkan_context* context, HWND windowHandle)
-{
-   VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
-   app_info.apiVersion = VK_API_VERSION_1_0;
-   app_info.pApplicationName = "Engine";
-   app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-   app_info.pEngineName = "Engine";
-   app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-
-   VkInstanceCreateInfo instance_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
-   instance_info.pApplicationInfo = &app_info;
-   instance_info.enabledExtensionCount = 0;
-   instance_info.ppEnabledExtensionNames = 0;
-   instance_info.enabledLayerCount = 0;
-   instance_info.ppEnabledExtensionNames = 0;
-
-   if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
-      return false;
-
-   return true;
-}
-
-bool vulkan_initialize(hw* hw)
-{
-   bool result = true;
-   pre(hw->renderer.window.handle);
-
-   vulkan_renderer* renderer = arena_push_struct(&hw->memory, vulkan_renderer);
-   vulkan_context* context = arena_push_struct(&hw->memory, vulkan_context);
-
-   hw_buffer vulkan_arena;
-   defer(vulkan_arena = sub_arena_create(&hw->memory), sub_arena_clear(&vulkan_arena))
-      result = vulkan_create_renderer_new(&vulkan_arena, context, hw->renderer.window.handle);
-
-   hw->renderer.backends[vulkan_renderer_index] = renderer;
-   hw->renderer.frame_present = vulkan_present;
-   hw->renderer.renderer_index = vulkan_renderer_index;
-
-   post(hw->renderer.backends[vulkan_renderer_index]);
-   post(hw->renderer.frame_present);
-   post(hw->renderer.renderer_index == vulkan_renderer_index);
-
-   return result;
-}
+#endif

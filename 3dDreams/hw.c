@@ -27,7 +27,7 @@ cache_align typedef struct hw
    hw_renderer renderer;
    hw_buffer memory;				// TODO: we need concept of permanent storage here since sub arenas are temp
    hw_timer timer;
-   bool(*message_pump)();
+   bool(*platform_loop)();
    bool finished;
 } hw;
 
@@ -110,7 +110,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
       app_input input;
       hw_buffer frame_arena;
 
-      if (!hw->message_pump()) 
+      if (!hw->platform_loop()) 
          break;
 
       app_input_function(&input);
