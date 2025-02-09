@@ -3,7 +3,12 @@
 #include "malloc.h"
 #include "vulkan.h"
 
-// unity
+static void* allocate(hw_buffer* vulkan_arena, size_t size)
+{
+   return arena_push_size(vulkan_arena, size);
+}
+
+// unity build
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
 
@@ -65,11 +70,6 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
    return true;
 }
 
-static void* allocate(hw_buffer* vulkan_arena, size_t size)
-{
-   return arena_push_size(vulkan_arena, size);
-}
-
 static bool vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_context* context, const hw_window* window)
 {
    u32 extension_count = 0;
@@ -125,8 +125,10 @@ static bool vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_context* cont
    }
 #endif
 
-   if(!vulkan_device_create(context))
-		return false;
+   hw_buffer frame_arena;
+   defer(frame_arena = sub_arena_create(vulkan_arena), sub_arena_clear(&frame_arena))
+      if(!vulkan_device_create(&frame_arena, context))
+         return false;
 
    // TODO: compress extension names and count to info struct
    if(!vulkan_window_surface_create(context, window, extension_names, extension_count))
