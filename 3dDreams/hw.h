@@ -29,6 +29,6 @@ void hw_window_close(hw* hw);
 
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(struct app_input* input));
 void hw_event_loop_end(hw* hw);
-static void hw_error(hw* hw, const char *s);
+static void hw_error(hw_buffer* error_arena, const char* s);
 
 #endif
