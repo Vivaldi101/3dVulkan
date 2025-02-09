@@ -45,6 +45,8 @@ typedef size_t usize;
 #define defer(start, end) \
     for (int _defer = ((start), 0); !_defer; (_defer = 1), (end))
 
+#define defer_frame(main, sub, frame) defer((sub) = sub_arena_create((main)), sub_arena_clear(&(sub))) frame
+
 typedef enum {false, true} bool;
 
 cache_align typedef struct

@@ -126,8 +126,8 @@ static bool vulkan_create_renderer(hw_buffer* vulkan_arena, vulkan_context* cont
 #endif
 
    hw_buffer frame_arena;
-   defer(frame_arena = sub_arena_create(vulkan_arena), sub_arena_clear(&frame_arena))
-      if(!vulkan_device_create(&frame_arena, context))
+   defer_frame(vulkan_arena, frame_arena,
+      if(!vulkan_device_create(&frame_arena, context)))
          return false;
 
    // TODO: compress extension names and count to info struct
@@ -145,8 +145,8 @@ bool vulkan_initialize(hw* hw)
    hw_buffer vulkan_arena;
    vulkan_context* context = arena_push_struct(&hw->memory, vulkan_context);
 
-   defer(vulkan_arena = sub_arena_create(&hw->memory), sub_arena_clear(&vulkan_arena))
-      result = vulkan_create_renderer(&vulkan_arena, context, &hw->renderer.window);
+   defer_frame(&hw->memory, vulkan_arena, 
+      result = vulkan_create_renderer(&vulkan_arena, context, &hw->renderer.window));
 
    //hw->renderer.backends[vulkan_renderer_index] = renderer;
    //hw->renderer.frame_present = vulkan_present;

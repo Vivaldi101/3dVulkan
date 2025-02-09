@@ -114,8 +114,8 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_are
          break;
 
       app_input_function(&input);
-      defer(frame_arena = sub_arena_create(&hw->memory), sub_arena_clear(&frame_arena))
-         app_frame_function(&frame_arena);
+      defer_frame(&hw->memory, frame_arena, app_frame_function(&frame_arena));
+
       hw_frame_sync(hw);
       hw_frame_render(hw);
    }
