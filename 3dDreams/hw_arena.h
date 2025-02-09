@@ -21,7 +21,7 @@ static VirtualAllocPtr global_allocate;
 #define arena_pop_count(arena, count, type) ((type *)hw_buffer_pop(arena, (count)*sizeof(type)))  
 #define arena_pop_string(arena, count) arena_pop_count(arena, count, char)
 
-#define sub_arena_clear(arena) hw_buffer_clear(arena)
+#define sub_arena_reset(arena) hw_buffer_reset(arena)
 #define sub_arena_create(arena) hw_sub_memory_buffer_create(arena)
 
 #define arena_create(arena) hw_buffer_create(arena)
@@ -32,6 +32,7 @@ cache_align typedef struct hw_buffer
    usize max_size, bytes_used;
 } hw_buffer;
 
+// TODO: Critical section
 static void* hw_stub_range()
 {
    static void* stubPage = 0;
@@ -58,8 +59,8 @@ static void* hw_arena_get_stub(usize bytes)
 
 static void* hw_stub_memory_allocate(usize size)
 {
-   void* stub = hw_stub_range();
-   void* base = global_allocate(stub, size, MEM_COMMIT, PAGE_READWRITE);
+   void* stub = hw_stub_range(); // reserve all avail range
+   void* base = global_allocate(stub, size, MEM_COMMIT, PAGE_READWRITE); // only commit whats needed
 
    if(!base)
       return stub;  // Fallback to stub page
@@ -138,9 +139,13 @@ static void* hw_buffer_pop(hw_buffer *buffer, usize bytes)
    return result;
 }
 
-static void hw_buffer_clear(hw_buffer *buffer) 
+static void hw_buffer_reset(hw_buffer *buffer) 
 {
-   memset(buffer, 0, sizeof(hw_buffer));
+	// need to have been valid arena before
+	pre(buffer->max_size > 0);
+	pre(buffer->base);
+
+   memset(buffer, 0, sizeof(hw_buffer)); // we only reset the structure but wont clear the memory since its commited top-level
 }
 
 #endif
