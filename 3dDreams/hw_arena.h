@@ -14,7 +14,7 @@ static VirtualAllocPtr global_allocate;
 
 #define arena_push_struct(arena, type) ((type *)hw_buffer_push(arena, sizeof(type)))  
 #define arena_push_count(arena, count, type) ((type *)hw_buffer_push(arena, (count)*sizeof(type)))  
-#define arena_push_size(arena, count) ((void *)hw_buffer_push(arena, (count)*sizeof(byte)))  
+#define arena_push_size(arena, count) (hw_buffer_push(arena, (count)*sizeof(byte)))  
 #define arena_push_string(arena, count) arena_push_count(arena, count, char)
 
 #define arena_pop_struct(arena, type) ((type *)_pop_(arena, sizeof(type)))  
@@ -31,6 +31,8 @@ cache_align typedef struct hw_buffer
    byte* base;
    usize max_size, bytes_used;
 } hw_buffer;
+
+extern hw_buffer hw_buffer_stub;
 
 // TODO: Critical section
 static void* hw_stub_range()
@@ -62,6 +64,9 @@ static void* hw_virtual_memory_allocate(usize size)
    void* stub = hw_stub_range(); // reserve all avail range
    void* base = global_allocate(stub, size, MEM_COMMIT, PAGE_READWRITE); // only commit whats needed
 
+	if(!base)
+		return &hw_buffer_stub;
+
    return base;
 }
 
@@ -76,16 +81,21 @@ static void hw_virtual_allocate_init()
 	post(global_allocate);
 }
 
-static hw_buffer hw_buffer_create(usize byte_count) 
+static hw_buffer* hw_buffer_create(usize byte_count) 
 {
-    hw_buffer result = {0};
+    hw_buffer* result;
     pre(global_allocate);
 
-    void* ptr = hw_virtual_memory_allocate(byte_count);
-    
-    result.base = ptr;
-    result.max_size = byte_count;
-    result.bytes_used = 0;
+    void* data = hw_virtual_memory_allocate(byte_count + sizeof(hw_buffer));
+
+    if((hw_buffer*)data == &hw_buffer_stub)
+		return &hw_buffer_stub;
+
+    result = (hw_buffer*)data;
+
+    result->base = (void*)((hw_buffer*)data+1);
+    result->max_size = byte_count;
+    result->bytes_used = 0;
     
     return result;
 }
@@ -93,6 +103,9 @@ static hw_buffer hw_buffer_create(usize byte_count)
 static hw_buffer hw_sub_memory_buffer_create(const hw_buffer *buffer)
 {
    hw_buffer result = {0};
+   if(buffer == &hw_buffer_stub)
+      return hw_buffer_stub;
+
    pre(buffer->max_size > buffer->bytes_used);
 
    result.bytes_used = 0;
@@ -115,8 +128,8 @@ static void* hw_buffer_top(hw_buffer *buffer)
 static void* hw_buffer_push(hw_buffer *buffer, usize bytes) 
 {
    void* result;
-   if(buffer->bytes_used + bytes > buffer->max_size)
-		return hw_arena_get_stub(bytes);
+   if(buffer == &hw_buffer_stub)
+		return &hw_buffer_stub;
 
    result = buffer->base + buffer->bytes_used;
    buffer->bytes_used += bytes;

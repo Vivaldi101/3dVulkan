@@ -154,15 +154,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
       return 0;
 
    hw.top_level_arena = arena_create(virtual_memory_amount);
-   if(!hw.top_level_arena.base)
-      return 0;
-
-   argv = arena_push_count(&hw.top_level_arena, MAX_ARGV, const char*);
+   argv = arena_push_count(hw.top_level_arena, MAX_ARGV, const char*);
    argc = cmd_parse(lpszCmdLine, argv);
 
    hw_buffer frame_arena;
    if(argc == 0)
-      defer_frame(&hw.top_level_arena, frame_arena, hw_error(&frame_arena, "Invalid number of command line options given.\n"));
+      defer_frame(hw.top_level_arena, frame_arena, hw_error(&frame_arena, "Invalid number of command line options given.\n"));
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;

@@ -141,10 +141,10 @@ bool vulkan_initialize(hw* hw)
    bool result = true;
    pre(hw->renderer.window.handle);
 
-   hw_buffer frame_arena;
-   vulkan_context* context = arena_push_struct(&hw->top_level_arena, vulkan_context);
+   hw_buffer frame_arena = {0};
+   vulkan_context* context = arena_push_struct(hw->top_level_arena, vulkan_context);
 
-   defer_frame(&hw->top_level_arena, frame_arena, result = 
+   defer_frame(hw->top_level_arena, frame_arena, result = 
       vulkan_create_renderer(&frame_arena, context, &hw->renderer.window));
 
    //hw->renderer.backends[vulkan_renderer_index] = renderer;

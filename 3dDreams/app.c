@@ -4,6 +4,8 @@
 #include "vulkan.h"
 #include "hw_arena.h"
 
+hw_buffer hw_buffer_stub = {0};
+
 #if 1
 typedef struct app_some_type
 {
