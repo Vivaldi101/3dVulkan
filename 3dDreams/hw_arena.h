@@ -52,18 +52,15 @@ static void* hw_stub_range()
 
 static void* hw_arena_get_stub(usize bytes)
 {
-   byte* stub = hw_stub_range();
+   byte* stub = hw_stub_range(0);
    memset(stub, 0, bytes);
    return stub;
 }
 
-static void* hw_stub_memory_allocate(usize size)
+static void* hw_virtual_memory_allocate(usize size)
 {
    void* stub = hw_stub_range(); // reserve all avail range
    void* base = global_allocate(stub, size, MEM_COMMIT, PAGE_READWRITE); // only commit whats needed
-
-   if(!base)
-      return stub;  // Fallback to stub page
 
    return base;
 }
@@ -79,15 +76,15 @@ static void hw_virtual_allocate_init()
 	post(global_allocate);
 }
 
-static hw_buffer hw_buffer_create(usize num_bytes) 
+static hw_buffer hw_buffer_create(usize byte_count) 
 {
     hw_buffer result = {0};
     pre(global_allocate);
 
-    const void* ptr = hw_stub_memory_allocate(num_bytes);
+    void* ptr = hw_virtual_memory_allocate(byte_count);
     
-    result.base = (byte *)ptr;
-    result.max_size = num_bytes;
+    result.base = ptr;
+    result.max_size = byte_count;
     result.bytes_used = 0;
     
     return result;
@@ -115,7 +112,6 @@ static void* hw_buffer_top(hw_buffer *buffer)
    return ptr;
 }
 
-// FIXME: pass alignment
 static void* hw_buffer_push(hw_buffer *buffer, usize bytes) 
 {
    void* result;
