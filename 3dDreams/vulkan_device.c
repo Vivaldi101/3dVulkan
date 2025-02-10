@@ -8,18 +8,18 @@ typedef struct vulkan_physical_device_requirements
    const char** device_extension_names;
 } vulkan_physical_device_requirements;
 
-typedef struct vulkan_queue_family_index
+typedef struct vulkan_queue_family
 {
-	u32 graphics, present, computer, transfer;
-} vulkan_queue_family_index;
+	u32 graphics_index, present_index, computer_index, transfer_index;
+} vulkan_queue_family;
 
-static bool vulkan_device_select_physical(hw_buffer* vulkan_arena, vulkan_context* context)
+static bool vulkan_device_select_physical(hw_buffer* arena, const vulkan_context* context)
 {
    u32 device_count = 0;
    if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
       return false;
 
-   VkPhysicalDevice* devices = allocate(vulkan_arena, device_count * sizeof(VkPhysicalDevice));
+   VkPhysicalDevice* devices = allocate(arena, device_count * sizeof(VkPhysicalDevice));
    if(!devices)
       return false;
 
@@ -42,15 +42,99 @@ static bool vulkan_device_select_physical(hw_buffer* vulkan_arena, vulkan_contex
       reqs.is_graphics = reqs.is_present = reqs.is_transfer = true;
       reqs.is_anisotropy = reqs.is_discrete_gpu = true;
 
-      vulkan_queue_family_index queue_index = {0};
+      //vulkan_queue_family queue_family = {0};
    }
 
    return true;
 }
 
-static bool vulkan_device_create(hw_buffer* vulkan_arena, vulkan_context* context)
+static bool vulkan_device_swapchain_support(hw_buffer* arena, vulkan_context* context, vulkan_swapchain_support* swapchain)
 {
-	if(!vulkan_device_select_physical(vulkan_arena, context))
+	if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
+		return false;
+
+	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, 0)))
+		return false;
+
+	if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
+      swapchain->surface_formats = allocate(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR));
+
+	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
+		return false;
+
+	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, 0)))
+		return false;
+
+	if(swapchain->present_mode_count > 0 && !swapchain->present_modes)
+      swapchain->present_modes = allocate(arena, swapchain->present_mode_count * sizeof(VkPresentModeKHR));
+
+	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
+		return false;
+   
+   return true;
+}
+
+static bool vulkan_device_meets_requirements(hw_buffer* arena,
+															vulkan_context* context,
+                                             const vulkan_physical_device_requirements* requirements,
+                                             const VkPhysicalDeviceProperties* properties,
+															vulkan_queue_family* queue_family)
+{
+	queue_family->computer_index = (u32)-1;
+   queue_family->graphics_index = (u32)-1;
+   queue_family->present_index = (u32)-1;
+   queue_family->transfer_index = (u32)-1;
+
+   if(!implies(requirements->is_discrete_gpu,
+      properties->deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))
+      return false;
+	
+   u32 queue_family_count = 0;
+   vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, 0);
+   VkQueueFamilyProperties* queue_families = allocate(arena, queue_family_count*sizeof(VkQueueFamilyProperties));
+   vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
+
+   u32 min_transfer_score = 255;
+   for(u32 i = 0; i < queue_family_count; ++i)
+   {
+		u32 transfer_score = 0;
+
+      if(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+      {
+         queue_family->graphics_index = i;
+			++transfer_score;
+      }
+
+      if(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+      {
+         queue_family->computer_index = i;
+			++transfer_score;
+      }
+
+      if(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+      {
+         if(transfer_score <= min_transfer_score)
+         {
+				min_transfer_score = transfer_score;
+            queue_family->transfer_index = i;
+         }
+      }
+
+      VkBool32 supports_present = false;
+      if(!VK_VALID(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
+         return false;
+      if(supports_present)
+			queue_family->present_index = i;
+   }
+
+   vulkan_device_swapchain_support(arena, context, &context->device.swapchain_support);
+
+   return true;
+}
+
+static bool vulkan_device_create(hw_buffer* arena, vulkan_context* context)
+{
+	if(!vulkan_device_select_physical(arena, context))
 		return false;
 
 	return true;
