@@ -63,7 +63,7 @@ static void d3d12_present(d3d12_renderer* renderer)
    post(d3d_success(hr));
 }
 
-void d3d12_initialize(hw* hw)
+bool d3d12_initialize(hw* hw)
 {
    HRESULT hr = S_OK;
 
@@ -223,4 +223,6 @@ void d3d12_initialize(hw* hw)
    post(renderer->queue);
    post(renderer->swap_chain);
    post(renderer->command_allocator);
+
+   return true;
 }

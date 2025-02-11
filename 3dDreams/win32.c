@@ -127,25 +127,26 @@ static void win32_window_close(hw_window window)
    PostMessage(window.handle, WM_QUIT, 0, 0L);
 }
 
-static void hw_error(hw_buffer* error_arena, const char* s)
+#if 0
+static void hw_error(hw_arena* error_arena, const char* s)
 {
    const usize buffer_size = strlen(s) + 1; // string len + 1 for null
    char* buffer = arena_push_string(error_arena, buffer_size);
 
    memcpy(buffer, s, buffer_size);
    MessageBox(NULL, buffer, "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
-
 }
+#endif
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
-   hw hw = {0};
    const usize virtual_memory_amount = 10ull * 1024 * 1024;	// 10 megs
-   //const usize virtual_memory_amount = 1024;	// 10 megs
+   //const usize virtual_memory_amount = 0;	// 10 megs
 
-   MEMORYSTATUSEX memory_status;
-   int argc;
-   char** argv;
+   hw hw = {0};
+   MEMORYSTATUSEX memory_status = {0};
+   int argc = 0;
+   const char** argv = 0;
 
    hw_virtual_allocate_init();
 
@@ -153,13 +154,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    if(!GlobalMemoryStatusEx(&memory_status))
       return 0;
 
-   hw.top_level_arena = arena_create(virtual_memory_amount);
-   argv = arena_push_count(hw.top_level_arena, MAX_ARGV, const char*);
-   argc = cmd_parse(lpszCmdLine, argv);
+   hw.main_arena = arena_create(virtual_memory_amount);
+   //hw_arena args_arena = arena_push_pointer_strings(&hw.main_arena, MAX_ARGV);
+   //argv = cmd_parse(&args_arena, lpszCmdLine, &argc);
 
-   hw_buffer frame_arena;
-   if(argc == 0)
-      defer_frame(hw.top_level_arena, frame_arena, hw_error(&frame_arena, "Invalid number of command line options given.\n"));
+   //if(argc == 0)
+      //defer_frame(hw.main_arena, frame_arena, hw_error(&frame_arena, "Invalid number of command line options given.\n"));
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;

@@ -25,14 +25,15 @@ cache_align typedef struct hw_timer
 cache_align typedef struct hw
 {
    hw_renderer renderer;
-   hw_buffer* top_level_arena;				// TODO: we need concept of permanent storage here since sub arenas are temp
+   hw_arena main_arena;				// TODO: we need concept of permanent storage here since sub arenas are temp
+   hw_arena renderer_arena;				// TODO: we need concept of permanent storage here since sub arenas are temp
    hw_timer timer;
    bool(*platform_loop)();
    bool finished;
 } hw;
 
 // Do all renderer includes here?
-#include "d3d12.c"
+//#include "d3d12.c"
 #include "vulkan.c"
 
 void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height)
@@ -101,35 +102,39 @@ static void hw_frame_render(hw* hw)
    hw->renderer.frame_present(renderers[renderer_index]);
 }
 
-void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_buffer* frame_arena), void (*app_input_function)(struct app_input* input))
+void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_arena* frame_arena), void (*app_input_function)(struct app_input* input))
 {
    hw->timer.time();
 
    for (;;)
    {
       app_input input;
-      hw_buffer frame_arena;
+      hw_arena frame_arena;
 
       if (!hw->platform_loop()) 
          break;
 
       app_input_function(&input);
-      defer_frame(hw->top_level_arena, frame_arena, app_frame_function(&frame_arena));
+      defer_frame(&hw->main_arena, frame_arena, app_frame_function(&frame_arena));
 
       hw_frame_sync(hw);
       hw_frame_render(hw);
    }
 }
 
-static int cmd_parse(char* cmd, char** argv)
+#if 0
+static char** cmd_parse(hw_arena* arena, char* cmd, int* argc)
 {
-   int argc;
    char* arg_start;
    char* arg_end;
+   char** argv;
 
-	// program name as the first one
+   if(!(argv = arena->base))
+      return 0;
+
+   // program name as the first one
    argv[0] = GetCommandLine();
-	// program name should be valid
+   // program name should be valid
    pre(strlen(argv[0]) > 0);
 
    //usize i = strlen(argv[0]) - 1;
@@ -137,10 +142,10 @@ static int cmd_parse(char* cmd, char** argv)
    //while(i-- != 0);
    for(usize i = strlen(argv[0]); i--;)
    {
-      if (argv[0][i] == '\"') 
-      { 
-         argv[0][i + 1] = 0; 
-         break; 
+      if(argv[0][i] == '\"')
+      {
+         argv[0][i + 1] = 0;
+         break;
       }
    }
 
@@ -148,21 +153,22 @@ static int cmd_parse(char* cmd, char** argv)
    //post(implies(argv[0][i] != '\"', i == (usize)-1));	// end if no slash found
 
    // offset by the program name and just parse the arguments
-   argc = 1;
+   *argc = 1;
    arg_start = cmd;
 
-   while ((arg_end = strchr(arg_start, ' ')))
+   while((arg_end = strchr(arg_start, ' ')))
    {
-      if (argc >= MAX_ARGV)                   // exceeds our max number of arguments
+      if(*argc >= MAX_ARGV)                   // exceeds our max number of arguments
          return 0;
-      if (arg_end != arg_start)
-         argv[argc++] = arg_start;
+      if(arg_end != arg_start)
+         argv[(*argc)++] = arg_start;
       *arg_end = 0;
       arg_start = arg_end + 1;
    }
 
-   if (strlen(arg_start) > 0)
-      argv[argc++] = arg_start;
+   if(strlen(arg_start) > 0)
+      argv[(*argc)++] = arg_start;
 
-   return argc;
+   return argv;
 }
+#endif

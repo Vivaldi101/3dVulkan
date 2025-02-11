@@ -3,11 +3,6 @@
 #include "malloc.h"
 #include "vulkan.h"
 
-static void* allocate(hw_buffer* arena, size_t size)
-{
-   return arena_push_size(arena, size);
-}
-
 // unity build
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
@@ -70,15 +65,21 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
    return true;
 }
 
-static bool vulkan_create_renderer(hw_buffer* arena, vulkan_context* context, const hw_window* window)
+static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, const hw_window* window)
 {
+	pre(context);
+	pre(window);
+
    u32 extension_count = 0;
    if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, 0)))
       return false;
 
-   VkExtensionProperties* extensions = allocate(arena, extension_count * sizeof(VkExtensionProperties));
-   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
-      return false;
+   hw_arena extensions_arena = arena_push_size(arena, extension_count * sizeof(VkExtensionProperties), VkExtensionProperties);
+   VkExtensionProperties* extensions = arena_get_data(arena, VkExtensionProperties);
+
+   if(arena_is_set(&extensions_arena, extension_count))
+      if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
+         return false;
 
    VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
    app_info.pApplicationName = "VulkanApp";
@@ -98,12 +99,16 @@ static bool vulkan_create_renderer(hw_buffer* arena, vulkan_context* context, co
    }
 #endif
 
-   const char** extension_names = allocate(arena, extension_count * sizeof(const char*));
-   for(size_t i = 0; i < extension_count; ++i)
-      extension_names[i] = extensions[i].extensionName;
+   extensions_arena = arena_push_size(arena, extension_count * sizeof(const char*), const char*);
+   if(arena_is_set(&extensions_arena, extension_count))
+   {
+      const char** extension_names = arena_get_data(&extensions_arena, const char*);
+      for(size_t i = 0; i < extension_count; ++i)
+         extension_names[i] = extensions[i].extensionName;
 
-   instance_info.enabledExtensionCount = extension_count;
-   instance_info.ppEnabledExtensionNames = extension_names;
+      instance_info.enabledExtensionCount = extension_count;
+      instance_info.ppEnabledExtensionNames = extension_names;
+   }
 
    if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
       return false;
@@ -129,7 +134,7 @@ static bool vulkan_create_renderer(hw_buffer* arena, vulkan_context* context, co
       return false;
 
    // TODO: compress extension names and count to info struct
-   if(!vulkan_window_surface_create(context, window, extension_names, extension_count))
+   if(!vulkan_window_surface_create(context, window, arena_get_data(&extensions_arena, const char*), instance_info.enabledExtensionCount))
       return false;
 
    return true;
@@ -140,11 +145,14 @@ bool vulkan_initialize(hw* hw)
    bool result = true;
    pre(hw->renderer.window.handle);
 
-   hw_buffer frame_arena = {0};
-   vulkan_context* context = arena_push_struct(hw->top_level_arena, vulkan_context);
+   hw_arena context_arena = arena_push_struct(&hw->main_arena, vulkan_context);
 
-   defer_frame(hw->top_level_arena, frame_arena, result = 
-      vulkan_create_renderer(&frame_arena, context, &hw->renderer.window));
+   if(is_stub(context_arena))
+		return false;
+
+   hw_arena frame_arena = {0};
+   defer_frame(&hw->main_arena, frame_arena, result = 
+      vulkan_create_renderer(&frame_arena, arena_get_data(&context_arena, vulkan_context), &hw->renderer.window));
 
    //hw->renderer.backends[vulkan_renderer_index] = renderer;
    //hw->renderer.frame_present = vulkan_present;
@@ -154,21 +162,21 @@ bool vulkan_initialize(hw* hw)
    //post(hw->renderer.frame_present);
    //post(hw->renderer.renderer_index == vulkan_renderer_index);
 
-   if(!result)
-		hw_error(&frame_arena, "Vulkan not created successfully");
+   //if(!result)
+		//hw_error(&frame_arena, "Vulkan not created successfully");
 
    return result;
 }
 
 #if 0
-static queue_family_indices vulkan_find_queue_families(hw_buffer* arena, VkPhysicalDevice device, VkSurfaceKHR surface)
+static queue_family_indices vulkan_find_queue_families(hw_arena* arena, VkPhysicalDevice device, VkSurfaceKHR surface)
 {
    queue_family_indices indices = {};
 
    uint32_t queueFamilyCount = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, 0);
 
-   VkQueueFamilyProperties* queueFamilies = allocate(arena, queueFamilyCount * sizeof(VkQueueFamilyProperties));
+   VkQueueFamilyProperties* queueFamilies = vulkan_allocate(arena, queueFamilyCount * sizeof(VkQueueFamilyProperties));
    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
 
    for(u32 i = 0; i < queueFamilyCount; ++i)
@@ -196,7 +204,7 @@ static queue_family_indices vulkan_find_queue_families(hw_buffer* arena, VkPhysi
    return indices;
 }
 
-static bool vulkan_is_device_compatible(hw_buffer* arena, VkPhysicalDevice device, VkSurfaceKHR surface)
+static bool vulkan_is_device_compatible(hw_arena* arena, VkPhysicalDevice device, VkSurfaceKHR surface)
 {
    const queue_family_indices result = vulkan_find_queue_families(arena, device, surface);
    return result.valid && vulkan_are_extensions_supported(device);
@@ -216,20 +224,20 @@ static void vulkan_create_sync_objects(vulkan_renderer* renderer)
       hw_assert(0);
 }
 
-static void vulkan_create_renderer(hw_buffer* arena, vulkan_renderer* renderer, HWND windowHandle)
+static void vulkan_create_renderer(hw_arena* arena, vulkan_renderer* renderer, HWND windowHandle)
 {
    u32 extensionCount = 0;
    if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, 0)))
       hw_assert(0);
 
    inv(extensionCount > 0);
-   VkExtensionProperties* extensions = allocate(arena, extensionCount * sizeof(VkExtensionProperties));
+   VkExtensionProperties* extensions = vulkan_allocate(arena, extensionCount * sizeof(VkExtensionProperties));
    inv(extensions);
 
    if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extensionCount, extensions)))
       hw_assert(0);
 
-   const char** extensionNames = allocate(arena, extensionCount * sizeof(const char*));
+   const char** extensionNames = vulkan_allocate(arena, extensionCount * sizeof(const char*));
    inv(extensionNames);
    for(size_t i = 0; i < extensionCount; ++i)
       extensionNames[i] = extensions[i].extensionName;
@@ -295,7 +303,7 @@ static void vulkan_create_renderer(hw_buffer* arena, vulkan_renderer* renderer, 
       hw_assert(0);
    hw_assert(deviceCount > 0);   // Just use the first device for now
 
-   VkPhysicalDevice* devices = allocate(arena, deviceCount * sizeof(VkPhysicalDevice));
+   VkPhysicalDevice* devices = vulkan_allocate(arena, deviceCount * sizeof(VkPhysicalDevice));
    if(!devices)
       hw_assert(0);
 
@@ -325,13 +333,13 @@ static void vulkan_create_renderer(hw_buffer* arena, vulkan_renderer* renderer, 
       hw_assert(0);
 
    inv(extensionCount > 0);
-   extensions = allocate(arena, extensionCount * sizeof(VkExtensionProperties));
+   extensions = vulkan_allocate(arena, extensionCount * sizeof(VkExtensionProperties));
    inv(extensions);
 
    if(!VK_VALID(vkEnumerateDeviceExtensionProperties(renderer->physical_device, 0, &extensionCount, extensions)))
       hw_assert(0);
 
-   extensionNames = allocate(arena, extensionCount * sizeof(const char*));
+   extensionNames = vulkan_allocate(arena, extensionCount * sizeof(const char*));
    inv(extensionNames);
    for(size_t i = 0; i < extensionCount; ++i)
       extensionNames[i] = extensions[i].extensionName;
@@ -401,7 +409,7 @@ static void vulkan_create_renderer(hw_buffer* arena, vulkan_renderer* renderer, 
 
    renderer->swap_chain_count = swap_chain_count;
 
-   VkImage* swapChainImages = allocate(arena, swap_chain_count * sizeof(VkImage));
+   VkImage* swapChainImages = vulkan_allocate(arena, swap_chain_count * sizeof(VkImage));
    if(!swapChainImages)
       hw_assert(0);
 
@@ -411,7 +419,7 @@ static void vulkan_create_renderer(hw_buffer* arena, vulkan_renderer* renderer, 
    for(u32 i = 0; i < swap_chain_count; ++i)
       renderer->images[i] = swapChainImages[i];
 
-   VkImageView* image_views = allocate(arena, swap_chain_count * sizeof(VkImageView));
+   VkImageView* image_views = vulkan_allocate(arena, swap_chain_count * sizeof(VkImageView));
    if(!image_views)
       hw_assert(0);
 
@@ -441,7 +449,7 @@ static void vulkan_create_renderer(hw_buffer* arena, vulkan_renderer* renderer, 
 
    u32 queueFamilyCount = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(renderer->physical_device, &queueFamilyCount, 0);
-   VkQueueFamilyProperties* queueProperties = allocate(arena, queueFamilyCount * sizeof(VkQueueFamilyProperties));
+   VkQueueFamilyProperties* queueProperties = vulkan_allocate(arena, queueFamilyCount * sizeof(VkQueueFamilyProperties));
    if(!queueProperties)
       hw_assert(0);
    hw_assert(queueFamilyCount > 0);
@@ -514,7 +522,7 @@ static void vulkan_create_renderer(hw_buffer* arena, vulkan_renderer* renderer, 
    }
 
    VkImageView frameBufferAttachments = 0;
-   VkFramebuffer* frame_buffers = allocate(arena, swap_chain_count * sizeof(VkFramebuffer));
+   VkFramebuffer* frame_buffers = vulkan_allocate(arena, swap_chain_count * sizeof(VkFramebuffer));
    if(!frame_buffers)
       hw_assert(0);
    {

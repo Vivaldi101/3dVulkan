@@ -43,6 +43,7 @@ cache_align typedef struct vulkan_device
 cache_align typedef struct vulkan_context
 {
    vulkan_device device;
+   vulkan_swapchain_support swapchain;
    VkInstance instance;
    VkSurfaceKHR surface;
 } vulkan_context;

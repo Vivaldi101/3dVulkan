@@ -13,18 +13,18 @@ typedef struct vulkan_queue_family
 	u32 graphics_index, present_index, computer_index, transfer_index;
 } vulkan_queue_family;
 
-static bool vulkan_device_select_physical(hw_buffer* arena, const vulkan_context* context)
+static bool vulkan_device_select_physical(hw_arena* arena, const vulkan_context* context)
 {
    u32 device_count = 0;
    if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
       return false;
 
-   VkPhysicalDevice* devices = allocate(arena, device_count * sizeof(VkPhysicalDevice));
-   if(!devices)
-      return false;
+   hw_arena devices_arena = arena_push_size(arena, device_count * sizeof(VkPhysicalDevice), VkPhysicalDevice);
+   VkPhysicalDevice* devices = arena_get_data(&devices_arena, VkPhysicalDevice);
 
-   if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
-      return false;
+   if(arena_is_set(&devices_arena, device_count))
+      if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
+         return false;
 
 	// get a suitable device 
    for(u32 i = 0; i < device_count; ++i)
@@ -48,7 +48,7 @@ static bool vulkan_device_select_physical(hw_buffer* arena, const vulkan_context
    return true;
 }
 
-static bool vulkan_device_swapchain_support(hw_buffer* arena, vulkan_context* context, vulkan_swapchain_support* swapchain)
+static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* context, vulkan_swapchain_support* swapchain)
 {
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
 		return false;
@@ -57,7 +57,7 @@ static bool vulkan_device_swapchain_support(hw_buffer* arena, vulkan_context* co
 		return false;
 
 	if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
-      swapchain->surface_formats = allocate(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR));
+      //swapchain->surface_formats = vulkan_allocate(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR));
 
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
 		return false;
@@ -66,7 +66,7 @@ static bool vulkan_device_swapchain_support(hw_buffer* arena, vulkan_context* co
 		return false;
 
 	if(swapchain->present_mode_count > 0 && !swapchain->present_modes)
-      swapchain->present_modes = allocate(arena, swapchain->present_mode_count * sizeof(VkPresentModeKHR));
+      //swapchain->present_modes = vulkan_allocate(arena, swapchain->present_mode_count * sizeof(VkPresentModeKHR));
 
 	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
 		return false;
@@ -74,7 +74,7 @@ static bool vulkan_device_swapchain_support(hw_buffer* arena, vulkan_context* co
    return true;
 }
 
-static bool vulkan_device_meets_requirements(hw_buffer* arena,
+static bool vulkan_device_meets_requirements(hw_arena* arena,
 															vulkan_context* context,
                                              const vulkan_physical_device_requirements* requirements,
                                              const VkPhysicalDeviceProperties* properties,
@@ -91,8 +91,11 @@ static bool vulkan_device_meets_requirements(hw_buffer* arena,
 	
    u32 queue_family_count = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, 0);
-   VkQueueFamilyProperties* queue_families = allocate(arena, queue_family_count*sizeof(VkQueueFamilyProperties));
-   vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
+   hw_arena queue_families_arena = arena_push_size(arena, queue_family_count * sizeof(VkQueueFamilyProperties), VkQueueFamilyProperties);
+   VkQueueFamilyProperties* queue_families = arena_get_data(&queue_families_arena, VkQueueFamilyProperties);
+
+   if(arena_is_set(&queue_families_arena, queue_family_count))
+      vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
 
    u32 min_transfer_score = 255;
    for(u32 i = 0; i < queue_family_count; ++i)
@@ -132,7 +135,7 @@ static bool vulkan_device_meets_requirements(hw_buffer* arena,
    return true;
 }
 
-static bool vulkan_device_create(hw_buffer* arena, vulkan_context* context)
+static bool vulkan_device_create(hw_arena* arena, vulkan_context* context)
 {
 	if(!vulkan_device_select_physical(arena, context))
 		return false;

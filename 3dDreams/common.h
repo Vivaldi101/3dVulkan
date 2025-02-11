@@ -47,6 +47,8 @@ typedef size_t usize;
 
 #define defer_frame(main, sub, frame) defer((sub) = sub_arena_create((main)), sub_arena_reset(&(sub))) frame
 
+#define is_stub(s) !!!(s.base)
+
 typedef enum {false, true} bool;
 
 cache_align typedef struct

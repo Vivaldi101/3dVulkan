@@ -4,8 +4,6 @@
 #include "vulkan.h"
 #include "hw_arena.h"
 
-hw_buffer hw_buffer_stub = {0};
-
 #if 1
 typedef struct app_some_type
 {
@@ -16,9 +14,9 @@ typedef struct app_some_type
 #endif
 
 // do frame drawing
-static void app_frame_draw(hw_buffer* frame_arena)
+static void app_frame_draw(hw_arena* frame_arena)
 {
-#if 1
+#if 0
    int i;
    app_some_type* type = arena_push_struct(frame_arena, app_some_type);
    type->isvalid = true;
@@ -49,8 +47,8 @@ void app_start(int argc, const char** argv, hw* hw)
 
    hw_window_open(hw, "App window", 0, 0, 800, 600);
 
-   vulkan_initialize(hw);
-   //d3d12_initialize(hw);
+   if(!vulkan_initialize(hw))
+		return;
 
    g_frustum_create(&frustum, 800, 600, 90.0f);
 
