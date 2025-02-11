@@ -13,7 +13,14 @@ typedef struct vulkan_queue_family
 	u32 graphics_index, present_index, computer_index, transfer_index;
 } vulkan_queue_family;
 
-static bool vulkan_device_select_physical(hw_arena* arena, const vulkan_context* context)
+static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* context, vulkan_swapchain_support* swapchain);
+static bool vulkan_device_meets_requirements(hw_arena* arena,
+															vulkan_context* context,
+                                             const vulkan_physical_device_requirements* requirements,
+                                             const VkPhysicalDeviceProperties* properties,
+															vulkan_queue_family* queue_family);
+
+static bool vulkan_device_select_physical(hw_arena* arena, vulkan_context* context)
 {
    u32 device_count = 0;
    if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
@@ -26,7 +33,7 @@ static bool vulkan_device_select_physical(hw_arena* arena, const vulkan_context*
       if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
          return false;
 
-	// get a suitable device 
+	// get a suitable physical device 
    for(u32 i = 0; i < device_count; ++i)
    {
       VkPhysicalDeviceProperties properties;
@@ -42,7 +49,16 @@ static bool vulkan_device_select_physical(hw_arena* arena, const vulkan_context*
       reqs.is_graphics = reqs.is_present = reqs.is_transfer = true;
       reqs.is_anisotropy = reqs.is_discrete_gpu = true;
 
-      //vulkan_queue_family queue_family = {0};
+      context->device.physical_device = devices[i];
+
+      vulkan_queue_family queue_family = {0};
+
+      if(!vulkan_device_meets_requirements(arena, context, &reqs, &properties, &queue_family))
+			continue;	// no device yet met the requirements
+
+      context->device.graphics_queue_index = queue_family.graphics_index;
+      context->device.present_queue_index = queue_family.present_index;
+      context->device.transfer_queue_index = queue_family.transfer_index;
    }
 
    return true;
@@ -56,8 +72,12 @@ static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* con
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, 0)))
 		return false;
 
-	if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
-      //swapchain->surface_formats = vulkan_allocate(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR));
+   if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
+   {
+		// use vulkan allocate for these
+      hw_arena surface_formats_arena = arena_push_size(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR), VkSurfaceFormatKHR);
+      swapchain->surface_formats = arena_get_data(&surface_formats_arena, VkSurfaceFormatKHR);
+   }
 
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
 		return false;
@@ -66,7 +86,10 @@ static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* con
 		return false;
 
 	if(swapchain->present_mode_count > 0 && !swapchain->present_modes)
-      //swapchain->present_modes = vulkan_allocate(arena, swapchain->present_mode_count * sizeof(VkPresentModeKHR));
+   {
+      hw_arena present_formats_arena = arena_push_size(arena, swapchain->present_mode_count * sizeof(VkPresentModeKHR), VkPresentModeKHR);
+      swapchain->present_modes = arena_get_data(&present_formats_arena, VkPresentModeKHR);
+   }
 
 	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
 		return false;
@@ -130,7 +153,7 @@ static bool vulkan_device_meets_requirements(hw_arena* arena,
 			queue_family->present_index = i;
    }
 
-   vulkan_device_swapchain_support(arena, context, &context->device.swapchain_support);
+   vulkan_device_swapchain_support(arena, context, &context->device.swapchain);
 
    return true;
 }

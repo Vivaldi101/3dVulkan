@@ -130,11 +130,11 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
    }
 #endif
 
-   if(!vulkan_device_create(arena, context))
-      return false;
-
    // TODO: compress extension names and count to info struct
    if(!vulkan_window_surface_create(context, window, arena_get_data(&extensions_arena, const char*), instance_info.enabledExtensionCount))
+      return false;
+
+   if(!vulkan_device_create(arena, context))
       return false;
 
    return true;
@@ -146,7 +146,6 @@ bool vulkan_initialize(hw* hw)
    pre(hw->renderer.window.handle);
 
    hw_arena context_arena = arena_push_struct(&hw->main_arena, vulkan_context);
-
    if(is_stub(context_arena))
 		return false;
 
