@@ -58,6 +58,7 @@ static void* hw_virtual_memory_reserve(usize size)
 
 static void hw_virtual_memory_commit(void* address, usize size)
 {
+	pre(address && size > 0);	// TODO: predicate to test for valid reserved range
 	// commit the reserved address range
    global_allocate(address, size, MEM_COMMIT, PAGE_READWRITE);
 }
@@ -138,7 +139,7 @@ static void* hw_buffer_pop(hw_arena *buffer, usize bytes)
 
 static void hw_sub_buffer_reset(hw_arena* buffer) 
 {
-	memset(buffer, 0, sizeof(hw_arena)); // we only reset the structure but wont clear the memory since its commited top-level
+	memset(buffer, 0, sizeof(hw_arena));
 }
 
 static bool hw_buffer_is_empty(hw_arena *buffer) 
