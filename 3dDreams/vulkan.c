@@ -79,9 +79,9 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
    hw_arena extensions_arena = arena_push_size(arena, extension_count * sizeof(VkExtensionProperties), VkExtensionProperties);
    VkExtensionProperties* extensions = arena_get_base(arena, VkExtensionProperties);
 
-   implies(!arena_is_set(&extensions_arena, extension_count), extension_count = 0);
-
-   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
+   if(!arena_is_set(&extensions_arena, extension_count))
+		extension_count = 0;
+   else if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
       return false;
 
    VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -103,14 +103,17 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
 #endif
 
    extensions_arena = arena_push_size(arena, extension_count * sizeof(const char*), const char*);
-   implies(!arena_is_set(&extensions_arena, extension_count), extension_count = 0);
+   if(!arena_is_set(&extensions_arena, extension_count))
+		extension_count = 0;
+   else
+   {
+      const char** extension_names = arena_get_base(&extensions_arena, const char*);
+      for(size_t i = 0; i < extension_count; ++i)
+         extension_names[i] = extensions[i].extensionName;
 
-   const char** extension_names = arena_get_base(&extensions_arena, const char*);
-   for(size_t i = 0; i < extension_count; ++i)
-      extension_names[i] = extensions[i].extensionName;
-
-   instance_info.enabledExtensionCount = extension_count;
-   instance_info.ppEnabledExtensionNames = extension_names;
+      instance_info.enabledExtensionCount = extension_count;
+      instance_info.ppEnabledExtensionNames = extension_names;
+   }
 
    if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
       return false;
