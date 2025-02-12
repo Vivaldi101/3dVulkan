@@ -45,12 +45,13 @@ void app_start(int argc, const char** argv, hw* hw)
 
    g_frustum frustum = {0};
 
-   hw_window_open(hw, "App window", 0, 0, 800, 600);
+	int w = 800, h = 600;
+   hw_window_open(hw, "App window", 0, 0, w, h);
 
    if(!vulkan_initialize(hw))
 		return;
 
-   g_frustum_create(&frustum, 800, 600, 90.0f);
+   g_frustum_create(&frustum, (f32)w, (f32)h, 90.0f);
 
    hw_event_loop_start(hw, app_frame_draw, app_input_handle);
    hw_window_close(hw);

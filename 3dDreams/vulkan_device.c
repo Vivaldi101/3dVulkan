@@ -76,7 +76,6 @@ static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* con
 
    if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
    {
-		// use vulkan allocate for these
       hw_arena surface_formats_arena = arena_push_size(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR), VkSurfaceFormatKHR);
       swapchain->surface_formats = arena_get_base(&surface_formats_arena, VkSurfaceFormatKHR);
       if(!arena_is_set(&surface_formats_arena, swapchain->surface_format_count))
