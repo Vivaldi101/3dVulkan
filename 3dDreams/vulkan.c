@@ -7,6 +7,7 @@
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
 
+// TODO: Remove
 #if 0
 typedef struct vulkan_renderer
 {
@@ -167,6 +168,7 @@ bool vulkan_initialize(hw* hw)
    return result;
 }
 
+// TODO: Remove
 #if 0
 static queue_family_indices vulkan_find_queue_families(hw_arena* arena, VkPhysicalDevice device, VkSurfaceKHR surface)
 {

@@ -148,7 +148,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    int argc = 0;
    const char** argv = 0;
 
-   hw_virtual_allocate_init();
+   hw_virtual_memory_init();
 
    memory_status.dwLength = sizeof(memory_status);
    if(!GlobalMemoryStatusEx(&memory_status))

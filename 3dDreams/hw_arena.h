@@ -25,7 +25,7 @@ static VirtualAllocPtr global_allocate;
 #define sub_arena_reset(arena) hw_sub_buffer_reset(arena)
 #define sub_arena_create(arena) hw_sub_memory_buffer_create(arena)
 
-#define arena_create(arena) hw_buffer_create(arena)
+#define arena_create(size) hw_buffer_create(size)
 
 #define arena_is_empty(arena) hw_buffer_is_empty(arena)
 #define arena_is_full(arena) hw_buffer_is_full(arena)
@@ -50,12 +50,19 @@ static void hw_global_reserve_available()
    global_allocate(0, memory_status.ullAvailPhys, MEM_RESERVE, PAGE_READWRITE);
 }
 
-static void* hw_virtual_memory_commit(void* address, usize size)
+static void* hw_virtual_memory_reserve(usize size)
 {
-   return global_allocate(address, size, MEM_COMMIT, PAGE_READWRITE); // only commit whats needed
+	// let the os decide into what address to place the reserve
+   return global_allocate(0, size, MEM_RESERVE, PAGE_READWRITE);
 }
 
-static void hw_virtual_allocate_init()
+static void hw_virtual_memory_commit(void* address, usize size)
+{
+	// commit the reserved address range
+   global_allocate(address, size, MEM_COMMIT, PAGE_READWRITE);
+}
+
+static void hw_virtual_memory_init()
 {
    typedef LPVOID(*VirtualAllocPtr)(LPVOID, usize, DWORD, DWORD);
 
@@ -63,7 +70,6 @@ static void hw_virtual_allocate_init()
    if (hKernel32)
       global_allocate = (VirtualAllocPtr)(GetProcAddress(hKernel32, "VirtualAlloc"));
 
-   hw_global_reserve_available(); // reserve all range
 	post(global_allocate);
 }
 
@@ -72,9 +78,10 @@ static hw_arena hw_buffer_create(usize byte_count)
    hw_arena result = {0};
    pre(global_allocate);
 
-   void* data = hw_virtual_memory_commit(0, byte_count);
+   void* base = hw_virtual_memory_reserve(byte_count);
+   hw_virtual_memory_commit(base, byte_count);
 
-   result.base = data;
+   result.base = base;
    result.max_size = byte_count;
    result.bytes_used = 0;
 
