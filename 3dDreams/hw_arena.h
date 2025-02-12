@@ -52,15 +52,35 @@ static void hw_global_reserve_available()
    global_allocate(0, memory_status.ullAvailPhys, MEM_RESERVE, PAGE_READWRITE);
 }
 
+static bool hw_is_virtual_memory_reserved(void* address)
+{
+   MEMORY_BASIC_INFORMATION mbi;
+   if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
+      return false;
+
+   return (mbi.State == MEM_RESERVE);
+}
+
+static bool hw_is_virtual_memory_commited(void* address)
+{
+   MEMORY_BASIC_INFORMATION mbi;
+   if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
+      return false;
+
+   return (mbi.State == MEM_COMMIT);
+}
+
 static void* hw_virtual_memory_reserve(usize size)
 {
 	// let the os decide into what address to place the reserve
-   return global_allocate(0, size, MEM_RESERVE, PAGE_READWRITE);
+   return global_allocate(0, size, MEM_RESERVE, PAGE_NOACCESS);
 }
 
 static void hw_virtual_memory_commit(void* address, usize size)
 {
-	pre(address && size > 0);	// TODO: predicate to test for valid reserved range
+	pre(hw_is_virtual_memory_reserved((byte*)address+size-1));
+	pre(!hw_is_virtual_memory_commited((byte*)address+size-1));
+
 	// commit the reserved address range
    global_allocate(address, size, MEM_COMMIT, PAGE_READWRITE);
 }
