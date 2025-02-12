@@ -68,19 +68,21 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
 
 static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, const hw_window* window)
 {
-	pre(context);
-	pre(window);
+   pre(context);
+   pre(window);
 
    u32 extension_count = 0;
    if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, 0)))
       return false;
 
+   // TODO: helper for vulkan allocs
    hw_arena extensions_arena = arena_push_size(arena, extension_count * sizeof(VkExtensionProperties), VkExtensionProperties);
-   VkExtensionProperties* extensions = arena_get_data(arena, VkExtensionProperties);
+   VkExtensionProperties* extensions = arena_get_base(arena, VkExtensionProperties);
 
-   if(arena_is_set(&extensions_arena, extension_count))
-      if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
-         return false;
+   implies(!arena_is_set(&extensions_arena, extension_count), extension_count = 0);
+
+   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
+      return false;
 
    VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
    app_info.pApplicationName = "VulkanApp";
@@ -101,15 +103,14 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
 #endif
 
    extensions_arena = arena_push_size(arena, extension_count * sizeof(const char*), const char*);
-   if(arena_is_set(&extensions_arena, extension_count))
-   {
-      const char** extension_names = arena_get_data(&extensions_arena, const char*);
-      for(size_t i = 0; i < extension_count; ++i)
-         extension_names[i] = extensions[i].extensionName;
+   implies(!arena_is_set(&extensions_arena, extension_count), extension_count = 0);
 
-      instance_info.enabledExtensionCount = extension_count;
-      instance_info.ppEnabledExtensionNames = extension_names;
-   }
+   const char** extension_names = arena_get_base(&extensions_arena, const char*);
+   for(size_t i = 0; i < extension_count; ++i)
+      extension_names[i] = extensions[i].extensionName;
+
+   instance_info.enabledExtensionCount = extension_count;
+   instance_info.ppEnabledExtensionNames = extension_names;
 
    if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
       return false;
@@ -132,7 +133,7 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
 #endif
 
    // TODO: compress extension names and count to info struct
-   if(!vulkan_window_surface_create(context, window, arena_get_data(&extensions_arena, const char*), instance_info.enabledExtensionCount))
+   if(!vulkan_window_surface_create(context, window, arena_get_base(&extensions_arena, const char*), instance_info.enabledExtensionCount))
       return false;
 
    if(!vulkan_device_create(arena, context))
@@ -152,7 +153,7 @@ bool vulkan_initialize(hw* hw)
 
    hw_arena frame_arena = {0};
    defer_frame(&hw->main_arena, frame_arena, result = 
-      vulkan_create_renderer(&frame_arena, arena_get_data(&context_arena, vulkan_context), &hw->renderer.window));
+      vulkan_create_renderer(&frame_arena, arena_get_base(&context_arena, vulkan_context), &hw->renderer.window));
 
    //hw->renderer.backends[vulkan_renderer_index] = renderer;
    //hw->renderer.frame_present = vulkan_present;

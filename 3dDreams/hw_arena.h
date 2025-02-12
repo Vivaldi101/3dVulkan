@@ -31,6 +31,8 @@ static VirtualAllocPtr global_allocate;
 #define arena_is_full(arena) hw_buffer_is_full(arena)
 #define arena_is_set(arena, elements) hw_buffer_is_set(arena, elements)
 
+#define arena_is_set(arena, elements) hw_buffer_is_set(arena, elements)
+
 cache_align typedef struct hw_arena
 {
    byte* base;
@@ -38,7 +40,7 @@ cache_align typedef struct hw_arena
    usize element_count;				// actual item count
 } hw_arena;
 
-#define arena_get_data(arena, type) ((type*)(arena)->base)
+#define arena_get_base(arena, type) ((type*)(arena)->base)
 
 static void hw_global_reserve_available()
 {

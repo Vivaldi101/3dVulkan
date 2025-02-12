@@ -27,7 +27,7 @@ static bool vulkan_device_select_physical(hw_arena* arena, vulkan_context* conte
       return false;
 
    hw_arena devices_arena = arena_push_size(arena, device_count * sizeof(VkPhysicalDevice), VkPhysicalDevice);
-   VkPhysicalDevice* devices = arena_get_data(&devices_arena, VkPhysicalDevice);
+   VkPhysicalDevice* devices = arena_get_base(&devices_arena, VkPhysicalDevice);
 
    if(arena_is_set(&devices_arena, device_count))
       if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
@@ -76,7 +76,7 @@ static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* con
    {
 		// use vulkan allocate for these
       hw_arena surface_formats_arena = arena_push_size(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR), VkSurfaceFormatKHR);
-      swapchain->surface_formats = arena_get_data(&surface_formats_arena, VkSurfaceFormatKHR);
+      swapchain->surface_formats = arena_get_base(&surface_formats_arena, VkSurfaceFormatKHR);
    }
 
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
@@ -88,7 +88,7 @@ static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* con
 	if(swapchain->present_mode_count > 0 && !swapchain->present_modes)
    {
       hw_arena present_formats_arena = arena_push_size(arena, swapchain->present_mode_count * sizeof(VkPresentModeKHR), VkPresentModeKHR);
-      swapchain->present_modes = arena_get_data(&present_formats_arena, VkPresentModeKHR);
+      swapchain->present_modes = arena_get_base(&present_formats_arena, VkPresentModeKHR);
    }
 
 	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
@@ -115,7 +115,7 @@ static bool vulkan_device_meets_requirements(hw_arena* arena,
    u32 queue_family_count = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, 0);
    hw_arena queue_families_arena = arena_push_size(arena, queue_family_count * sizeof(VkQueueFamilyProperties), VkQueueFamilyProperties);
-   VkQueueFamilyProperties* queue_families = arena_get_data(&queue_families_arena, VkQueueFamilyProperties);
+   VkQueueFamilyProperties* queue_families = arena_get_base(&queue_families_arena, VkQueueFamilyProperties);
 
    if(arena_is_set(&queue_families_arena, queue_family_count))
       vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);

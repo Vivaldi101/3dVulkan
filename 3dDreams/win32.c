@@ -141,7 +141,7 @@ static void hw_error(hw_arena* error_arena, const char* s)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    const usize virtual_memory_amount = 10ull * 1024 * 1024;	// 10 megs
-   //const usize virtual_memory_amount = 0;	// 10 megs
+   //const usize virtual_memory_amount = 1;	// 10 megs
 
    hw hw = {0};
    MEMORYSTATUSEX memory_status = {0};
@@ -170,7 +170,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw.platform_loop = win32_platform_loop;
 
    timeBeginPeriod(1);
-   app_start(argc, argv, &hw);    // pass the options to the application
+   app_start(argc, argv, &hw);    // TODO: pass the options to the application
    timeEndPeriod(1);
 
    return 0;
