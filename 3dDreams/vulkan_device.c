@@ -61,9 +61,16 @@ static bool vulkan_device_select_physical(hw_arena* arena, vulkan_context* conte
       context->device.graphics_queue_index = queue_family.graphics_index;
       context->device.present_queue_index = queue_family.present_index;
       context->device.transfer_queue_index = queue_family.transfer_index;
+      context->device.compute_queue_index = queue_family.computer_index;
+
+      context->device.properties = properties;
+      context->device.features = features;
+      context->device.memory = memory;
+
+      return true;
    }
 
-   return true;
+   return false;
 }
 
 static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* context, vulkan_swapchain_support* swapchain)
