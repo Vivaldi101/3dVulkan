@@ -40,7 +40,8 @@ cache_align typedef struct hw_arena
    usize element_count;				// actual item count
 } hw_arena;
 
-#define arena_get_base(arena, type) ((type*)(arena)->base)
+#define arena_base(arena, type) ((type*)(arena)->base)
+#define arena_index(arena, type, index) ((type*)(arena)->base + index)
 
 static void hw_global_reserve_available()
 {

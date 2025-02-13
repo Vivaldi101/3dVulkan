@@ -30,14 +30,26 @@ cache_align typedef struct vulkan_swapchain_support
 	VkPresentModeKHR* present_modes;
 } vulkan_swapchain_support;
 
+enum
+{
+   QUEUE_GRAPHICS_INDEX = 0,
+   QUEUE_COMPUTE_INDEX,
+   QUEUE_PRESENT_INDEX,
+   QUEUE_TRANSFER_INDEX,
+
+   QUEUE_INDEX_COUNT,
+};
+
 cache_align typedef struct vulkan_device
 {
    VkPhysicalDevice physical_device;
    VkDevice logical_device;
-   i32 graphics_queue_index;
-   i32 present_queue_index;
-   i32 transfer_queue_index;
-   i32 compute_queue_index;
+
+	i32 queue_indexes[QUEUE_INDEX_COUNT];
+   VkQueue graphics_queue;
+   VkQueue compute_queue;
+   VkQueue present_queue;
+   VkQueue transfer_queue;
 
    VkPhysicalDeviceProperties properties;
    VkPhysicalDeviceFeatures features;

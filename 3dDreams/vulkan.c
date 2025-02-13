@@ -77,7 +77,7 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
 
    // TODO: helper for vulkan allocs
    hw_arena extensions_arena = arena_push_size(arena, extension_count * sizeof(VkExtensionProperties), VkExtensionProperties);
-   VkExtensionProperties* extensions = arena_get_base(arena, VkExtensionProperties);
+   VkExtensionProperties* extensions = arena_base(arena, VkExtensionProperties);
 
    if(!arena_is_set(&extensions_arena, extension_count))
 		extension_count = 0;
@@ -107,7 +107,7 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
 		extension_count = 0;
    else
    {
-      const char** extension_names = arena_get_base(&extensions_arena, const char*);
+      const char** extension_names = arena_base(&extensions_arena, const char*);
       for(size_t i = 0; i < extension_count; ++i)
          extension_names[i] = extensions[i].extensionName;
 
@@ -136,7 +136,7 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
 #endif
 
    // TODO: compress extension names and count to info struct
-   if(!vulkan_window_surface_create(context, window, arena_get_base(&extensions_arena, const char*), instance_info.enabledExtensionCount))
+   if(!vulkan_window_surface_create(context, window, arena_base(&extensions_arena, const char*), instance_info.enabledExtensionCount))
       return false;
 
    if(!vulkan_device_create(arena, context))
@@ -161,9 +161,9 @@ bool vulkan_initialize(hw* hw)
 
    hw_arena frame_arena = {0};
    defer_frame(&hw->main_arena, frame_arena, result = 
-      vulkan_create_renderer(&frame_arena, arena_get_base(&context_arena, vulkan_context), &hw->renderer.window));
+      vulkan_create_renderer(&frame_arena, arena_base(&context_arena, vulkan_context), &hw->renderer.window));
 
-   hw->renderer.backends[vulkan_renderer_index] = arena_get_base(&context_arena, vulkan_context);
+   hw->renderer.backends[vulkan_renderer_index] = arena_base(&context_arena, vulkan_context);
    hw->renderer.frame_present = vulkan_present;
    hw->renderer.renderer_index = vulkan_renderer_index;
 
