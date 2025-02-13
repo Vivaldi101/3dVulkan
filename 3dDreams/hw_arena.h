@@ -17,7 +17,6 @@ static VirtualReleasePtr global_release;
 #define arena_push_struct(arena, type) (hw_buffer_push(arena, sizeof(type), sizeof(type)))  
 #define arena_push_count(arena, count, type) (hw_buffer_push(arena, (count)*sizeof(type), sizeof(type))) 
 #define arena_push_size(arena, count, type) (hw_buffer_push(arena, (count)*sizeof(byte), sizeof(type)))  
-#define arena_push_string(arena, count) arena_push_count(arena, count, char)
 #define arena_push_pointer_strings(arena, count) hw_buffer_push(arena, (count)*sizeof(const char*), sizeof(const char*))
 
 #define arena_pop_struct(arena, type) ((type *)_pop_(arena, sizeof(type)))  
@@ -40,10 +39,12 @@ cache_align typedef struct hw_arena
 {
    byte* base;
    usize max_size, bytes_used;	// in bytes
-   usize element_count;				// actual item count
+   usize count;				// actual item count
 } hw_arena;
 
+// TODO: Redo arena_base macros
 #define arena_base(arena, type) ((type*)(arena)->base)
+#define arena_base_non_pointer(arena, type) ((type*)(arena).base)
 #define arena_index(arena, type, index) ((type*)(arena)->base + index)
 
 static void hw_global_reserve_available()
@@ -174,7 +175,7 @@ static hw_arena hw_buffer_push(hw_arena *buffer, usize bytes, usize element_size
 
    result.base = (byte*)buffer->base + buffer->bytes_used;
    result.max_size = bytes;
-   result.element_count += bytes / element_size;
+   result.count += bytes / element_size;
    buffer->bytes_used += bytes;
 
    return result;
@@ -206,9 +207,9 @@ static bool hw_buffer_is_full(hw_arena *buffer)
 	return buffer->bytes_used == buffer->max_size;
 }
 
-static bool hw_buffer_is_set(hw_arena *buffer, usize element_count) 
+static bool hw_buffer_is_set(hw_arena *buffer, usize count) 
 {
-	return buffer->element_count == element_count; 
+	return buffer->count == count; 
 }
 
 #endif

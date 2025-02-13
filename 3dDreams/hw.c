@@ -122,24 +122,23 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_arena* frame_aren
    }
 }
 
-#if 0
 static char** cmd_parse(hw_arena* arena, char* cmd, int* argc)
 {
    char* arg_start;
    char* arg_end;
    char** argv;
 
-   if(!(argv = arena->base))
-      return 0;
+   const hw_arena args_arena = arena_push_pointer_strings(arena, MAX_ARGV);
+	argv = arena_base(&args_arena, char*);
+
+   if(args_arena.count == 0)
+		return 0;
 
    // program name as the first one
    argv[0] = GetCommandLine();
    // program name should be valid
    pre(strlen(argv[0]) > 0);
 
-   //usize i = strlen(argv[0]) - 1;
-   //do if (argv[0][i] == '\"') {argv[0][i + 1] = 0; break;}
-   //while(i-- != 0);
    for(usize i = strlen(argv[0]); i--;)
    {
       if(argv[0][i] == '\"')
@@ -149,10 +148,6 @@ static char** cmd_parse(hw_arena* arena, char* cmd, int* argc)
       }
    }
 
-   //post(implies(i != 0, argv[0][i] == '\"'));	// break if slash found
-   //post(implies(argv[0][i] != '\"', i == (usize)-1));	// end if no slash found
-
-   // offset by the program name and just parse the arguments
    *argc = 1;
    arg_start = cmd;
 
@@ -171,4 +166,3 @@ static char** cmd_parse(hw_arena* arena, char* cmd, int* argc)
 
    return argv;
 }
-#endif

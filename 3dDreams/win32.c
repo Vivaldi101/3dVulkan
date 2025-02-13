@@ -139,9 +139,10 @@ static void hw_error(hw_arena* error_arena, const char* s)
    char* buffer = arena_push_string(error_arena, buffer_size);
 
    memcpy(buffer, s, buffer_size);
-   MessageBox(NULL, buffer, "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
 }
 #endif
+
+#define hw_error(m) MessageBox(NULL, (m), "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
@@ -160,11 +161,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
       return 0;
 
    hw.main_arena = arena_create(virtual_memory_amount);
-   //hw_arena args_arena = arena_push_pointer_strings(&hw.main_arena, MAX_ARGV);
-   //argv = cmd_parse(&args_arena, lpszCmdLine, &argc);
+   argv = cmd_parse(&hw.main_arena, lpszCmdLine, &argc);
 
-   //if(argc == 0)
-      //defer_frame(hw.main_arena, frame_arena, hw_error(&frame_arena, "Invalid number of command line options given.\n"));
+   if(argc == 0)
+      hw_error("Invalid number of program arguments")
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;
