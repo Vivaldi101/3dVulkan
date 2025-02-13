@@ -46,7 +46,7 @@ typedef size_t usize;
 #define defer(start, end) \
     for (int _defer = ((start), 0); !_defer; (_defer = 1), (end))
 
-#define defer_frame(main, sub, frame) defer((sub) = sub_arena_create((main)), sub_arena_reset(&(sub))) frame
+#define defer_frame(main, sub, frame) defer((sub) = sub_arena_create((main)), sub_arena_release(&(sub))) frame
 
 #define is_stub(s) !!!(s.base)
 

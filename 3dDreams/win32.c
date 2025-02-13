@@ -127,6 +127,11 @@ static void win32_window_close(hw_window window)
    PostMessage(window.handle, WM_QUIT, 0, 0L);
 }
 
+static void win32_abort(u32 code)
+{
+   ExitProcess(code);
+}
+
 #if 0
 static void hw_error(hw_arena* error_arena, const char* s)
 {
@@ -172,6 +177,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    timeBeginPeriod(1);
    app_start(argc, argv, &hw);    // TODO: pass the options to the application
    timeEndPeriod(1);
+
+   arena_release(&hw.main_arena);
 
    return 0;
 }

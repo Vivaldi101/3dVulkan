@@ -7,7 +7,9 @@
 
 #if defined(_WIN32)
 typedef LPVOID(*VirtualAllocPtr)(LPVOID, SIZE_T, DWORD, DWORD);
+typedef VOID(*VirtualReleasePtr)(LPVOID, SIZE_T);
 static VirtualAllocPtr global_allocate;
+static VirtualReleasePtr global_release;
 #elif
 // TODO: other plats have their own global allocators
 #endif
@@ -22,10 +24,11 @@ static VirtualAllocPtr global_allocate;
 #define arena_pop_count(arena, count, type) ((type *)hw_buffer_pop(arena, (count)*sizeof(type)))  
 #define arena_pop_string(arena, count) arena_pop_count(arena, count, char)
 
-#define sub_arena_reset(arena) hw_sub_buffer_reset(arena)
+#define sub_arena_release(arena) hw_sub_buffer_release(arena)
 #define sub_arena_create(arena) hw_sub_memory_buffer_create(arena)
 
 #define arena_create(size) hw_buffer_create(size)
+#define arena_release(arena) hw_buffer_release(arena)
 
 #define arena_is_empty(arena) hw_buffer_is_empty(arena)
 #define arena_is_full(arena) hw_buffer_is_full(arena)
@@ -86,15 +89,33 @@ static void hw_virtual_memory_commit(void* address, usize size)
    global_allocate(address, size, MEM_COMMIT, PAGE_READWRITE);
 }
 
+static void hw_virtual_memory_release(void* address, usize size)
+{
+	pre(hw_is_virtual_memory_commited((byte*)address+size-1));
+
+	global_release(address, size);
+}
+
+static void hw_virtual_memory_decommit(void* address, usize size)
+{
+	pre(hw_is_virtual_memory_commited((byte*)address+size-1));
+
+	global_allocate(address, size, MEM_DECOMMIT, PAGE_READWRITE);
+}
+
 static void hw_virtual_memory_init()
 {
    typedef LPVOID(*VirtualAllocPtr)(LPVOID, usize, DWORD, DWORD);
 
    HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
    if (hKernel32)
+   {
       global_allocate = (VirtualAllocPtr)(GetProcAddress(hKernel32, "VirtualAlloc"));
+      global_release = (VirtualReleasePtr)(GetProcAddress(hKernel32, "VirtualFree"));
+   }
 
 	post(global_allocate);
+	post(global_release);
 }
 
 static hw_arena hw_buffer_create(usize byte_count) 
@@ -110,6 +131,16 @@ static hw_arena hw_buffer_create(usize byte_count)
    result.bytes_used = 0;
 
    return result;
+}
+
+static void hw_buffer_release(hw_arena *buffer)
+{
+	hw_virtual_memory_release(buffer->base, buffer->max_size);
+}
+
+static void hw_buffer_decommit(hw_arena *buffer)
+{
+	hw_virtual_memory_decommit(buffer->base, buffer->max_size);
 }
 
 static hw_arena hw_sub_memory_buffer_create(const hw_arena *buffer)
@@ -160,7 +191,7 @@ static void* hw_buffer_pop(hw_arena *buffer, usize bytes)
    return result;
 }
 
-static void hw_sub_buffer_reset(hw_arena* buffer) 
+static void hw_sub_buffer_release(hw_arena* buffer) 
 {
 	memset(buffer, 0, sizeof(hw_arena));
 }
