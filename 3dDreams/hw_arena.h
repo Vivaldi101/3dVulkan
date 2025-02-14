@@ -33,8 +33,6 @@ static VirtualReleasePtr global_release;
 #define arena_is_full(arena) hw_buffer_is_full(arena)
 #define arena_is_set(arena, elements) hw_buffer_is_set(arena, elements)
 
-#define arena_is_set(arena, elements) hw_buffer_is_set(arena, elements)
-
 cache_align typedef struct hw_arena
 {
    byte* base;

@@ -40,6 +40,16 @@ enum
    QUEUE_INDEX_COUNT,
 };
 
+cache_align typedef struct vulkan_swapchain
+{
+	VkSurfaceFormatKHR image_format;
+   VkSwapchainKHR swapchain;
+   u32 max_frames_count;
+   u32 image_count;
+   VkImage* images;
+   VkImageView* views;
+} vulkan_swapchain;
+
 cache_align typedef struct vulkan_device
 {
    VkPhysicalDevice physical_device;

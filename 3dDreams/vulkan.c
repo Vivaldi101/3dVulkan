@@ -6,6 +6,7 @@
 // unity build
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
+#include "vulkan_swapchain.c"
 
 // TODO: Remove
 #if 0
