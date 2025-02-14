@@ -44,6 +44,7 @@ cache_align typedef struct vulkan_swapchain
 {
 	VkSurfaceFormatKHR image_format;
    VkSwapchainKHR swapchain;
+
    u32 max_frames_count;
    u32 image_count;
    VkImage* images;
@@ -64,14 +65,20 @@ cache_align typedef struct vulkan_device
    VkPhysicalDeviceProperties properties;
    VkPhysicalDeviceFeatures features;
    VkPhysicalDeviceMemoryProperties memory;
+
    vulkan_swapchain_support swapchain;
 } vulkan_device;
 
 cache_align typedef struct vulkan_context
 {
    vulkan_device device;
+   vulkan_swapchain swapchain;
+
    VkInstance instance;
    VkSurfaceKHR surface;
+
+   u32 framebuffer_width;
+   u32 framebuffer_height;
 } vulkan_context;
 
 #endif

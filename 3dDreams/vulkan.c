@@ -143,6 +143,9 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
    if(!vulkan_device_create(arena, context))
       return false;
 
+	if(!vulkan_swapchain_create(arena, context))
+		return false;
+
    return true;
 }
 
