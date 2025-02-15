@@ -160,7 +160,7 @@ bool vulkan_initialize(hw* hw)
    pre(hw->renderer.window.handle);
 
    hw_arena context_arena = arena_push_struct(&hw->main_arena, vulkan_context);
-   if(is_stub(context_arena))
+   if(is_arena_stub(context_arena))
 		return false;
 
    hw_arena frame_arena = {0};
@@ -174,9 +174,6 @@ bool vulkan_initialize(hw* hw)
    post(hw->renderer.backends[vulkan_renderer_index]);
    post(hw->renderer.frame_present);
    post(hw->renderer.renderer_index == vulkan_renderer_index);
-
-   //if(!result)
-		//hw_error(&frame_arena, "Vulkan not created successfully");
 
    return result;
 }
