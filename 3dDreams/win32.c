@@ -146,7 +146,7 @@ static void hw_error(hw_arena* error_arena, const char* s)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
-   const usize virtual_memory_amount = MB(10);
+   const usize virtual_memory_amount = default_arena_size;
 
    hw hw = {0};
    MEMORYSTATUSEX memory_status = {0};

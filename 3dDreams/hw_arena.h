@@ -33,17 +33,16 @@ static VirtualReleasePtr global_release;
 #define arena_is_full(arena) hw_buffer_is_full(arena)
 #define arena_is_set(arena, elements) hw_buffer_is_set(arena, elements)
 
+#define arena_base(arena, type) ((type*)(arena)->base)
+#define arena_index(arena, type, index) ((type*)(arena)->base + index)
+
+// TODO: arena chaining and or lookups
 cache_align typedef struct hw_arena
 {
    byte* base;
-   usize max_size, bytes_used;	// in bytes
-   usize count;				// actual item count
+   usize max_size, bytes_used;
+   usize count;
 } hw_arena;
-
-// TODO: Redo arena_base macros
-#define arena_base(arena, type) ((type*)(arena)->base)
-#define arena_base_non_pointer(arena, type) ((type*)(arena).base)
-#define arena_index(arena, type, index) ((type*)(arena)->base + index)
 
 static void hw_global_reserve_available()
 {
@@ -61,7 +60,7 @@ static bool hw_is_virtual_memory_reserved(void* address)
    if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
       return false;
 
-   return (mbi.State == MEM_RESERVE);
+   return mbi.State == MEM_RESERVE;
 }
 
 static bool hw_is_virtual_memory_commited(void* address)
@@ -70,7 +69,7 @@ static bool hw_is_virtual_memory_commited(void* address)
    if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
       return false;
 
-   return (mbi.State == MEM_COMMIT);
+   return mbi.State == MEM_COMMIT;
 }
 
 static void* hw_virtual_memory_reserve(usize size)
@@ -195,9 +194,9 @@ static void hw_sub_buffer_release(hw_arena* buffer)
 	memset(buffer, 0, sizeof(hw_arena));
 }
 
-static bool hw_buffer_is_empty(hw_arena *buffer) 
+static bool hw_buffer_is_empty(const hw_arena *buffer) 
 {
-	return buffer->bytes_used == 0;
+	return buffer->count == 0;
 }
 
 static bool hw_buffer_is_full(hw_arena *buffer) 

@@ -160,7 +160,7 @@ bool vulkan_initialize(hw* hw)
    pre(hw->renderer.window.handle);
 
    hw_arena context_arena = arena_push_struct(&hw->main_arena, vulkan_context);
-   if(is_arena_stub(context_arena))
+   if(arena_is_stub(context_arena))
 		return false;
 
    hw_arena frame_arena = {0};

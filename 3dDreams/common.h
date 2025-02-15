@@ -48,11 +48,13 @@ typedef size_t usize;
 
 #define defer_frame(main, sub, frame) defer((sub) = sub_arena_create((main)), sub_arena_release(&(sub))) frame
 
-#define is_arena_stub(s) !(s.base) && (s.max_size == 0)
+#define arena_is_stub(s) !(s.base) || (s.max_size == 0)
 
 #define KB(k) (1024ull)*k
 #define MB(m) (1024ull)*KB((m))
 #define GB(g) (1024ull)*MB((g))
+
+static const u64 default_arena_size = KB(64);
 
 typedef enum {false, true} bool;
 
