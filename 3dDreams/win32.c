@@ -149,15 +149,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    const usize virtual_memory_amount = default_arena_size;
 
    hw hw = {0};
-   MEMORYSTATUSEX memory_status = {0};
    int argc = 0;
    const char** argv = 0;
 
    hw_virtual_memory_init();
-
-   memory_status.dwLength = sizeof(memory_status);
-   if(!GlobalMemoryStatusEx(&memory_status))
-      return 0;
 
    hw.main_arena = arena_create(virtual_memory_amount);
    argv = cmd_parse(&hw.main_arena, lpszCmdLine, &argc);
