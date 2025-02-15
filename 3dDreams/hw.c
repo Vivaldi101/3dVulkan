@@ -122,47 +122,40 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_arena* frame_aren
    }
 }
 
-static char** cmd_parse(hw_arena* arena, char* cmd, int* argc)
+static int cmd_get_arg_count(char* cmd)
 {
-   char* arg_start;
+	int count = *cmd ? 1 : 0;
+   char* arg_start = cmd;
    char* arg_end;
-   char** argv;
-
-   const hw_arena args_arena = arena_push_pointer_strings(arena, MAX_ARGV);
-	argv = arena_base(&args_arena, char*);
-
-   if(args_arena.count == 0)
-		return 0;
-
-   // program name as the first one
-   argv[0] = GetCommandLine();
-   // program name should be valid
-   pre(strlen(argv[0]) > 0);
-
-   for(usize i = strlen(argv[0]); i--;)
-   {
-      if(argv[0][i] == '\"')
-      {
-         argv[0][i + 1] = 0;
-         break;
-      }
-   }
-
-   *argc = 1;
-   arg_start = cmd;
 
    while((arg_end = strchr(arg_start, ' ')))
    {
-      if(*argc >= MAX_ARGV)                   // exceeds our max number of arguments
-         return 0;
-      if(arg_end != arg_start)
-         argv[(*argc)++] = arg_start;
-      *arg_end = 0;
+      if(count >= MAX_ARGV)                   // exceeds our max number of arguments
+         break;
       arg_start = arg_end + 1;
+      count++;
    }
 
-   if(strlen(arg_start) > 0)
-      argv[(*argc)++] = arg_start;
+   return count;
+}
+
+static char** cmd_parse(hw_arena* arena, char* cmd, int* argc)
+{
+	*argc = cmd_get_arg_count(cmd);
+   hw_arena args_arena = arena_push_pointer_strings(arena, *argc);
+   char** argv = arena_base(arena, char*);
+   char* arg_start = cmd;
+
+   for(u32 i = 0; i < args_arena.count; ++i)
+   {
+      char* arg_end = strchr(arg_start, ' ');
+		argv[i] = arg_start;
+
+		if(!arg_end)
+			break;
+		*arg_end = 0;	// cut it
+      arg_start = arg_end + 1;
+   }
 
    return argv;
 }

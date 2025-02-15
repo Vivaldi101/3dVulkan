@@ -162,9 +162,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw.main_arena = arena_create(virtual_memory_amount);
    argv = cmd_parse(&hw.main_arena, lpszCmdLine, &argc);
 
-   if(argc == 0)
-      hw_error("Invalid number of program arguments")
-
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;
 
