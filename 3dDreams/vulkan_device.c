@@ -177,7 +177,8 @@ static bool vulkan_device_meets_requirements(hw_arena* arena,
       }
    }
 
-   vulkan_device_swapchain_support(arena, context, &context->device.swapchain);
+   // TODO: cleanup these
+   vulkan_device_swapchain_support(arena, context, &context->swapchain.support);
 
    return true;
 }

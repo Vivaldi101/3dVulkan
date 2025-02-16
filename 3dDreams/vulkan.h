@@ -21,6 +21,7 @@ enum
 
 bool vulkan_initialize(hw* hw);
 
+// TODO: These possibly needds to be added to permament vulkan arena
 cache_align typedef struct vulkan_swapchain_support
 {
    VkSurfaceCapabilitiesKHR surface_capabilities;
@@ -43,12 +44,14 @@ enum
 cache_align typedef struct vulkan_swapchain
 {
 	VkSurfaceFormatKHR image_format;
-   VkSwapchainKHR swapchain;
+   VkSwapchainKHR handle;
 
    u32 max_frames_count;
    u32 image_count;
    VkImage* images;
    VkImageView* views;
+
+   vulkan_swapchain_support support;
 } vulkan_swapchain;
 
 cache_align typedef struct vulkan_device
@@ -66,7 +69,6 @@ cache_align typedef struct vulkan_device
    VkPhysicalDeviceFeatures features;
    VkPhysicalDeviceMemoryProperties memory;
 
-   vulkan_swapchain_support swapchain;
 } vulkan_device;
 
 cache_align typedef struct vulkan_context

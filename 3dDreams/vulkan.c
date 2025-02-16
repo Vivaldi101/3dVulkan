@@ -143,7 +143,7 @@ static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, con
    if(!vulkan_device_create(arena, context))
       return false;
 
-	if(!vulkan_swapchain_create(arena, context))
+	if(!vulkan_swapchain_create(context))
 		return false;
 
    return true;
@@ -163,6 +163,8 @@ bool vulkan_initialize(hw* hw)
    if(arena_is_stub(context_arena))
 		return false;
 
+   // TODO: we need perm and temp vulkan arenas
+   // Currently the context is inside the perm arena rest is using frame arenas
    hw_arena frame_arena = {0};
    defer_frame(&hw->main_arena, frame_arena, result = 
       vulkan_create_renderer(&frame_arena, arena_base(&context_arena, vulkan_context), &hw->renderer.window));
