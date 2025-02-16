@@ -73,4 +73,6 @@ cache_align typedef struct
    f32 w, h;
 } c_area;
 
+#define clamp(t, min, max) ((t) <= (min) ? (min) : (t) >= (max) ? (max) : (t))
+
 #endif

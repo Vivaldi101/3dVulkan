@@ -147,10 +147,10 @@ static void hw_error(hw_arena* error_arena, const char* s)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    const usize virtual_memory_amount = default_arena_size;
+   const char** argv = 0;
+   int argc = 0;
 
    hw hw = {0};
-   int argc = 0;
-   const char** argv = 0;
 
    hw_virtual_memory_init();
 

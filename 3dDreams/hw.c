@@ -117,6 +117,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_arena* frame_aren
       app_input_function(&input);
       defer_frame(&hw->main_arena, frame_arena, app_frame_function(&frame_arena));
 
+      // TODO: Use perf counters for better granularity
       hw_frame_sync(hw);
       hw_frame_render(hw);
    }
