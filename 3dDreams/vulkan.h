@@ -44,6 +44,7 @@ enum
 cache_align typedef struct vulkan_swapchain
 {
 	VkSurfaceFormatKHR image_format;
+   VkPresentModeKHR present_mode;
    VkSwapchainKHR handle;
 
    u32 max_frames_count;

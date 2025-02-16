@@ -2,7 +2,7 @@
 #include "common.h"
 #include "hw_arena.h"
 
-static bool swapchain_create(vulkan_swapchain* swapchain, u32 w, u32 h)
+static bool vulkan_swapchain_surface_create(vulkan_swapchain* swapchain, VkSurfaceKHR surface, u32 w, u32 h)
 {
    VkExtent2D swapchain_extent = {w, h};
    swapchain->max_frames_count = 2; // triple buffering
@@ -19,6 +19,44 @@ static bool swapchain_create(vulkan_swapchain* swapchain, u32 w, u32 h)
          break;
       }
    }
+   // always present
+   VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
+
+   for(u32 i = 0; i < swapchain->support.present_mode_count; ++i)
+   {
+      VkPresentModeKHR mode = swapchain->support.present_modes[i];
+      // use if present
+      if(mode == VK_PRESENT_MODE_MAILBOX_KHR)
+      {
+         present_mode = mode;
+         break;
+      }
+   }
+
+   // TODO: Requiry swapchain support
+
+   if(swapchain->support.surface_capabilities.currentExtent.width != UINT32_MAX)
+      swapchain_extent = swapchain->support.surface_capabilities.currentExtent;
+
+   VkExtent2D min = swapchain->support.surface_capabilities.minImageExtent;
+   VkExtent2D max = swapchain->support.surface_capabilities.maxImageExtent;
+
+   swapchain_extent.width = clamp(swapchain_extent.width, min.width, max.width);
+   swapchain_extent.height = clamp(swapchain_extent.height, min.height, max.height);
+
+   u32 image_count = swapchain->support.surface_capabilities.minImageCount + 1;
+   // TODO: safe guard against bad image counts
+
+   VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
+   swapchain_info.surface = surface;
+   swapchain_info.minImageCount = image_count;
+   swapchain_info.imageFormat = swapchain->image_format.format;
+   swapchain_info.imageColorSpace = swapchain->image_format.colorSpace;
+   swapchain_info.imageExtent = swapchain_extent;
+   swapchain_info.imageArrayLayers = 1;
+   swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+   swapchain->present_mode = present_mode;
 
    return found;
 }
@@ -29,14 +67,14 @@ static void swapchain_destroy(vulkan_swapchain* swapchain)
 
 static bool vulkan_swapchain_create(vulkan_context* context)
 {
-	bool result = swapchain_create(&context->swapchain, context->framebuffer_width, context->framebuffer_height);
+	bool result = vulkan_swapchain_surface_create(&context->swapchain, context->surface, context->framebuffer_width, context->framebuffer_height);
 
 	return result;
 }
 
 static void vulkan_swapchain_recreate(vulkan_context* context)
 {
-	swapchain_create(&context->swapchain, context->framebuffer_width, context->framebuffer_height);
+	vulkan_swapchain_surface_create(&context->swapchain, context->surface, context->framebuffer_width, context->framebuffer_height);
 	swapchain_destroy(&context->swapchain);
 }
 
