@@ -2,9 +2,10 @@
 #include "common.h"
 #include "hw_arena.h"
 
-static bool vulkan_swapchain_surface_create(vulkan_swapchain* swapchain, VkSurfaceKHR surface, u32 w, u32 h)
+static bool vulkan_swapchain_surface_create(vulkan_context* context)
 {
-   VkExtent2D swapchain_extent = {w, h};
+   VkExtent2D swapchain_extent = {context->framebuffer_width, context->framebuffer_height};
+   vulkan_swapchain* swapchain = &context->swapchain;
    swapchain->max_frames_count = 2; // triple buffering
 
    bool found = false;
@@ -48,7 +49,7 @@ static bool vulkan_swapchain_surface_create(vulkan_swapchain* swapchain, VkSurfa
    // TODO: safe guard against bad image counts
 
    VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
-   swapchain_info.surface = surface;
+   swapchain_info.surface = context->surface;
    swapchain_info.minImageCount = image_count;
    swapchain_info.imageFormat = swapchain->image_format.format;
    swapchain_info.imageColorSpace = swapchain->image_format.colorSpace;
@@ -58,7 +59,40 @@ static bool vulkan_swapchain_surface_create(vulkan_swapchain* swapchain, VkSurfa
 
    swapchain->present_mode = present_mode;
 
-   return found;
+   if(context->device.queue_indexes[QUEUE_GRAPHICS_INDEX] != context->device.queue_indexes[QUEUE_PRESENT_INDEX])
+   {
+      const u32 queue_family_indexes[] = 
+      {
+         context->device.queue_indexes[QUEUE_GRAPHICS_INDEX], 
+         context->device.queue_indexes[QUEUE_PRESENT_INDEX]
+      };
+      swapchain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+      swapchain_info.queueFamilyIndexCount = array_count(queue_family_indexes);
+      swapchain_info.pQueueFamilyIndices = queue_family_indexes;
+   }
+   else
+   {
+      swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+      swapchain_info.queueFamilyIndexCount = 0;
+      swapchain_info.pQueueFamilyIndices = 0;
+   }
+
+   inv(implies(swapchain_info.imageSharingMode == VK_SHARING_MODE_CONCURRENT, 
+      swapchain_info.queueFamilyIndexCount > 1 && swapchain_info.pQueueFamilyIndices));
+
+   swapchain_info.preTransform = context->swapchain.support.surface_capabilities.currentTransform;
+   swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+   swapchain_info.clipped = VK_TRUE;
+   swapchain_info.presentMode = swapchain->present_mode;
+   swapchain_info.oldSwapchain = 0;
+
+   if(!VK_VALID(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_info, 0, &context->swapchain.handle)))
+      return false;
+
+   context->current_frame = 0;
+   context->image_index = 0;
+
+   return true;
 }
 
 static void swapchain_destroy(vulkan_swapchain* swapchain)
@@ -67,14 +101,14 @@ static void swapchain_destroy(vulkan_swapchain* swapchain)
 
 static bool vulkan_swapchain_create(vulkan_context* context)
 {
-	bool result = vulkan_swapchain_surface_create(&context->swapchain, context->surface, context->framebuffer_width, context->framebuffer_height);
+	bool result = vulkan_swapchain_surface_create(context);
 
 	return result;
 }
 
 static void vulkan_swapchain_recreate(vulkan_context* context)
 {
-	vulkan_swapchain_surface_create(&context->swapchain, context->surface, context->framebuffer_width, context->framebuffer_height);
+	vulkan_swapchain_surface_create(context);
 	swapchain_destroy(&context->swapchain);
 }
 

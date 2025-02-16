@@ -9,6 +9,7 @@
 #endif
 
 #include <vulkan/vulkan.h>
+#include "hw_arena.h"
 
 #pragma comment(lib,	"vulkan-1.lib")
 
@@ -74,6 +75,8 @@ cache_align typedef struct vulkan_device
 
 cache_align typedef struct vulkan_context
 {
+   // TODO: Vulkan arena here
+   //hw_arena arena;
    vulkan_device device;
    vulkan_swapchain swapchain;
 
@@ -82,6 +85,9 @@ cache_align typedef struct vulkan_context
 
    u32 framebuffer_width;
    u32 framebuffer_height;
+   u32 image_index;
+   u32 current_frame;
+   bool do_recreate_swapchain;
 } vulkan_context;
 
 #endif
