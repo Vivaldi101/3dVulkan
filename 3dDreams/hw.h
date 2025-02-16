@@ -30,6 +30,4 @@ void hw_window_close(hw* hw);
 
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_frame_arena* frame_arena), void (*app_input_function)(struct app_input* input));
 void hw_event_loop_end(hw* hw);
-//static void hw_error(hw_arena* error_arena, const char* s);
-
 #endif
