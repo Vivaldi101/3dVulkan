@@ -59,6 +59,45 @@ void hw_event_loop_end(hw* hw)
 static f32 global_game_time_residual;
 static int global_game_frame;
 
+static LARGE_INTEGER GetWallClock()
+{
+	LARGE_INTEGER result;
+   QueryPerformanceCounter(&result);
+
+   return result;
+}
+
+static f32 GetSecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end)
+{
+   return ((f32)end.QuadPart - start.QuadPart) / (f32)global_perf_counter_frequency;
+}
+
+#if 0
+static void hw_frame_sync2(hw* hw)
+{
+   LARGE_INTEGER work_counter = GetWallClock();
+   f32 work_seconds_elapsed = GetSecondsElapsed(last_counter, work_counter);
+   f32 seconds_elapsed_for_frame = work_seconds_elapsed;
+   if(seconds_elapsed_for_frame < 0) // todo: replace 0
+   {
+      if(1) {
+         DWORD sleep_ms = (DWORD)(1000.0f * (target_seconds_per_frame - seconds_elapsed_for_frame));
+         if(sleep_ms > 0) {
+            Sleep(sleep_ms - 1);
+         }
+      }
+      f32 test_spf = GetSecondsElapsed(last_counter, GetWallClock());
+      while(seconds_elapsed_for_frame < target_seconds_per_frame) {
+         seconds_elapsed_for_frame = GetSecondsElapsed(last_counter, GetWallClock());
+      }
+   }
+   else {
+      //miss frame rate
+   }
+}
+#endif
+
+// TODO: Use perf counters for better granularity
 static void hw_frame_sync(hw* hw)
 {
 	int num_frames_to_run = 0;

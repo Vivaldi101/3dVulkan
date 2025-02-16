@@ -14,7 +14,7 @@ typedef struct app_some_type
 #endif
 
 // do frame drawing
-static void app_frame_draw(hw_arena* frame_arena)
+static void app_frame_draw(hw_frame_arena* frame_arena)
 {
 #if 0
    int i;

@@ -13,14 +13,14 @@ typedef struct vulkan_queue_family
 	u32 graphics_index, present_index, compute_index, transfer_index;
 } vulkan_queue_family;
 
-static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* context, vulkan_swapchain_support* swapchain);
-static bool vulkan_device_meets_requirements(hw_arena* arena,
+static bool vulkan_device_swapchain_support(hw_frame_arena* arena, vulkan_context* context, vulkan_swapchain_support* swapchain);
+static bool vulkan_device_meets_requirements(hw_frame_arena* arena,
 															vulkan_context* context,
                                              const vulkan_physical_device_requirements* requirements,
                                              const VkPhysicalDeviceProperties* properties,
 															vulkan_queue_family* queue_family);
 
-static bool vulkan_device_select_physical(hw_arena* arena, vulkan_context* context)
+static bool vulkan_device_select_physical(hw_frame_arena* arena, vulkan_context* context)
 {
    u32 device_count = 0;
    if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
@@ -73,7 +73,7 @@ static bool vulkan_device_select_physical(hw_arena* arena, vulkan_context* conte
    return false;
 }
 
-static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* context, vulkan_swapchain_support* swapchain)
+static bool vulkan_device_swapchain_support(hw_frame_arena* arena, vulkan_context* context, vulkan_swapchain_support* swapchain)
 {
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
 		return false;
@@ -115,7 +115,7 @@ static bool vulkan_device_swapchain_support(hw_arena* arena, vulkan_context* con
    return true;
 }
 
-static bool vulkan_device_meets_requirements(hw_arena* arena,
+static bool vulkan_device_meets_requirements(hw_frame_arena* arena,
 															vulkan_context* context,
                                              const vulkan_physical_device_requirements* requirements,
                                              const VkPhysicalDeviceProperties* properties,
@@ -183,7 +183,7 @@ static bool vulkan_device_meets_requirements(hw_arena* arena,
    return true;
 }
 
-static bool vulkan_device_create(hw_arena* arena, vulkan_context* context)
+static bool vulkan_device_create(hw_frame_arena* arena, vulkan_context* context)
 {
 	if(!vulkan_device_select_physical(arena, context))
 		return false;

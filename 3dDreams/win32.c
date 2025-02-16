@@ -24,6 +24,7 @@ static void debug_message(const char* format, ...)
    OutputDebugStringA(temp);
 }
 
+static u64 global_perf_counter_frequency;
 #include "hw.c"
 
 static void win32_sleep(u32 ms)
@@ -133,7 +134,7 @@ static void win32_abort(u32 code)
 }
 
 #if 0
-static void hw_error(hw_arena* error_arena, const char* s)
+static void hw_error(hw_frame_arena* error_arena, const char* s)
 {
    const usize buffer_size = strlen(s) + 1; // string len + 1 for null
    char* buffer = arena_push_string(error_arena, buffer_size);

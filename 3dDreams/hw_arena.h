@@ -141,9 +141,9 @@ static void hw_buffer_decommit(hw_arena *buffer)
 	hw_virtual_memory_decommit(buffer->base, buffer->max_size);
 }
 
-static hw_arena hw_sub_memory_buffer_create(const hw_arena *buffer)
+static hw_frame_arena hw_sub_memory_buffer_create(const hw_arena *buffer)
 {
-   hw_arena result = {0};
+   hw_frame_arena result = {0};
    pre(buffer->max_size >= buffer->bytes_used);
 
    result.bytes_used = 0;
@@ -159,8 +159,7 @@ static hw_arena hw_sub_memory_buffer_create(const hw_arena *buffer)
 
 static void* hw_buffer_top(hw_arena *buffer) 
 {
-   void *ptr = (byte*)buffer->base + buffer->bytes_used;
-   return ptr;
+   return (byte*)buffer->base + buffer->bytes_used;
 }
 
 // TODO: element_size and count?
@@ -189,9 +188,9 @@ static void* hw_buffer_pop(hw_arena *buffer, usize bytes)
    return result;
 }
 
-static void hw_sub_buffer_release(hw_arena* buffer) 
+static void hw_sub_buffer_release(hw_frame_arena* buffer) 
 {
-	memset(buffer, 0, sizeof(hw_arena));
+	memset(buffer, 0, sizeof(hw_frame_arena));
 }
 
 static bool hw_buffer_is_empty(const hw_arena *buffer) 

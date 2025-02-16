@@ -67,7 +67,7 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
    return true;
 }
 
-static bool vulkan_create_renderer(hw_arena* arena, vulkan_context* context, const hw_window* window)
+static bool vulkan_create_renderer(hw_frame_arena* arena, vulkan_context* context, const hw_window* window)
 {
    pre(context);
    pre(window);
