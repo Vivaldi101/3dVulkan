@@ -4,8 +4,8 @@
 
 #include <Windows.h>
 
-#include "hw_arena.h"
 #include "common.h"
+#include "arena.h"
 
 cache_align typedef struct hw_window
 {
@@ -153,10 +153,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
    hw hw = {0};
 
-   hw_virtual_memory_init();
+   // TODO: might change to OS specific alloc later
+   //hw_virtual_memory_init();
 
-   hw.main_arena = arena_create(virtual_memory_amount);
-   argv = cmd_parse(&hw.main_arena, lpszCmdLine, &argc);
+   arena base = hw.permanent = arena_new(virtual_memory_amount);
+   hw.scratch = arena_new(virtual_memory_amount);
+   argv = cmd_parse(&hw.permanent, lpszCmdLine, &argc);
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;
@@ -170,7 +172,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    app_start(argc, argv, &hw);    // TODO: pass the options to the application
    timeEndPeriod(1);
 
-   arena_release(&hw.main_arena);
+   arena_free(&base);
+   arena_free(&hw.scratch);
 
    return 0;
 }

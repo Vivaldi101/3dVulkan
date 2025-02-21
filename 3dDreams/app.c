@@ -2,28 +2,24 @@
 #include "graphics.h"
 #include "d3d12.h"
 #include "vulkan.h"
-#include "hw_arena.h"
+#include "arena.h"
 
-#if 1
 typedef struct app_some_type
 {
    int arr[100];
    char* name;
    bool isvalid;
 } app_some_type;
-#endif
 
 // do frame drawing
-static void app_frame_draw(hw_frame_arena* frame_arena)
+static void app_frame_draw(arena scratch)
 {
-#if 0
    int i;
-   app_some_type* type = arena_push_struct(frame_arena, app_some_type);
+   app_some_type* type = new(&scratch, app_some_type);
    type->isvalid = true;
    type->name = "foo";
    for(i = 0; i < array_count(type->arr); ++i)
       type->arr[i] = 42;
-#endif
 }
 
 // do input handling
@@ -48,8 +44,8 @@ void app_start(int argc, const char** argv, hw* hw)
 	int w = 800, h = 600;
    hw_window_open(hw, "App window", 0, 0, w, h);
 
-   if(!vulkan_initialize(hw))
-		return;	// TODO: error message for vulkan init
+   //if(!vulkan_initialize(hw))
+		//return;	// TODO: error message for vulkan init
 
    g_frustum_create(&frustum, (f32)w, (f32)h, 90.0f);
 

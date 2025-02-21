@@ -9,7 +9,7 @@
 #endif
 
 #include <vulkan/vulkan.h>
-#include "hw_arena.h"
+#include "arena.h"
 
 #pragma comment(lib,	"vulkan-1.lib")
 

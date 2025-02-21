@@ -1,5 +1,4 @@
 #include "hw.h"
-#include "hw_arena.h"
 #include "common.h"
 #include "app.h"
 
@@ -25,8 +24,8 @@ cache_align typedef struct hw_timer
 cache_align typedef struct hw
 {
    hw_renderer renderer;
-   hw_arena main_arena;				// TODO: we need concept of permanent storage here since sub arenas are temp
-   hw_arena renderer_arena;				// TODO: we need concept of permanent storage here since sub arenas are temp
+   arena permanent;
+   arena scratch;
    hw_timer timer;
    bool(*platform_loop)();
    bool finished;
@@ -34,7 +33,7 @@ cache_align typedef struct hw
 
 // Do all renderer includes here?
 //#include "d3d12.c"
-#include "vulkan.c"
+//#include "vulkan.c"
 
 void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height)
 {
@@ -141,20 +140,20 @@ static void hw_frame_render(hw* hw)
    hw->renderer.frame_present(renderers[renderer_index]);
 }
 
-void hw_event_loop_start(hw* hw, void (*app_frame_function)(hw_arena* frame_arena), void (*app_input_function)(struct app_input* input))
+void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void (*app_input_function)(struct app_input* input))
 {
    hw->timer.time();
 
    for (;;)
    {
       app_input input;
-      hw_arena frame_arena;
+      arena scratch = hw->scratch;
 
       if (!hw->platform_loop()) 
          break;
 
       app_input_function(&input);
-      defer_frame(&hw->main_arena, frame_arena, app_frame_function(&frame_arena));
+      app_frame_function(scratch);
 
       // TODO: Use perf counters for better granularity
       hw_frame_sync(hw);
@@ -179,14 +178,15 @@ static int cmd_get_arg_count(char* cmd)
    return count;
 }
 
-static char** cmd_parse(hw_arena* arena, char* cmd, int* argc)
+static char** cmd_parse(arena* arena, char* cmd, int* argc)
 {
 	*argc = cmd_get_arg_count(cmd);
-   hw_arena args_arena = arena_push_pointer_strings(arena, *argc);
-   char** argv = arena_base(arena, char*);
+   size last_count = arena_left(arena, char*);
+   char** argv = new(arena, char*, *argc);
    char* arg_start = cmd;
+   size count = arena_count(arena, last_count, char*);
 
-   for(u32 i = 0; i < args_arena.count; ++i)
+   for(u32 i = 0; i < count; ++i)
    {
       char* arg_end = strchr(arg_start, ' ');
 		argv[i] = arg_start;

@@ -39,27 +39,9 @@
 #define lengthof(s)     (countof(s) - 1)
 #define amountof(a, t)  ((a) * sizeof(t))
 
-typedef uint8_t   u8;
-typedef int32_t   b32;
-typedef int32_t   i32;
-typedef uint32_t  u32;
-typedef uint64_t  u64;
-typedef float     f32;
-typedef double    f64;
-typedef uintptr_t uptr;
-typedef char      byte;
-typedef ptrdiff_t size;
-typedef size_t    usize;
-
-#define s8(s) (s8){(u8 *)s, lengthof(s)}
-typedef struct
+typedef struct arena
 {
-   u8* data;
-   size len;
-} s8;
-
-typedef struct
-{
+   // TODO: might add count here later?
    byte* beg;
    byte* end;  // one past the end
 } arena;
@@ -84,12 +66,7 @@ static arena arena_new(size cap)
    arena a = {0}; // stub arena
    if(cap > 0)
    {
-      // TODO: Use this when migrating to multi-renderer
-      //void* base = hw_virtual_memory_reserve(cap);
-      //hw_virtual_memory_commit(base, cap);
-      //a.beg = base;
-
-      a.beg = calloc(1, cap); // change to os specific alloc
+      a.beg = calloc(1, cap); // might change to OS specific alloc later
       a.end = a.beg ? a.beg + cap : 0;
    }
 

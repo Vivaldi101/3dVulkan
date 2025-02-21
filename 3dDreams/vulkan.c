@@ -69,9 +69,6 @@ static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
 
 static bool vulkan_create_renderer(hw_frame_arena* arena, vulkan_context* context, const hw_window* window)
 {
-   pre(context);
-   pre(window);
-
    u32 extension_count = 0;
    if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, 0)))
       return false;
