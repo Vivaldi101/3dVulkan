@@ -147,13 +147,11 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void
    for (;;)
    {
       app_input input;
-      arena scratch = hw->scratch;
-
       if (!hw->platform_loop()) 
          break;
 
       app_input_function(&input);
-      app_frame_function(scratch);
+      app_frame_function(hw->scratch);
 
       // TODO: Use perf counters for better granularity
       hw_frame_sync(hw);
@@ -178,18 +176,16 @@ static int cmd_get_arg_count(char* cmd)
    return count;
 }
 
-static char** cmd_parse(arena* arena, char* cmd, int* argc)
+static char** cmd_parse(arena* perm, char* cmd, int* argc)
 {
 	*argc = cmd_get_arg_count(cmd);
-   size last_count = arena_left(arena, char*);
-   char** argv = new(arena, char*, *argc);
    char* arg_start = cmd;
-   size count = arena_count(arena, last_count, char*);
 
-   for(u32 i = 0; i < count; ++i)
+   arena_data result = arena_alloc(perm, sizeof(cmd), *argc);
+   for(size i = 0; i < result.count; ++i)
    {
       char* arg_end = strchr(arg_start, ' ');
-		argv[i] = arg_start;
+		((char**)result.data)[i] = arg_start;
 
 		if(!arg_end)
 			break;
@@ -197,5 +193,5 @@ static char** cmd_parse(arena* arena, char* cmd, int* argc)
       arg_start = arg_end + 1;
    }
 
-   return argv;
+   return result.data;
 }

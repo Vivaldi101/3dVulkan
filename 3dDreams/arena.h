@@ -19,6 +19,9 @@
 #define scratch_count(a, s, t)  ((s) - scratch_left(a, t))
 #define arena_count(a, s, t)  ((s) - arena_left(a, t))
 
+#define scratch_size(a) (size)((a).end - (a).beg)
+#define arena_size(a) (size)((a)->end - (a)->beg)
+
 #define arena_stub(p, a) ((p) == (a)->end)
 #define scratch_stub(p, a) arena_stub(p, &a)
 
@@ -30,18 +33,23 @@
 
 #define newxsize(a,b,c,d,e,...) e
 #define newsize(...)            newxsize(__VA_ARGS__,new4size,new3size,new2size)(__VA_ARGS__)
-#define new2size(a, t)          alloc(a, t, t, 1, 0)
-#define new3size(a, t, n)       alloc(a, t, t, n, 0)
-#define new4size(a, t, n, f)    alloc(a, t, t, n, f)
+#define new2size(a, t)          alloc(a, t, __alignof(t), 1, 0)
+#define new3size(a, t, n)       alloc(a, t, __alignof(t), n, 0)
+#define new4size(a, t, n, f)    alloc(a, t, __alignof(t), n, f)
 
 #define sizeof(x)       (size)sizeof(x)
 #define countof(a)      (sizeof(a) / sizeof(*(a)))
 #define lengthof(s)     (countof(s) - 1)
 #define amountof(a, t)  ((a) * sizeof(t))
 
+typedef struct
+{
+   void* data;
+   size count;
+} arena_data;
+
 typedef struct arena
 {
-   // TODO: might add count here later?
    byte* beg;
    byte* end;  // one past the end
 } arena;
@@ -59,6 +67,17 @@ static void* alloc(arena* a, size alloc_size, size align, size count, u32 flag)
    assert(((uptr)p & (align - 1)) == 0);   // aligned result
 
    return p;
+}
+
+static arena_data arena_alloc(arena* a, size objsize, size count)
+{
+   arena_data result = {};
+
+   size last_count = arena_size(a) / objsize;
+   result.data = newsize(a, objsize, count);
+   result.count = last_count - (arena_size(a) / objsize);
+
+   return result;
 }
 
 static arena arena_new(size cap)

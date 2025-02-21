@@ -6,20 +6,28 @@
 
 typedef struct app_some_type
 {
+   bool isvalid;
    int arr[100];
    char* name;
-   bool isvalid;
 } app_some_type;
 
-// do frame drawing
-static void app_frame_draw(arena scratch)
+
+static void app_frame_draw(arena_data scratch)
 {
-   int i;
-   app_some_type* type = new(&scratch, app_some_type);
-   type->isvalid = true;
-   type->name = "foo";
-   for(i = 0; i < array_count(type->arr); ++i)
-      type->arr[i] = 42;
+   for(size i = 0; i < scratch.count; ++i)
+   {
+      app_some_type* p = (app_some_type*)scratch.data + i;
+      p->isvalid = true;
+   }
+}
+
+static void app_frame(arena scratch)
+{
+   // first draw 12 types
+   app_frame_draw(arena_alloc(&scratch, sizeof(app_some_type), 12));
+
+   // then draw 2412312313 types(will fail)
+   app_frame_draw(arena_alloc(&scratch, sizeof(app_some_type), 2412312313));
 }
 
 // do input handling
@@ -49,6 +57,6 @@ void app_start(int argc, const char** argv, hw* hw)
 
    g_frustum_create(&frustum, (f32)w, (f32)h, 90.0f);
 
-   hw_event_loop_start(hw, app_frame_draw, app_input_handle);
+   hw_event_loop_start(hw, app_frame, app_input_handle);
    hw_window_close(hw);
 }
