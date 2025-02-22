@@ -5,25 +5,21 @@
 #include <stdint.h>
 #include <assert.h>
 
-#define aligned_count(s, t) (size)((f32)(s) / sizeof(t)+0.5f)
-#define scratch_count_left(a, s) (size)(((a).end - (a).beg) / (s))
-#define arena_end(a, p) ((byte*)(a)->end == (byte*)(p))
-#define scratch_end(a, p) ((byte*)(a).end == (byte*)(p))
-#define scratch_size_left(a)  (size)(((a).end - (a).beg))
-#define scratch_left(a,t)  (size)(((a).end - (a).beg) / sizeof(t))
-#define arena_left(a,t)    (size)(((a)->end - (a)->beg) / sizeof(t))
 #define arena_full(a)      ((a)->beg == (a)->end)   // or empty for stub arenas
 #define arena_loop(i, a, p) for(size (i) = 0; (i) < scratch_left((a), *(p)); ++(i))
 #define arena_offset(i, a, t) (t*)a.beg + (i)
 
-#define scratch_count(a, s, t)  ((s) - scratch_left(a, t))
-#define arena_count(a, s, t)  ((s) - arena_left(a, t))
-
 #define scratch_size(a) (size)((a).end - (a).beg)
 #define arena_size(a) (size)((a)->end - (a)->beg)
 
+#define scratch_left(a,t)  (size)(scratch_size(a) / sizeof(t))
+#define arena_left(a,t)    (size)(arena_size(a) / sizeof(t))
+
 #define arena_stub(p, a) ((p) == (a)->end)
 #define scratch_stub(p, a) arena_stub(p, &a)
+
+#define arena_end(a, p) ((byte*)(a)->end == (byte*)(p))
+#define scratch_end(a, p) ((byte*)(a).end == (byte*)(p))
 
 #define newx(a,b,c,d,e,...) e
 #define new(...)            newx(__VA_ARGS__,new4,new3,new2)(__VA_ARGS__)
