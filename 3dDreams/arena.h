@@ -42,11 +42,12 @@
 #define lengthof(s)     (countof(s) - 1)
 #define amountof(a, t)  ((a) * sizeof(t))
 
+// arena result type
 typedef struct
 {
    void* data;
    size count;
-} arena_data;
+} arena_result;
 
 typedef struct arena
 {
@@ -69,13 +70,13 @@ static void* alloc(arena* a, size alloc_size, size align, size count, u32 flag)
    return p;
 }
 
-static arena_data arena_alloc(arena* a, size objsize, size count)
+static arena_result arena_alloc(arena s, size objsize, size count)
 {
-   arena_data result = {};
+   arena_result result = {};
 
-   size last_count = arena_size(a) / objsize;
-   result.data = newsize(a, objsize, count);
-   result.count = last_count - (arena_size(a) / objsize);
+   size last_count = scratch_size(s) / objsize;
+   result.data = newsize(&s, objsize, count);
+   result.count = last_count - (scratch_size(s) / objsize);
 
    return result;
 }

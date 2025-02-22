@@ -181,7 +181,7 @@ static char** cmd_parse(arena* perm, char* cmd, int* argc)
 	*argc = cmd_get_arg_count(cmd);
    char* arg_start = cmd;
 
-   arena_data result = arena_alloc(perm, sizeof(cmd), *argc);
+   arena_result result = arena_alloc(*perm, sizeof(cmd), *argc);
    for(size i = 0; i < result.count; ++i)
    {
       char* arg_end = strchr(arg_start, ' ');
