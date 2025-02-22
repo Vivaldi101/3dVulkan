@@ -9,7 +9,7 @@
 #define scratch_count_left(a, s) (size)(((a).end - (a).beg) / (s))
 #define arena_end(a, p) ((byte*)(a)->end == (byte*)(p))
 #define scratch_end(a, p) ((byte*)(a).end == (byte*)(p))
-#define scratch_size_left(a)  (size)(((a).end - (a).beg) / sizeof(byte))
+#define scratch_size_left(a)  (size)(((a).end - (a).beg))
 #define scratch_left(a,t)  (size)(((a).end - (a).beg) / sizeof(t))
 #define arena_left(a,t)    (size)(((a)->end - (a)->beg) / sizeof(t))
 #define arena_full(a)      ((a)->beg == (a)->end)   // or empty for stub arenas
@@ -70,13 +70,13 @@ static void* alloc(arena* a, size alloc_size, size align, size count, u32 flag)
    return p;
 }
 
-static arena_result arena_alloc(arena s, size objsize, size count)
+static arena_result arena_alloc(arena scratch, size objsize, size count)
 {
    arena_result result = {};
 
-   size last_count = scratch_size(s) / objsize;
-   result.data = newsize(&s, objsize, count);
-   result.count = last_count - (scratch_size(s) / objsize);
+   size last_count = scratch_size(scratch) / objsize;
+   result.data = newsize(&scratch, objsize, count);
+   result.count = last_count - (scratch_size(scratch) / objsize);
 
    return result;
 }

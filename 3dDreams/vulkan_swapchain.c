@@ -1,6 +1,5 @@
 #include "vulkan.h"
 #include "common.h"
-#include "hw_arena.h"
 
 static bool vulkan_swapchain_surface_create(vulkan_context* context)
 {

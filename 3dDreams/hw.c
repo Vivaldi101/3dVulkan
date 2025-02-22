@@ -24,6 +24,7 @@ cache_align typedef struct hw_timer
 cache_align typedef struct hw
 {
    hw_renderer renderer;
+   // TODO: Possibly separate arena for renderer stuff
    arena permanent;
    arena scratch;
    hw_timer timer;
@@ -33,7 +34,7 @@ cache_align typedef struct hw
 
 // Do all renderer includes here?
 //#include "d3d12.c"
-//#include "vulkan.c"
+#include "vulkan.c"
 
 void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height)
 {

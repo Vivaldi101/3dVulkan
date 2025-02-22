@@ -1,12 +1,11 @@
-#include "hw_arena.h"
+#include "arena.h"
 #include "common.h"
-#include "malloc.h"
 #include "vulkan.h"
 
 // unity build
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
-#include "vulkan_swapchain.c"
+//#include "vulkan_swapchain.c"
 
 // TODO: Remove
 #if 0
@@ -62,24 +61,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
    return VK_FALSE;
 }
 
-static bool vulkan_are_extensions_supported(VkPhysicalDevice device)
+static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
 {
-   return true;
-}
-
-static bool vulkan_create_renderer(hw_frame_arena* arena, vulkan_context* context, const hw_window* window)
-{
-   u32 extension_count = 0;
-   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, 0)))
+   // TODO: semcomp
+   u32 ext_count = 0;
+   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
 
-   // TODO: helper for vulkan allocs
-   hw_arena extensions_arena = arena_push_size(arena, extension_count * sizeof(VkExtensionProperties), VkExtensionProperties);
-   VkExtensionProperties* extensions = arena_base(arena, VkExtensionProperties);
-
-   if(!arena_is_set(&extensions_arena, extension_count))
-		extension_count = 0;
-   else if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &extension_count, extensions)))
+   VkExtensionProperties* ext = new(&scratch, VkExtensionProperties, ext_count);
+   if(scratch_end(scratch, ext) || !VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext)))
       return false;
 
    VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -100,18 +90,12 @@ static bool vulkan_create_renderer(hw_frame_arena* arena, vulkan_context* contex
    }
 #endif
 
-   extensions_arena = arena_push_size(arena, extension_count * sizeof(const char*), const char*);
-   if(!arena_is_set(&extensions_arena, extension_count))
-		extension_count = 0;
-   else
-   {
-      const char** extension_names = arena_base(&extensions_arena, const char*);
-      for(size_t i = 0; i < extension_count; ++i)
-         extension_names[i] = extensions[i].extensionName;
+   const char** ext_names = new(&scratch, const char*, ext_count);
+   for(size_t i = 0; i < ext_count; ++i)
+      ext_names[i] = ext[i].extensionName;
 
-      instance_info.enabledExtensionCount = extension_count;
-      instance_info.ppEnabledExtensionNames = extension_names;
-   }
+   instance_info.enabledExtensionCount = ext_count;
+   instance_info.ppEnabledExtensionNames = ext_names;
 
    if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
       return false;
@@ -134,15 +118,17 @@ static bool vulkan_create_renderer(hw_frame_arena* arena, vulkan_context* contex
 #endif
 
    // TODO: compress extension names and count to info struct
-   if(!vulkan_window_surface_create(context, window, arena_base(&extensions_arena, const char*), instance_info.enabledExtensionCount))
+   if(!vulkan_window_surface_create(context, window, ext_names, ext_count))
       return false;
 
-   if(!vulkan_device_create(arena, context))
+   if(!vulkan_device_create(scratch, context))
       return false;
 
-	if(!vulkan_swapchain_create(context))
-		return false;
+#if 0
+   if(!vulkan_swapchain_create(context))
+      return false;
 
+#endif
    return true;
 }
 
@@ -156,23 +142,19 @@ bool vulkan_initialize(hw* hw)
    bool result = true;
    pre(hw->renderer.window.handle);
 
-   hw_arena context_arena = arena_push_struct(&hw->main_arena, vulkan_context);
-   if(arena_is_stub(context_arena))
+   vulkan_context* context = new(&hw->permanent, vulkan_context);
+   if(arena_end(&hw->permanent, context))
 		return false;
 
-   // TODO: we need perm and temp vulkan arenas
-   // Currently the context is inside the perm arena rest is using frame arenas
-   hw_arena frame_arena = {0};
-   defer_frame(&hw->main_arena, frame_arena, result = 
-      vulkan_create_renderer(&frame_arena, arena_base(&context_arena, vulkan_context), &hw->renderer.window));
+   vulkan_create_renderer(hw->scratch, context, &hw->renderer.window);
 
-   hw->renderer.backends[vulkan_renderer_index] = arena_base(&context_arena, vulkan_context);
-   hw->renderer.frame_present = vulkan_present;
-   hw->renderer.renderer_index = vulkan_renderer_index;
+   //hw->renderer.backends[vulkan_renderer_index] = arena_base(&context_arena, vulkan_context);
+   //hw->renderer.frame_present = vulkan_present;
+   //hw->renderer.renderer_index = vulkan_renderer_index;
 
-   post(hw->renderer.backends[vulkan_renderer_index]);
-   post(hw->renderer.frame_present);
-   post(hw->renderer.renderer_index == vulkan_renderer_index);
+   //post(hw->renderer.backends[vulkan_renderer_index]);
+   //post(hw->renderer.frame_present);
+   //post(hw->renderer.renderer_index == vulkan_renderer_index);
 
    return result;
 }

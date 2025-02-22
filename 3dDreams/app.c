@@ -67,8 +67,8 @@ void app_start(int argc, const char** argv, hw* hw)
 	int w = 800, h = 600;
    hw_window_open(hw, "App window", 0, 0, w, h);
 
-   //if(!vulkan_initialize(hw))
-		//return;	// TODO: error message for vulkan init
+   if(!vulkan_initialize(hw))
+		return;	// TODO: error message for vulkan init
 
    g_frustum_create(&frustum, (f32)w, (f32)h, 90.0f);
 

@@ -150,7 +150,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    const usize virtual_memory_amount = default_arena_size;
    const char** argv = 0;
    int argc = 0;
-
    hw hw = {0};
 
    // TODO: might change to OS specific alloc later
@@ -169,7 +168,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    hw.platform_loop = win32_platform_loop;
 
    timeBeginPeriod(1);
-   app_start(argc, argv, &hw);    // TODO: pass the options to the application
+   app_start(argc, argv, &hw);
    timeEndPeriod(1);
 
    arena_free(&base);
