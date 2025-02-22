@@ -5,7 +5,7 @@
 // unity build
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
-//#include "vulkan_swapchain.c"
+#include "vulkan_swapchain.c"
 
 // TODO: Remove
 #if 0
@@ -124,11 +124,9 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    if(!vulkan_device_create(scratch, context))
       return false;
 
-#if 0
    if(!vulkan_swapchain_create(context))
       return false;
 
-#endif
    return true;
 }
 

@@ -26,14 +26,9 @@ static bool vulkan_device_select_physical(arena scratch, vulkan_context* context
    if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
       return false;
 
-   arena devices_arena = arena_push_size(arena, device_count * sizeof(VkPhysicalDevice), VkPhysicalDevice);
-   VkPhysicalDevice* devices = arena_base(&devices_arena, VkPhysicalDevice);
-   if(!arena_is_set(&devices_arena, device_count))
-		device_count = 0;
-
-   if(arena_is_set(&devices_arena, device_count))
-      if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
-         return false;
+   VkPhysicalDevice* devices = new(&scratch, VkPhysicalDevice, device_count);
+   if(scratch_end(scratch, devices) || !VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
+      return false;
 
 	// get a suitable physical device 
    for(u32 i = 0; i < device_count; ++i)
@@ -55,7 +50,7 @@ static bool vulkan_device_select_physical(arena scratch, vulkan_context* context
 
       vulkan_queue_family queue_family = {0};
 
-      if(!vulkan_device_meets_requirements(arena, context, &reqs, &properties, &queue_family))
+      if(!vulkan_device_meets_requirements(scratch, context, &reqs, &properties, &queue_family))
 			continue;	// no device yet met the requirements
 
       context->device.queue_indexes[QUEUE_GRAPHICS_INDEX] = queue_family.graphics_index;
@@ -82,34 +77,18 @@ static bool vulkan_device_swapchain_support(arena scratch, vulkan_context* conte
 		return false;
 
    if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
-   {
-      arena surface_formats_arena = arena_push_size(arena, swapchain->surface_format_count * sizeof(VkSurfaceFormatKHR), VkSurfaceFormatKHR);
-      swapchain->surface_formats = arena_base(&surface_formats_arena, VkSurfaceFormatKHR);
-      if(!arena_is_set(&surface_formats_arena, swapchain->surface_format_count))
-      {
-         swapchain->surface_format_count = 0;
-         swapchain->surface_formats = 0;
-      }
-   }
+      swapchain->surface_formats = new(&scratch, VkSurfaceFormatKHR, swapchain->surface_format_count);
 
-	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
+	if(scratch_end(scratch, swapchain->surface_formats) || !VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
 		return false;
 
 	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, 0)))
 		return false;
 
 	if(swapchain->present_mode_count > 0 && !swapchain->present_modes)
-   {
-      arena present_formats_arena = arena_push_size(arena, swapchain->present_mode_count * sizeof(VkPresentModeKHR), VkPresentModeKHR);
-      swapchain->present_modes = arena_base(&present_formats_arena, VkPresentModeKHR);
-      if(!arena_is_set(&present_formats_arena, swapchain->present_mode_count))
-      {
-         swapchain->present_mode_count = 0;
-         swapchain->present_modes = 0;
-      }
-   }
+      swapchain->present_modes = new(&scratch, VkPresentModeKHR, swapchain->present_mode_count);
 
-	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
+	if(scratch_end(scratch, swapchain->present_modes) || !VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
 		return false;
    
    return true;
@@ -132,53 +111,48 @@ static bool vulkan_device_meets_requirements(arena scratch,
 
    u32 queue_family_count = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, 0);
-   arena queue_families_arena = arena_push_size(arena, queue_family_count * sizeof(VkQueueFamilyProperties), VkQueueFamilyProperties);
-   VkQueueFamilyProperties* queue_families = arena_base(&queue_families_arena, VkQueueFamilyProperties);
-   if(!arena_is_set(&queue_families_arena, queue_family_count))
-   {
-      queue_family_count = 0;
-      queue_families = 0;
-   }
-   else
-   {
-      vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
+   VkQueueFamilyProperties* queue_families = new(&scratch, VkQueueFamilyProperties, queue_family_count);
 
-      u32 min_transfer_score = 255;
-      for(u32 i = 0; i < queue_family_count; ++i)
+   if(scratch_end(scratch, queue_families))
+      return false;
+
+   vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
+
+   u32 min_transfer_score = 255;
+   for(u32 i = 0; i < queue_family_count; ++i)
+   {
+      u32 transfer_score = 0;
+
+      if(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
       {
-         u32 transfer_score = 0;
-
-         if(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-         {
-            queue_family->graphics_index = i;
-            ++transfer_score;
-         }
-
-         if(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
-         {
-            queue_family->compute_index = i;
-            ++transfer_score;
-         }
-
-         if(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
-         {
-            if(transfer_score <= min_transfer_score)
-            {
-               min_transfer_score = transfer_score;
-               queue_family->transfer_index = i;
-            }
-         }
-
-         VkBool32 supports_present = false;
-         if(!VK_VALID(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
-            return false;
-         if(supports_present)
-            queue_family->present_index = i;
+         queue_family->graphics_index = i;
+         ++transfer_score;
       }
+
+      if(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+      {
+         queue_family->compute_index = i;
+         ++transfer_score;
+      }
+
+      if(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+      {
+         if(transfer_score <= min_transfer_score)
+         {
+            min_transfer_score = transfer_score;
+            queue_family->transfer_index = i;
+         }
+      }
+
+      VkBool32 supports_present = false;
+      if(!VK_VALID(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
+         return false;
+      if(supports_present)
+         queue_family->present_index = i;
    }
 
    // TODO: cleanup these
-   vulkan_device_swapchain_support(arena, context, &context->swapchain.support);
+   vulkan_device_swapchain_support(scratch, context, &context->swapchain.support);
 
    return true;
 }
@@ -188,28 +162,31 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
 	if(!vulkan_device_select_physical(scratch, context))
 		return false;
 
-   arena dev_info_arena = arena_push_count(scratch, QUEUE_INDEX_COUNT, VkDeviceQueueCreateInfo);
-   for(u32 i = 0; i < QUEUE_INDEX_COUNT; ++i)
+   VkDeviceQueueCreateInfo* device_queue_infos = new(&scratch, VkDeviceQueueCreateInfo, QUEUE_INDEX_COUNT);
+   VkDeviceQueueCreateInfo* queue = device_queue_infos;
+   VkDeviceQueueCreateInfo* end = arena_end_count(queue, QUEUE_INDEX_COUNT);
+
+   while(queue != end)
    {
-      VkDeviceQueueCreateInfo* device_queue_info = arena_index(&dev_info_arena, VkDeviceQueueCreateInfo, i);
-      device_queue_info->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-      device_queue_info->queueFamilyIndex = context->device.queue_indexes[i];
-      device_queue_info->queueCount = 1;
+      queue->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+      queue->queueFamilyIndex = context->device.queue_indexes[queue-device_queue_infos];
+      queue->queueCount = 1;
+      queue->flags = 0;
+      queue->pNext = 0;
       f32 priorities[1] = {1.0f};
-      device_queue_info->flags = 0;
-      device_queue_info->pNext = 0;
-      device_queue_info->pQueuePriorities = priorities;
+      queue->pQueuePriorities = priorities;
+
+      queue++;
    }
 
    VkPhysicalDeviceFeatures physical_device_features = {};
    physical_device_features.samplerAnisotropy = VK_TRUE;
 
-   VkDeviceQueueCreateInfo* device_queue_info = arena_base(&dev_info_arena, VkDeviceQueueCreateInfo);
    const char* device_extension_name = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
    VkDeviceCreateInfo device_create_info =
    {
     .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-    .pQueueCreateInfos = device_queue_info,
+    .pQueueCreateInfos = device_queue_infos,
     .queueCreateInfoCount = QUEUE_INDEX_COUNT,
     .enabledExtensionCount = 1,
     .ppEnabledExtensionNames = &device_extension_name,

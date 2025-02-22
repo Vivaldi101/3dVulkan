@@ -21,6 +21,8 @@
 #define arena_end(a, p) ((byte*)(a)->end == (byte*)(p))
 #define scratch_end(a, p) ((byte*)(a).end == (byte*)(p))
 
+#define arena_end_count(p, n) (p)?(p)+(n):(p)
+
 #define newx(a,b,c,d,e,...) e
 #define new(...)            newx(__VA_ARGS__,new4,new3,new2)(__VA_ARGS__)
 #define new2(a, t)          (t*)alloc(a, sizeof(t), __alignof(t), 1, 0)
