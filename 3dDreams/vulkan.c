@@ -61,7 +61,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
    return VK_FALSE;
 }
 
-static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
+static bool vulkan_create_renderer(arena scratch, arena* perm, vulkan_context* context, const hw_window* window)
 {
    // TODO: semcomp
    u32 ext_count = 0;
@@ -121,7 +121,7 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    if(!vulkan_window_surface_create(context, window, ext_names, ext_count))
       return false;
 
-   if(!vulkan_device_create(scratch, context))
+   if(!vulkan_device_create(scratch, perm, context))
       return false;
 
    if(!vulkan_swapchain_create(context))
@@ -144,7 +144,7 @@ bool vulkan_initialize(hw* hw)
    if(arena_end(&hw->permanent, context))
 		return false;
 
-   vulkan_create_renderer(hw->scratch, context, &hw->renderer.window);
+   vulkan_create_renderer(hw->scratch, &hw->permanent, context, &hw->renderer.window);
 
    //hw->renderer.backends[vulkan_renderer_index] = arena_base(&context_arena, vulkan_context);
    //hw->renderer.frame_present = vulkan_present;
