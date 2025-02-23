@@ -124,7 +124,7 @@ static bool vulkan_create_renderer(arena scratch, arena* perm, vulkan_context* c
    if(!vulkan_device_create(scratch, perm, context))
       return false;
 
-   if(!vulkan_swapchain_create(context))
+   if(!vulkan_swapchain_create(perm, context))
       return false;
 
    return true;
@@ -144,7 +144,7 @@ bool vulkan_initialize(hw* hw)
    if(arena_end(&hw->permanent, context))
 		return false;
 
-   vulkan_create_renderer(hw->scratch, &hw->permanent, context, &hw->renderer.window);
+   result = vulkan_create_renderer(hw->scratch, &hw->permanent, context, &hw->renderer.window);
 
    //hw->renderer.backends[vulkan_renderer_index] = arena_base(&context_arena, vulkan_context);
    //hw->renderer.frame_present = vulkan_present;

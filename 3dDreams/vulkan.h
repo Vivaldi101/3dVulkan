@@ -25,8 +25,10 @@ bool vulkan_initialize(hw* hw);
 cache_align typedef struct vulkan_swapchain_support
 {
    VkSurfaceCapabilitiesKHR surface_capabilities;
+
    u32 surface_format_count;
    VkSurfaceFormatKHR* surface_formats;
+
    u32 present_mode_count;
 	VkPresentModeKHR* present_modes;
 } vulkan_swapchain_support;
@@ -50,9 +52,8 @@ cache_align typedef struct vulkan_swapchain
    u32 max_frames_count;
    u32 image_count;
 
-   // the views need to be inside an arena
-   //VkImage* images;
-   //VkImageView* views;
+   VkImage* images;
+   VkImageView* views;
 
    vulkan_swapchain_support support;
 } vulkan_swapchain;
@@ -84,8 +85,10 @@ cache_align typedef struct vulkan_context
 
    u32 framebuffer_width;
    u32 framebuffer_height;
+
    u32 image_index;
    u32 current_frame;
+
    bool do_recreate_swapchain;
 } vulkan_context;
 

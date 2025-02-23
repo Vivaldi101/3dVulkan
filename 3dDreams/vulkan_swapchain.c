@@ -1,7 +1,7 @@
 #include "vulkan.h"
 #include "common.h"
 
-static bool vulkan_swapchain_surface_create(vulkan_context* context)
+static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context)
 {
    VkExtent2D swapchain_extent = {context->framebuffer_width, context->framebuffer_height};
    vulkan_swapchain* swapchain = &context->swapchain;
@@ -79,17 +79,47 @@ static bool vulkan_swapchain_surface_create(vulkan_context* context)
    inv(implies(swapchain_info.imageSharingMode == VK_SHARING_MODE_CONCURRENT, 
       swapchain_info.queueFamilyIndexCount > 1 && swapchain_info.pQueueFamilyIndices));
 
-   swapchain_info.preTransform = context->swapchain.support.surface_capabilities.currentTransform;
+   swapchain_info.preTransform = swapchain->support.surface_capabilities.currentTransform;
    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
    swapchain_info.clipped = VK_TRUE;
    swapchain_info.presentMode = swapchain->present_mode;
    swapchain_info.oldSwapchain = 0;
 
-   if(!VK_VALID(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_info, 0, &context->swapchain.handle)))
+   if(!VK_VALID(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_info, 0, &swapchain->handle)))
       return false;
 
    context->current_frame = 0;
    context->image_index = 0;
+
+   if(!VK_VALID(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->handle, &swapchain->image_count, 0)))
+      return false;
+   if(!swapchain->images)
+      swapchain->images = new(perm, VkImage, swapchain->image_count);
+   if(!swapchain->views)
+      swapchain->views = new(perm, VkImageView, swapchain->image_count);
+
+   if(arena_end(perm, swapchain->images) || 
+      arena_end(perm, swapchain->views) ||
+      !VK_VALID(vkGetSwapchainImagesKHR(
+      context->device.logical_device, swapchain->handle, 
+      &swapchain->image_count, swapchain->images)))
+      return false;
+
+   for(size i = 0; i < swapchain->image_count; ++i)
+   {
+      VkImageViewCreateInfo view_info = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+      view_info.image = swapchain->images[i];
+      view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+      view_info.format = swapchain->image_format.format;
+      view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      view_info.subresourceRange.baseMipLevel = 0;
+      view_info.subresourceRange.levelCount = 1;
+      view_info.subresourceRange.baseArrayLayer = 0;
+      view_info.subresourceRange.levelCount = 1;
+
+      if(!VK_VALID(vkCreateImageView(context->device.logical_device, &view_info, 0, swapchain->views + i)))
+         return false;
+   }
 
    return true;
 }
@@ -98,26 +128,26 @@ static void swapchain_destroy(vulkan_swapchain* swapchain)
 {
 }
 
-static bool vulkan_swapchain_create(vulkan_context* context)
+static bool vulkan_swapchain_create(arena* perm, vulkan_context* context)
 {
-	bool result = vulkan_swapchain_surface_create(context);
+	bool result = vulkan_swapchain_surface_create(perm, context);
 
 	return result;
 }
 
-static void vulkan_swapchain_recreate(vulkan_context* context)
+static void vulkan_swapchain_recreate(arena* perm, vulkan_context* context)
 {
-	vulkan_swapchain_surface_create(context);
+	vulkan_swapchain_surface_create(perm, context);
 	swapchain_destroy(&context->swapchain);
 }
 
-static bool vulkan_swapchain_next_image_index(vulkan_context* context, u32 *image_index, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
+static bool vulkan_swapchain_next_image_index(arena* perm, vulkan_context* context, u32 *image_index, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
 {
    const VkResult result = vkAcquireNextImageKHR(context->device.logical_device, context->swapchain.handle, timeout, image_available_semaphore, fence, image_index);
 
    if(result == VK_ERROR_OUT_OF_DATE_KHR)
    {
-      vulkan_swapchain_recreate(context);
+      vulkan_swapchain_recreate(perm, context);
       return false;
    }
    else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -132,7 +162,7 @@ static void vulkan_swapchain_destroy(vulkan_context* context)
 {
 }
 
-static void vulkan_swapchain_present(vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)
+static void vulkan_swapchain_present(arena* perm, vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)
 {
    VkPresentInfoKHR info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
    info.pWaitSemaphores = &render_complete_semaphore;
@@ -144,7 +174,7 @@ static void vulkan_swapchain_present(vulkan_context* context, u32 present_image_
    // TODO: semcomp these
    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
    {
-      vulkan_swapchain_recreate(context);
+      vulkan_swapchain_recreate(perm, context);
    }
    else if(result != VK_SUCCESS)
       ;  // TODO: error messages for vulkan
