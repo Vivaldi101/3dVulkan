@@ -7,7 +7,6 @@ static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context
    vulkan_swapchain* swapchain = &context->swapchain;
    swapchain->max_frames_count = 2; // triple buffering
 
-   bool found = false;
    for(u32 i = 0; i < swapchain->support.surface_format_count; ++i)
    {
       VkSurfaceFormatKHR format = swapchain->support.surface_formats[i];
@@ -15,10 +14,14 @@ static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context
       if(format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
       {
          swapchain->image_format = format;
-         found = true;
          break;
       }
    }
+
+   // must be defiend image format
+   if(swapchain->image_format.format == VK_FORMAT_UNDEFINED)
+      return false;
+
    // always present
    VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -33,7 +36,7 @@ static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context
       }
    }
 
-   // TODO: Requiry swapchain support
+   // TODO: requery swapchain support
 
    if(swapchain->support.surface_capabilities.currentExtent.width != UINT32_MAX)
       swapchain_extent = swapchain->support.surface_capabilities.currentExtent;
@@ -115,11 +118,14 @@ static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context
       view_info.subresourceRange.baseMipLevel = 0;
       view_info.subresourceRange.levelCount = 1;
       view_info.subresourceRange.baseArrayLayer = 0;
-      view_info.subresourceRange.levelCount = 1;
+      view_info.subresourceRange.layerCount = 1;
 
       if(!VK_VALID(vkCreateImageView(context->device.logical_device, &view_info, 0, swapchain->views + i)))
          return false;
    }
+
+   if(!vulkan_device_depth_format(context))
+      return false;
 
    return true;
 }

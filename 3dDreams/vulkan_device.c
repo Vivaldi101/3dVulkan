@@ -209,6 +209,36 @@ static bool vulkan_device_create(arena scratch, arena* perm, vulkan_context* con
 	return true;
 }
 
+static bool vulkan_device_depth_format(vulkan_context* context)
+{
+   const VkFormat depth_formats[] =
+   {
+      VK_FORMAT_D32_SFLOAT,
+      VK_FORMAT_D32_SFLOAT_S8_UINT,
+      VK_FORMAT_D24_UNORM_S8_UINT
+   };
+   u32 flags = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+   for(size i = 0; i < array_count(depth_formats); ++i)
+   {
+      VkFormatProperties props = {};
+      vkGetPhysicalDeviceFormatProperties(context->device.physical_device, depth_formats[i], &props);
+
+      if((props.linearTilingFeatures & flags) == flags)
+      {
+         context->device.depth_format = depth_formats[i];
+         return true;
+      }
+      if((props.optimalTilingFeatures & flags) == flags)
+      {
+         context->device.depth_format = depth_formats[i];
+         return true;
+      }
+   }
+
+   return false;
+}
+
 static void vulkan_device_destroy(vulkan_context* context)
 {
 	// TODO: platform memset

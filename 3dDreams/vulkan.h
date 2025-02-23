@@ -73,6 +73,8 @@ cache_align typedef struct vulkan_device
    VkPhysicalDeviceFeatures features;
    VkPhysicalDeviceMemoryProperties memory;
 
+   VkFormat depth_format;
+
 } vulkan_device;
 
 cache_align typedef struct vulkan_context
