@@ -115,13 +115,13 @@ bool vulkan_initialize(hw* hw)
    context->device.use_single_family_queue = true;
    result = vulkan_create_renderer(hw->scratch, &hw->permanent, context, &hw->renderer.window);
 
-   //hw->renderer.backends[vulkan_renderer_index] = arena_base(&context_arena, vulkan_context);
-   //hw->renderer.frame_present = vulkan_present;
-   //hw->renderer.renderer_index = vulkan_renderer_index;
+   hw->renderer.backends[vulkan_renderer_index] = context;
+   hw->renderer.frame_present = vulkan_present;
+   hw->renderer.renderer_index = vulkan_renderer_index;
 
-   //post(hw->renderer.backends[vulkan_renderer_index]);
-   //post(hw->renderer.frame_present);
-   //post(hw->renderer.renderer_index == vulkan_renderer_index);
+   post(hw->renderer.backends[vulkan_renderer_index]);
+   post(hw->renderer.frame_present);
+   post(hw->renderer.renderer_index == vulkan_renderer_index);
 
    return result;
 }
