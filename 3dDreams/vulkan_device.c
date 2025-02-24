@@ -138,49 +138,67 @@ static bool vulkan_device_meets_requirements(arena* perm,
 
    vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
 
-   // iterate all available families and set unique family indexes in the set priority order:
-   // graphics, present, transfer, compute
-   u32 min_transfer_score = queue_family_count;
-   for(u32 i = 0; i < queue_family_count; ++i)
+   if(!context->device.use_single_family_queue)
    {
-      u32 transfer_score = 0;
-
-      if(queue_families[i].queueCount == 0)
-         continue;
-
-      if(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+      // iterate all available families and set unique family indexes in the set priority order:
+      // graphics, present, compute, transfer
+      u32 min_transfer_score = queue_family_count;
+      for(u32 i = 0; i < queue_family_count; ++i)
       {
-         queue_family->graphics_index = i;
-         ++transfer_score;
-         continue;
-      }
+         u32 transfer_score = 0;
 
-      VkBool32 supports_present = false;
-      if(!VK_VALID(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
-         return false;
+         if(queue_families[i].queueCount == 0)
+            continue;
 
-      if(supports_present)
-      {
-         queue_family->present_index = i;
-         ++transfer_score;
-         continue;
-      }
-
-      if(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
-      {
-         queue_family->compute_index = i;
-         ++transfer_score;
-         continue;
-      }
-
-      if(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
-      {
-         if(transfer_score <= min_transfer_score)
+         if(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
          {
-            min_transfer_score = transfer_score;
-            queue_family->transfer_index = i;
+            queue_family->graphics_index = i;
+            ++transfer_score;
+            continue;
+         }
+
+         VkBool32 supports_present = false;
+         if(!VK_VALID(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
+            return false;
+
+         if(supports_present)
+         {
+            queue_family->present_index = i;
+            ++transfer_score;
+            continue;
+         }
+
+         if(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+         {
+            queue_family->compute_index = i;
+            ++transfer_score;
+            continue;
+         }
+
+         if(queue_families[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+         {
+            if(transfer_score <= min_transfer_score)
+            {
+               min_transfer_score = transfer_score;
+               queue_family->transfer_index = i;
+            }
          }
       }
+   }
+   else
+   {
+      // enable to use just the first family
+      u32 all_queue_index = 0;
+      u32 all_queue_bits = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
+      if((queue_families[all_queue_index].queueFlags & all_queue_bits) == all_queue_bits)
+      {
+         queue_family->compute_index = all_queue_index;
+         queue_family->graphics_index = all_queue_index;
+         queue_family->present_index = all_queue_index;
+         queue_family->transfer_index = all_queue_index;
+      }
+      else
+         return false;
    }
 
    context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index, 
@@ -195,9 +213,9 @@ static bool vulkan_device_create(arena scratch, arena* perm, vulkan_context* con
 	if(!vulkan_device_select_physical(perm, context))
 		return false;
 
-   VkDeviceQueueCreateInfo* device_queue_infos = new(&scratch, VkDeviceQueueCreateInfo, QUEUE_INDEX_COUNT);
+   VkDeviceQueueCreateInfo* device_queue_infos = new(&scratch, VkDeviceQueueCreateInfo, context->device.queue_family_count);
    VkDeviceQueueCreateInfo* queue = device_queue_infos;
-   const VkDeviceQueueCreateInfo* end = arena_end_count(queue, QUEUE_INDEX_COUNT);
+   const VkDeviceQueueCreateInfo* end = arena_end_count(queue, context->device.queue_family_count);
 
    assert((array_count(context->device.queue_indexes) >= context->device.queue_family_count));
 

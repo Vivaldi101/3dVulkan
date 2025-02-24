@@ -76,6 +76,7 @@ cache_align typedef struct vulkan_device
 
    VkFormat depth_format;
 
+   b32 use_single_family_queue;
 } vulkan_device;
 
 cache_align typedef struct vulkan_context

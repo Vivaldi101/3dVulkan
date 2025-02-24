@@ -144,6 +144,7 @@ bool vulkan_initialize(hw* hw)
    if(arena_end(&hw->permanent, context))
 		return false;
 
+   context->device.use_single_family_queue = true;
    result = vulkan_create_renderer(hw->scratch, &hw->permanent, context, &hw->renderer.window);
 
    //hw->renderer.backends[vulkan_renderer_index] = arena_base(&context_arena, vulkan_context);
