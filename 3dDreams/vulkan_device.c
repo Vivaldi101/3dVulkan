@@ -188,17 +188,25 @@ static bool vulkan_device_meets_requirements(arena* perm,
    else
    {
       // enable to use just the first family
-      u32 all_queue_index = 0;
       u32 all_queue_bits = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
-      if((queue_families[all_queue_index].queueFlags & all_queue_bits) == all_queue_bits)
+      for(u32 i = 0; i < queue_family_count; ++i)
       {
-         queue_family->compute_index = all_queue_index;
-         queue_family->graphics_index = all_queue_index;
-         queue_family->present_index = all_queue_index;
-         queue_family->transfer_index = all_queue_index;
+         if((queue_families[i].queueFlags & all_queue_bits) == all_queue_bits)
+         {
+            queue_family->compute_index = i;
+            queue_family->graphics_index = i;
+            queue_family->present_index = i;
+            queue_family->transfer_index = i;
+
+            context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index,
+                                                                                 queue_family->present_index, queue_family->transfer_index);
+            vulkan_device_swapchain_support(perm, context, &context->swapchain.support);
+
+            return true;
+         }
       }
-      else
-         return false;
+
+      return false;
    }
 
    context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index, 

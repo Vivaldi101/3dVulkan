@@ -7,38 +7,6 @@
 #include "vulkan_surface.c"
 #include "vulkan_swapchain.c"
 
-// TODO: Remove
-#if 0
-typedef struct vulkan_renderer
-{
-   VkInstance instance;
-   VkSurfaceKHR surface;
-   VkPhysicalDevice physical_device;
-   VkDevice logical_device;
-   VkSwapchainKHR swap_chain;
-   VkCommandBuffer draw_cmd_buffer;
-   VkRenderPass render_pass;
-   VkFramebuffer frame_buffers[VULKAN_FRAME_BUFFER_COUNT];
-   VkImage images[VULKAN_FRAME_BUFFER_COUNT];
-   VkImageView image_views[VULKAN_FRAME_BUFFER_COUNT];
-   VkQueue queue;
-   VkFormat format;
-   VkSemaphore semaphore_image_available;
-   VkSemaphore semaphore_render_finished;
-   VkFence fence_frame;
-   u32    surface_width;
-   u32    surface_height;
-   u32    swap_chain_count;
-} vulkan_renderer;
-
-typedef struct queue_family_indices
-{
-   u32 graphics_family;
-   u32 present_family;
-   bool valid;
-} queue_family_indices;
-#endif
-
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
