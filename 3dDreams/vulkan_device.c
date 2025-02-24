@@ -101,6 +101,7 @@ static u32 vulkan_find_unique_family_count(u32 g, u32 c, u32 p, u32 t)
 {
    u32 result = 1;
 
+   // map to valid range for testing
    g %= (u32)-1;
    c %= (u32)-1;
    p %= (u32)-1;
@@ -137,7 +138,8 @@ static bool vulkan_device_meets_requirements(arena* perm,
 
    vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
 
-   // iterate all available families and set unique family indexes in the set priority order
+   // iterate all available families and set unique family indexes in the set priority order:
+   // graphics, present, transfer, compute
    u32 min_transfer_score = queue_family_count;
    for(u32 i = 0; i < queue_family_count; ++i)
    {
@@ -156,9 +158,17 @@ static bool vulkan_device_meets_requirements(arena* perm,
       VkBool32 supports_present = false;
       if(!VK_VALID(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
          return false;
+
       if(supports_present)
       {
          queue_family->present_index = i;
+         ++transfer_score;
+         continue;
+      }
+
+      if(queue_families[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+      {
+         queue_family->compute_index = i;
          ++transfer_score;
          continue;
       }
