@@ -63,7 +63,8 @@ cache_align typedef struct vulkan_device
    VkPhysicalDevice physical_device;
    VkDevice logical_device;
 
-	i32 queue_indexes[QUEUE_INDEX_COUNT];
+	u32 queue_indexes[QUEUE_INDEX_COUNT];
+   u32 queue_family_count;
    VkQueue graphics_queue;
    VkQueue compute_queue;
    VkQueue present_queue;
