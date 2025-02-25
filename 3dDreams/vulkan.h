@@ -22,7 +22,26 @@ enum
 
 bool vulkan_initialize(hw* hw);
 
-cache_align typedef struct vulkan_swapchain_support
+cache_align typedef struct vulkan_image_info
+{
+   VkImageType type;
+   VkFormat format;
+   VkImageTiling tiling;
+   VkImageUsageFlags usage;
+   VkMemoryPropertyFlags memory_flags;
+   VkImageAspectFlags aspect_flags;
+} vulkan_image_info;
+
+cache_align typedef struct vulkan_image
+{
+   VkImage handle;
+   VkDeviceMemory memory;
+   VkImageView view;
+   u32 width;
+   u32 height;
+} vulkan_image;
+
+cache_align typedef struct vulkan_swapchain_info
 {
    VkSurfaceCapabilitiesKHR surface_capabilities;
 
@@ -31,7 +50,7 @@ cache_align typedef struct vulkan_swapchain_support
 
    u32 present_mode_count;
 	VkPresentModeKHR* present_modes;
-} vulkan_swapchain_support;
+} vulkan_swapchain_info;
 
 enum
 {
@@ -55,7 +74,9 @@ cache_align typedef struct vulkan_swapchain
    VkImage* images;
    VkImageView* views;
 
-   vulkan_swapchain_support support;
+   vulkan_image depth_attachment;
+
+   vulkan_swapchain_info support;
 } vulkan_swapchain;
 
 cache_align typedef struct vulkan_device

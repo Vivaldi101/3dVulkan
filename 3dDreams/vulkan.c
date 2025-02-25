@@ -5,6 +5,7 @@
 // unity build
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
+#include "vulkan_image.c"
 #include "vulkan_swapchain.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
@@ -85,7 +86,6 @@ static bool vulkan_create_renderer(arena scratch, arena* perm, vulkan_context* c
    }
 #endif
 
-   // TODO: compress extension names and count to info struct
    if(!vulkan_window_surface_create(context, window, ext_names, ext_count))
       return false;
 

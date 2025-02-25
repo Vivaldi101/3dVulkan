@@ -67,7 +67,7 @@ static bool vulkan_device_select_physical(arena* perm, vulkan_context* context)
    return false;
 }
 
-static bool vulkan_device_swapchain_support(arena* perm, vulkan_context* context, vulkan_swapchain_support* swapchain)
+static bool vulkan_device_swapchain_support(arena* perm, vulkan_context* context, vulkan_swapchain_info* swapchain)
 {
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
 		return false;

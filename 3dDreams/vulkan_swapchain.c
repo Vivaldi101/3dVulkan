@@ -137,6 +137,15 @@ static void swapchain_destroy(vulkan_swapchain* swapchain)
 static bool vulkan_swapchain_create(arena* perm, vulkan_context* context)
 {
 	bool result = vulkan_swapchain_surface_create(perm, context);
+   context->framebuffer_width = context->swapchain.support.surface_capabilities.currentExtent.width;
+   context->framebuffer_height = context->swapchain.support.surface_capabilities.currentExtent.height;
+
+   // currently retuns by value - but think about this in future?
+   vulkan_image_info image_info = {};
+   image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+   image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+   image_info.format = context->device.depth_format;
+   context->swapchain.depth_attachment = vulkan_image_create(perm, context, &image_info, context->framebuffer_width, context->framebuffer_height);
 
 	return result;
 }
