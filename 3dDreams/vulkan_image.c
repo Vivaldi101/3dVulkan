@@ -3,13 +3,13 @@
 
 #include "arena.h"
 
-static i32 vulkan_find_memory_index(vulkan_context* context, u32 type_filter, u32 flags)
+static i32 vulkan_find_memory_index(vulkan_context* context, u32 memory_type_mask, u32 flags)
 {
    VkPhysicalDeviceMemoryProperties memory_properties = {};
    vkGetPhysicalDeviceMemoryProperties(context->device.physical_device, &memory_properties);
 
    for(u32 i = 0; i < memory_properties.memoryTypeCount; ++i)
-      if((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & flags) == flags)
+      if((memory_type_mask & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & flags) == flags)
          return i;
    return -1;
 }
@@ -19,9 +19,6 @@ static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* imag
 static vulkan_image vulkan_image_create(arena* perm, vulkan_context* context, vulkan_image_info* image_info, u32 w, u32 h)
 {
    vulkan_image result = {};
-
-   result.width = w;
-   result.height = h;
 
    VkImageCreateInfo image_create_info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
    image_create_info.imageType = VK_IMAGE_TYPE_2D;
@@ -60,6 +57,9 @@ static vulkan_image vulkan_image_create(arena* perm, vulkan_context* context, vu
    if(image_info->is_view)
       if(!vulkan_image_view_create(context, &result, image_info))
          return (vulkan_image){0};
+
+   result.width = w;
+   result.height = h;
 
    return result;
 }
