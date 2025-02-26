@@ -22,6 +22,38 @@ enum
 
 bool vulkan_initialize(hw* hw);
 
+typedef enum vulkan_renderpass_state
+{
+   EMPTY,
+   READY,
+   BEGIN_RECORDING,
+   END_RECORDING,
+   SUBMITTED,
+} vulkan_renderpass_state;
+
+cache_align typedef struct vulkan_viewport
+{
+   f32 x,y,w,h;
+} vulkan_viewport;
+
+cache_align typedef struct vulkan_renderpass
+{
+   VkRenderPass handle;
+   vulkan_viewport viewport;
+   union
+   {
+      f32 clear_color[4];
+      struct
+      {
+         f32 r,g,b,a;
+      };
+   };
+   f32 depth;
+   f32 stencil;
+
+   vulkan_renderpass_state state;
+} vulkan_renderpass;
+
 cache_align typedef struct vulkan_image_info
 {
    VkImageType type;
@@ -105,6 +137,7 @@ cache_align typedef struct vulkan_context
 {
    vulkan_device device;
    vulkan_swapchain swapchain;
+   vulkan_renderpass renderpass;
 
    VkInstance instance;
    VkSurfaceKHR surface;

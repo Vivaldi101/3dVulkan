@@ -8,6 +8,7 @@
 #include "vulkan_surface.c"
 #include "vulkan_image.c"
 #include "vulkan_swapchain.c"
+#include "vulkan_renderpass.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
@@ -96,12 +97,17 @@ static bool vulkan_create_renderer(arena scratch, arena* perm, vulkan_context* c
    if(!vulkan_swapchain_create(perm, context))
       return false;
 
+   if(!vulkan_renderpass_create(perm, context))
+      return false;
+
    return true;
 }
 
 void vulkan_present(vulkan_context* context)
 {
 	pre(context);
+
+   // todo...
 }
 
 bool vulkan_initialize(hw* hw)
