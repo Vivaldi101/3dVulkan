@@ -180,6 +180,12 @@ static bool vulkan_swapchain_next_image_index(arena* perm, vulkan_context* conte
 
 static void vulkan_swapchain_destroy(vulkan_context* context)
 {
+   vkDestroyImage(context->device.logical_device, context->swapchain.depth_attachment.handle, context->allocator);
+
+   for(u32 i = 0; i < context->swapchain.image_count; ++i)
+      vkDestroyImageView(context->device.logical_device, context->swapchain.views[i], context->allocator);
+
+   vkDestroySwapchainKHR(context->device.logical_device, context->swapchain.handle, context->allocator);
 }
 
 static void vulkan_swapchain_present(arena* perm, vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)

@@ -101,7 +101,6 @@ static u32 vulkan_find_unique_family_count(u32 g, u32 c, u32 p, u32 t)
 {
    u32 result = 1;
 
-   // map to valid range for testing
    g %= (u32)-1;
    c %= (u32)-1;
    p %= (u32)-1;

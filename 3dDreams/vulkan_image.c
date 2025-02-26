@@ -84,8 +84,3 @@ static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* imag
 
    return true;
 }
-
-// TODO: Fillout
-static void vulkan_image_destroy(vulkan_image* image)
-{
-}
