@@ -30,6 +30,7 @@ cache_align typedef struct vulkan_image_info
    VkImageUsageFlags usage;
    VkMemoryPropertyFlags memory_flags;
    VkImageAspectFlags aspect_flags;
+   bool is_view;
 } vulkan_image_info;
 
 cache_align typedef struct vulkan_image
@@ -107,6 +108,7 @@ cache_align typedef struct vulkan_context
 
    VkInstance instance;
    VkSurfaceKHR surface;
+   VkAllocationCallbacks* allocator;
 
    u32 framebuffer_width;
    u32 framebuffer_height;

@@ -140,12 +140,17 @@ static bool vulkan_swapchain_create(arena* perm, vulkan_context* context)
    context->framebuffer_width = context->swapchain.support.surface_capabilities.currentExtent.width;
    context->framebuffer_height = context->swapchain.support.surface_capabilities.currentExtent.height;
 
-   // currently retuns by value - but think about this in future?
+   // depth attachment
    vulkan_image_info image_info = {};
    image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
    image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
    image_info.format = context->device.depth_format;
+   image_info.memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+   image_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
    context->swapchain.depth_attachment = vulkan_image_create(perm, context, &image_info, context->framebuffer_width, context->framebuffer_height);
+
+   if(!context->swapchain.depth_attachment.handle)
+      return false;
 
 	return result;
 }
