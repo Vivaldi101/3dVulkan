@@ -3,17 +3,6 @@
 
 #include "arena.h"
 
-static i32 vulkan_find_memory_index(vulkan_context* context, u32 memory_type_mask, u32 flags)
-{
-   VkPhysicalDeviceMemoryProperties memory_properties = {};
-   vkGetPhysicalDeviceMemoryProperties(context->device.physical_device, &memory_properties);
-
-   for(u32 i = 0; i < memory_properties.memoryTypeCount; ++i)
-      if((memory_type_mask & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & flags) == flags)
-         return i;
-   return -1;
-}
-
 static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* image, vulkan_image_info* image_info);
 
 static vulkan_image vulkan_image_create(arena* perm, vulkan_context* context, vulkan_image_info* image_info, u32 w, u32 h)

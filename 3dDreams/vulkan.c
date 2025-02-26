@@ -3,6 +3,7 @@
 #include "vulkan.h"
 
 // unity build
+#include "vulkan_common.c"
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
 #include "vulkan_image.c"
