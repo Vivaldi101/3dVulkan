@@ -68,7 +68,7 @@ static bool vulkan_create_renderer(arena scratch, arena* perm, vulkan_context* c
    instance_info.enabledExtensionCount = ext_count;
    instance_info.ppEnabledExtensionNames = ext_names;
 
-   if(!VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
+   if(scratch_end(scratch, ext_names) || !VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
       return false;
 
 #ifdef _DEBUG 

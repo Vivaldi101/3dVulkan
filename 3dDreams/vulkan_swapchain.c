@@ -199,9 +199,7 @@ static void vulkan_swapchain_present(arena* perm, vulkan_context* context, u32 p
    VkResult result = vkQueuePresentKHR(context->device.present_queue, &info);
    // TODO: semcomp these
    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-   {
       vulkan_swapchain_recreate(perm, context);
-   }
    else if(result != VK_SUCCESS)
       ;  // TODO: error messages for vulkan
 
