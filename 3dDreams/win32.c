@@ -145,6 +145,109 @@ static void hw_error(hw_frame_arena* error_arena, const char* s)
 
 #define hw_error(m) MessageBox(NULL, (m), "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
 
+typedef LPVOID(*VirtualAllocPtr)(LPVOID, SIZE_T, DWORD, DWORD);
+typedef VOID(*VirtualReleasePtr)(LPVOID, SIZE_T);
+static VirtualAllocPtr global_allocate;
+static VirtualReleasePtr global_release;
+
+static void hw_global_reserve_available()
+{
+   MEMORYSTATUSEX memory_status;
+   memory_status.dwLength = sizeof(memory_status);
+
+   GlobalMemoryStatusEx(&memory_status);
+
+   global_allocate(0, memory_status.ullAvailPhys, MEM_RESERVE, PAGE_READWRITE);
+}
+
+static bool hw_is_virtual_memory_reserved(void* address)
+{
+   MEMORY_BASIC_INFORMATION mbi;
+   if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
+      return false;
+
+   return mbi.State == MEM_RESERVE;
+}
+
+static bool hw_is_virtual_memory_commited(void* address)
+{
+   MEMORY_BASIC_INFORMATION mbi;
+   if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
+      return false;
+
+   return mbi.State == MEM_COMMIT;
+}
+
+static void* hw_virtual_memory_reserve(usize size)
+{
+	// let the os decide into what address to place the reserve
+   return global_allocate(0, size, MEM_RESERVE, PAGE_NOACCESS);
+}
+
+static void hw_virtual_memory_commit(void* address, usize size)
+{
+	pre(hw_is_virtual_memory_reserved((byte*)address+size-1));
+	pre(!hw_is_virtual_memory_commited((byte*)address+size-1));
+
+	// commit the reserved address range
+   global_allocate(address, size, MEM_COMMIT, PAGE_READWRITE);
+}
+
+static void hw_virtual_memory_release(void* address, usize size)
+{
+	pre(hw_is_virtual_memory_commited((byte*)address+size-1));
+
+	global_release(address, size);
+}
+
+static void hw_virtual_memory_decommit(void* address, usize size)
+{
+	pre(hw_is_virtual_memory_commited((byte*)address+size-1));
+
+	global_allocate(address, size, MEM_DECOMMIT, PAGE_READWRITE);
+}
+
+static void hw_virtual_memory_init()
+{
+   typedef LPVOID(*VirtualAllocPtr)(LPVOID, usize, DWORD, DWORD);
+
+   HMODULE hkernel32 = GetModuleHandleA("kernel32.dll");
+
+   global_allocate = (VirtualAllocPtr)(GetProcAddress(hkernel32, "VirtualAlloc"));
+   global_release = (VirtualReleasePtr)(GetProcAddress(hkernel32, "VirtualFree"));
+
+   post(global_allocate);
+   post(global_release);
+}
+
+static arena arena_new(size cap)
+{
+   arena a = {}; // stub arena
+   if(cap <= 0)
+      return a;
+
+   void* base = hw_virtual_memory_reserve(cap);
+   hw_virtual_memory_commit(base, cap);
+
+   if(!VirtualLock(base, cap))
+   {
+      hw_virtual_memory_release(base, cap);
+      return a;
+   }
+
+   // set the base pointer and size on success
+   a.beg = base;
+   a.end = a.beg ? a.beg + cap : 0;
+
+   return a;
+}
+
+static void arena_free(arena* a)
+{
+   //free(a->beg);
+   hw_virtual_memory_release(a->beg, arena_size(a));
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
 {
    const size virtual_memory_amount = default_arena_size;
@@ -152,8 +255,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    int argc = 0;
    hw hw = {0};
 
-   // TODO: might change to OS specific alloc later
-   //hw_virtual_memory_init();
+   hw_virtual_memory_init();
 
    arena base = hw.vulkan_perm = arena_new(virtual_memory_amount);
    hw.vulkan_scratch = arena_new(virtual_memory_amount);

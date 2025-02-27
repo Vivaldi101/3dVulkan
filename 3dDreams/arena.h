@@ -80,20 +80,3 @@ static arena_result arena_alloc(arena scratch, size objsize, size count)
 
    return result;
 }
-
-static arena arena_new(size cap)
-{
-   arena a = {0}; // stub arena
-   if(cap > 0)
-   {
-      a.beg = calloc(1, cap); // might change to OS specific alloc later
-      a.end = a.beg ? a.beg + cap : 0;
-   }
-
-   return a;
-}
-
-static void arena_free(arena* a)
-{
-   free(a->beg);
-}
