@@ -155,9 +155,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    // TODO: might change to OS specific alloc later
    //hw_virtual_memory_init();
 
-   arena base = hw.permanent = arena_new(virtual_memory_amount);
-   hw.scratch = arena_new(virtual_memory_amount);
-   argv = cmd_parse(&hw.permanent, lpszCmdLine, &argc);
+   arena base = hw.vulkan_perm = arena_new(virtual_memory_amount);
+   hw.vulkan_scratch = arena_new(virtual_memory_amount);
+   argv = cmd_parse(&hw.vulkan_perm, lpszCmdLine, &argc);
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;
@@ -172,7 +172,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    timeEndPeriod(1);
 
    arena_free(&base);
-   arena_free(&hw.scratch);
+   arena_free(&hw.vulkan_scratch);
 
    return 0;
 }

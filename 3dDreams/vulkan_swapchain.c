@@ -134,9 +134,9 @@ static void swapchain_destroy(vulkan_swapchain* swapchain)
 {
 }
 
-static bool vulkan_swapchain_create(arena* perm, vulkan_context* context)
+static bool vulkan_swapchain_create(vulkan_context* context)
 {
-	bool result = vulkan_swapchain_surface_create(perm, context);
+	bool result = vulkan_swapchain_surface_create(context->perm, context);
    context->framebuffer_width = context->swapchain.support.surface_capabilities.currentExtent.width;
    context->framebuffer_height = context->swapchain.support.surface_capabilities.currentExtent.height;
 
@@ -147,7 +147,7 @@ static bool vulkan_swapchain_create(arena* perm, vulkan_context* context)
    image_info.format = context->device.depth_format;
    image_info.memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
    image_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
-   context->swapchain.depth_attachment = vulkan_image_create(perm, context, &image_info, context->framebuffer_width, context->framebuffer_height);
+   context->swapchain.depth_attachment = vulkan_image_create(context->perm, context, &image_info, context->framebuffer_width, context->framebuffer_height);
 
    if(!context->swapchain.depth_attachment.handle)
       return false;

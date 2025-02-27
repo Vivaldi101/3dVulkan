@@ -13,10 +13,7 @@
 
 #pragma comment(lib,	"vulkan-1.lib")
 
-enum
-{
-   VULKAN_FRAME_BUFFER_COUNT = 3
-};
+enum { VULKAN_FRAME_BUFFER_COUNT = 3 };
 
 #define VK_VALID(v) (v) == VK_SUCCESS
 
@@ -24,7 +21,7 @@ bool vulkan_initialize(hw* hw);
 
 typedef enum vulkan_renderpass_state
 {
-   RENDERPASS_EMPTY,
+   RENDERPASS_EMPTY = 0,
    RENDERPASS_READY,
    RENDERPASS_BEGIN_RECORDING,
    RENDERPASS_END_RECORDING,
@@ -33,10 +30,11 @@ typedef enum vulkan_renderpass_state
 
 typedef enum vulkan_command_buffer_state
 {
-   COMMAND_BUFFER_EMPTY,
+   COMMAND_BUFFER_EMPTY = 0,
    COMMAND_BUFFER_READY,
    COMMAND_BUFFER_RENDERPASS,
-   COMMAND_BUFFER_RECORDING,
+   COMMAND_BUFFER_BEGIN_RECORDING,
+   COMMAND_BUFFER_END_RECORDING,
    COMMAND_BUFFER_SUBMITTED,
 } vulkan_command_buffer_state;
 
@@ -150,6 +148,8 @@ cache_align typedef struct vulkan_device
 
 cache_align typedef struct vulkan_context
 {
+   arena* perm;
+
    vulkan_device device;
    vulkan_swapchain swapchain;
    vulkan_renderpass main_renderpass;

@@ -215,9 +215,9 @@ static bool vulkan_device_meets_requirements(arena* perm,
    return true;
 }
 
-static bool vulkan_device_create(arena scratch, arena* perm, vulkan_context* context)
+static bool vulkan_device_create(arena scratch, vulkan_context* context)
 {
-	if(!vulkan_device_select_physical(perm, context))
+	if(!vulkan_device_select_physical(context->perm, context))
 		return false;
 
    VkDeviceQueueCreateInfo* device_queue_infos = new(&scratch, VkDeviceQueueCreateInfo, context->device.queue_family_count);

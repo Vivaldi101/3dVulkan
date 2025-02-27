@@ -2,7 +2,7 @@
 #include "vulkan.h"
 
 //static bool vulkan_renderpass_create(arena* perm, vulkan_context* context, vulkan_viewport* viewport, f32 clear_color[4], f32 depth, f32 stencil)
-static bool vulkan_renderpass_create(arena* perm, vulkan_context* context)
+static bool vulkan_renderpass_create(vulkan_context* context)
 {
    VkSubpassDescription subpass = {};
    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -97,5 +97,5 @@ static bool vulkan_renderpass_begin(vulkan_renderpass* renderpass, vulkan_comman
 static bool vulkan_renderpass_end(vulkan_renderpass* renderpass, vulkan_command_buffer* command_buffer)
 {
    vkCmdEndRenderPass(command_buffer->handle);
-   command_buffer->state = COMMAND_BUFFER_RECORDING;
+   command_buffer->state = COMMAND_BUFFER_END_RECORDING;
 }

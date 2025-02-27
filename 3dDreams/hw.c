@@ -24,9 +24,7 @@ cache_align typedef struct hw_timer
 cache_align typedef struct hw
 {
    hw_renderer renderer;
-   // TODO: Possibly separate arena for renderer stuff
-   arena permanent;
-   arena scratch;
+   arena vulkan_perm, vulkan_scratch;
    hw_timer timer;
    bool(*platform_loop)();
    bool finished;
@@ -152,7 +150,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void
          break;
 
       app_input_function(&input);
-      app_frame_function(hw->scratch);
+      app_frame_function(hw->vulkan_scratch);
 
       // TODO: Use perf counters for better granularity
       hw_frame_sync(hw);

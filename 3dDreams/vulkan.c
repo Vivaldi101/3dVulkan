@@ -32,7 +32,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
    return VK_FALSE;
 }
 
-static bool vulkan_create_renderer(arena scratch, arena* perm, vulkan_context* context, const hw_window* window)
+static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
 {
    // TODO: semcomp
    u32 ext_count = 0;
@@ -91,13 +91,13 @@ static bool vulkan_create_renderer(arena scratch, arena* perm, vulkan_context* c
    if(!vulkan_window_surface_create(context, window, ext_names, ext_count))
       return false;
 
-   if(!vulkan_device_create(scratch, perm, context))
+   if(!vulkan_device_create(scratch, context))
       return false;
 
-   if(!vulkan_swapchain_create(perm, context))
+   if(!vulkan_swapchain_create(context))
       return false;
 
-   if(!vulkan_renderpass_create(perm, context))
+   if(!vulkan_renderpass_create(context))
       return false;
 
    return true;
@@ -115,12 +115,13 @@ bool vulkan_initialize(hw* hw)
    bool result = true;
    pre(hw->renderer.window.handle);
 
-   vulkan_context* context = new(&hw->permanent, vulkan_context);
-   if(arena_end(&hw->permanent, context))
+   vulkan_context* context = new(&hw->vulkan_perm, vulkan_context);
+   if(arena_end(&hw->vulkan_perm, context))
 		return false;
+   context->perm = &hw->vulkan_perm;
 
    //context->device.use_single_family_queue = true;
-   result = vulkan_create_renderer(hw->scratch, &hw->permanent, context, &hw->renderer.window);
+   result = vulkan_create_renderer(hw->vulkan_scratch, context, &hw->renderer.window);
 
    hw->renderer.backends[vulkan_renderer_index] = context;
    hw->renderer.frame_present = vulkan_present;
