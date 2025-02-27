@@ -24,17 +24,32 @@ bool vulkan_initialize(hw* hw);
 
 typedef enum vulkan_renderpass_state
 {
-   EMPTY,
-   READY,
-   BEGIN_RECORDING,
-   END_RECORDING,
-   SUBMITTED,
+   RENDERPASS_EMPTY,
+   RENDERPASS_READY,
+   RENDERPASS_BEGIN_RECORDING,
+   RENDERPASS_END_RECORDING,
+   RENDERPASS_SUBMITTED,
 } vulkan_renderpass_state;
+
+typedef enum vulkan_command_buffer_state
+{
+   COMMAND_BUFFER_EMPTY,
+   COMMAND_BUFFER_READY,
+   COMMAND_BUFFER_RENDERPASS,
+   COMMAND_BUFFER_RECORDING,
+   COMMAND_BUFFER_SUBMITTED,
+} vulkan_command_buffer_state;
 
 cache_align typedef struct vulkan_viewport
 {
-   f32 x,y,w,h;
+   i32 x,y,w,h;
 } vulkan_viewport;
+
+cache_align typedef struct vulkan_command_buffer
+{
+   VkCommandBuffer handle;
+   vulkan_command_buffer_state state;
+} vulkan_command_buffer;
 
 cache_align typedef struct vulkan_renderpass
 {
@@ -49,7 +64,7 @@ cache_align typedef struct vulkan_renderpass
       };
    };
    f32 depth;
-   f32 stencil;
+   u32 stencil;
 
    vulkan_renderpass_state state;
 } vulkan_renderpass;
@@ -137,7 +152,7 @@ cache_align typedef struct vulkan_context
 {
    vulkan_device device;
    vulkan_swapchain swapchain;
-   vulkan_renderpass renderpass;
+   vulkan_renderpass main_renderpass;
 
    VkInstance instance;
    VkSurfaceKHR surface;
