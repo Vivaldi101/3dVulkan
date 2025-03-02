@@ -37,11 +37,8 @@ static bool vulkan_create_command_buffers(vulkan_context* context)
 {
    bool result = true;
 
-   if(!context->graphics_command_buffers)
-      context->graphics_command_buffers = new(context->perm, vulkan_command_buffer, context->swapchain.image_count);
-
-   if(!context->graphics_command_buffers)
-      result = false;
+   if(context->swapchain.image_count > VULKAN_MAX_FRAME_BUFFER_COUNT)
+      return false;
 
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {

@@ -13,7 +13,7 @@
 
 #pragma comment(lib,	"vulkan-1.lib")
 
-enum { VULKAN_FRAME_BUFFER_COUNT = 3 };
+enum { VULKAN_MAX_FRAME_BUFFER_COUNT = 3 };
 
 #define VK_VALID(v) (v) == VK_SUCCESS
 
@@ -156,7 +156,7 @@ cache_align typedef struct vulkan_context
    vulkan_device device;
    vulkan_swapchain swapchain;
    vulkan_renderpass main_renderpass;
-   vulkan_command_buffer* graphics_command_buffers;
+   vulkan_command_buffer graphics_command_buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
    VkInstance instance;
    VkSurfaceKHR surface;
