@@ -246,7 +246,8 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
       const f32 queue_priority[] = {1.0f};
       queue->pQueuePriorities = queue_priority;
 
-      queue++; family_index++;
+      queue++; 
+      family_index++;
    }
 
    VkPhysicalDeviceFeatures physical_device_features = {};
@@ -276,6 +277,13 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
       vkGetDeviceQueue(context->device.logical_device, context->device.queue_indexes[QUEUE_COMPUTE_INDEX], 0, &context->device.compute_queue);
    if(context->device.queue_indexes[QUEUE_TRANSFER_INDEX] != -1)
       vkGetDeviceQueue(context->device.logical_device, context->device.queue_indexes[QUEUE_TRANSFER_INDEX], 0, &context->device.transfer_queue);
+
+   VkCommandPoolCreateInfo pool_create_info = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+   pool_create_info.queueFamilyIndex = context->device.queue_indexes[QUEUE_GRAPHICS_INDEX];
+   pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+   if(!VK_VALID(vkCreateCommandPool(context->device.logical_device, &pool_create_info, context->allocator, &context->device.graphics_command_pool)))
+      return false;
 
 	return true;
 }

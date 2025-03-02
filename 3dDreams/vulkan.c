@@ -9,6 +9,7 @@
 #include "vulkan_image.c"
 #include "vulkan_swapchain.c"
 #include "vulkan_renderpass.c"
+#include "vulkan_command_buffer.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
@@ -30,6 +31,26 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
    debug_message("Validation layer: %s\n", data->pMessage);
 
    return VK_FALSE;
+}
+
+static bool vulkan_create_command_buffers(vulkan_context* context)
+{
+   bool result = true;
+
+   if(!context->graphics_command_buffers)
+      context->graphics_command_buffers = new(context->perm, vulkan_command_buffer, context->swapchain.image_count);
+
+   if(!context->graphics_command_buffers)
+      result = false;
+
+   for(u32 i = 0; i < context->swapchain.image_count; ++i)
+   {
+      if(context->graphics_command_buffers[i].handle)
+         vulkan_command_buffer_free(context, context->graphics_command_buffers + i, context->device.graphics_command_pool);
+      result &= vulkan_command_buffer_allocate_primary(context, context->device.graphics_command_pool);
+   }
+
+   return result;
 }
 
 static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
@@ -98,6 +119,9 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
       return false;
 
    if(!vulkan_renderpass_create(context))
+      return false;
+
+   if(!vulkan_create_command_buffers(context))
       return false;
 
    return true;

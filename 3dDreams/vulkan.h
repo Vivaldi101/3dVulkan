@@ -36,6 +36,7 @@ typedef enum vulkan_command_buffer_state
    COMMAND_BUFFER_BEGIN_RECORDING,
    COMMAND_BUFFER_END_RECORDING,
    COMMAND_BUFFER_SUBMITTED,
+   COMMAND_BUFFER_NOT_ALLOCATED,
 } vulkan_command_buffer_state;
 
 cache_align typedef struct vulkan_viewport
@@ -137,6 +138,8 @@ cache_align typedef struct vulkan_device
    VkQueue present_queue;
    VkQueue transfer_queue;
 
+   VkCommandPool graphics_command_pool;
+
    VkPhysicalDeviceProperties properties;
    VkPhysicalDeviceFeatures features;
    VkPhysicalDeviceMemoryProperties memory;
@@ -153,6 +156,7 @@ cache_align typedef struct vulkan_context
    vulkan_device device;
    vulkan_swapchain swapchain;
    vulkan_renderpass main_renderpass;
+   vulkan_command_buffer* graphics_command_buffers;
 
    VkInstance instance;
    VkSurfaceKHR surface;
