@@ -21,7 +21,8 @@
 #define arena_end(a, p) ((byte*)(a)->end == (byte*)(p))
 #define scratch_end(a, p) ((byte*)(a).end == (byte*)(p))
 
-#define arena_end_count(p, n) (p)?(p)+(n):(p)
+#define arena_end_count(p, a, n) (void*)(p)!=(a)->end?(p)+(n):(p)
+#define scratch_end_count(p, a, n) (void*)(p)!=(a).end?(p)+(n):(p)
 
 // TODO: Different news for scratch and perm arenas
 

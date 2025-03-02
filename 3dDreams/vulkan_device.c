@@ -222,7 +222,7 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
 
    VkDeviceQueueCreateInfo* device_queue_infos = new(&scratch, VkDeviceQueueCreateInfo, context->device.queue_family_count);
    VkDeviceQueueCreateInfo* queue = device_queue_infos;
-   const VkDeviceQueueCreateInfo* end = arena_end_count(queue, context->device.queue_family_count);
+   const VkDeviceQueueCreateInfo* end = scratch_end_count(queue, scratch, context->device.queue_family_count);
 
    assert((array_count(context->device.queue_indexes) >= context->device.queue_family_count));
 
