@@ -18,7 +18,7 @@ static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context
       }
    }
 
-   // must be defiend image format
+   // must be defined image format
    if(swapchain->image_format.format == VK_FORMAT_UNDEFINED)
       return false;
 
@@ -48,7 +48,9 @@ static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context
    swapchain_extent.height = clamp(swapchain_extent.height, min.height, max.height);
 
    u32 image_count = swapchain->support.surface_capabilities.minImageCount + 1;
-   // TODO: safe guard against bad image counts
+
+   if(image_count > VULKAN_MAX_FRAME_BUFFER_COUNT)
+      return false;
 
    VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
    swapchain_info.surface = context->surface;
@@ -147,6 +149,7 @@ static bool vulkan_swapchain_create(vulkan_context* context)
    image_info.format = context->device.depth_format;
    image_info.memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
    image_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+   image_info.is_view = true;
    context->swapchain.depth_attachment = vulkan_image_create(context->perm, context, &image_info, context->framebuffer_width, context->framebuffer_height);
 
    if(!context->swapchain.depth_attachment.handle)

@@ -57,16 +57,21 @@ cache_align typedef struct vulkan_renderpass
    union
    {
       f32 clear_color[4];
-      struct
-      {
-         f32 r,g,b,a;
-      };
+      struct { f32 r,g,b,a; };
    };
    f32 depth;
    u32 stencil;
 
    vulkan_renderpass_state state;
 } vulkan_renderpass;
+
+cache_align typedef struct vulkan_framebuffer
+{
+   VkFramebuffer handle;
+   u32 attachment_count;
+   VkImageView* attachments;
+   vulkan_renderpass* renderpass;
+} vulkan_framebuffer;
 
 cache_align typedef struct vulkan_image_info
 {
@@ -111,6 +116,7 @@ enum
 
 cache_align typedef struct vulkan_swapchain
 {
+   vulkan_framebuffer framebuffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
 	VkSurfaceFormatKHR image_format;
    VkPresentModeKHR present_mode;
    VkSwapchainKHR handle;
@@ -122,6 +128,7 @@ cache_align typedef struct vulkan_swapchain
    VkImageView* views;
 
    vulkan_image depth_attachment;
+   u32 attachment_count;
 
    vulkan_swapchain_info support;
 } vulkan_swapchain;

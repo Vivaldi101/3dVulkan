@@ -10,6 +10,7 @@
 #include "vulkan_swapchain.c"
 #include "vulkan_renderpass.c"
 #include "vulkan_command_buffer.c"
+#include "vulkan_framebuffer.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
@@ -33,12 +34,11 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
    return VK_FALSE;
 }
 
-static bool vulkan_create_command_buffers(vulkan_context* context)
+static bool vulkan_command_buffers_create(vulkan_context* context)
 {
    bool result = true;
 
-   if(context->swapchain.image_count > VULKAN_MAX_FRAME_BUFFER_COUNT)
-      return false;
+   pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
 
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
@@ -48,6 +48,20 @@ static bool vulkan_create_command_buffers(vulkan_context* context)
    }
 
    return result;
+}
+
+static bool vulkan_regenerate_framebuffers(vulkan_context* context)
+{
+   for(u32 i = 0; i < context->swapchain.image_count; ++i)
+   {
+      VkImageView attachments[] = {context->swapchain.views[i], context->swapchain.depth_attachment.view};
+      context->swapchain.framebuffers[i].attachments = attachments;
+      context->swapchain.framebuffers[i].attachment_count = array_count(attachments);
+      if(!vulkan_framebuffer_create(context, context->swapchain.framebuffers + i))
+         return false;
+   }
+
+   return true;
 }
 
 static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
@@ -118,7 +132,10 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    if(!vulkan_renderpass_create(context))
       return false;
 
-   if(!vulkan_create_command_buffers(context))
+   if(!vulkan_command_buffers_create(context))
+      return false;
+
+   if(!vulkan_regenerate_framebuffers(context))
       return false;
 
    return true;

@@ -66,8 +66,6 @@ static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* imag
    image_view_info.subresourceRange.baseArrayLayer = 0;
    image_view_info.subresourceRange.layerCount = 1;
 
-   image->view = 0;
-
    if(!VK_VALID(vkCreateImageView(context->device.logical_device, &image_view_info, context->allocator, &image->view)))
       return false;
 
