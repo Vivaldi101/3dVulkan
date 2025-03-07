@@ -176,3 +176,12 @@ b32 vulkan_initialize(hw* hw)
    return result;
 }
 
+b32 vulkan_deinitialize(hw* hw)
+{
+   vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
+
+   if(!VK_VALID(vkDeviceWaitIdle(context->device.logical_device)))
+      return false;
+
+   return true;
+}

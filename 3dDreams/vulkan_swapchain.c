@@ -5,7 +5,7 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
 {
    VkExtent2D swapchain_extent = {context->framebuffer_width, context->framebuffer_height};
    vulkan_swapchain* swapchain = &context->swapchain;
-   swapchain->max_frames_count = 2; // triple buffering
+   swapchain->max_image_count = 2; // triple buffering
 
    for(u32 i = 0; i < swapchain->support.surface_format_count; ++i)
    {
@@ -158,10 +158,12 @@ static b32 vulkan_swapchain_create(vulkan_context* context)
 	return result;
 }
 
-static void vulkan_swapchain_recreate(arena* storage, vulkan_context* context)
+static b32 vulkan_swapchain_recreate(arena* storage, vulkan_context* context)
 {
-	vulkan_swapchain_surface_create(storage, context);
+	b32 result = vulkan_swapchain_surface_create(storage, context);
 	swapchain_destroy(&context->swapchain);
+
+   return result;
 }
 
 static b32 vulkan_swapchain_next_image_index(arena* storage, vulkan_context* context, u32 *image_index, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
@@ -191,7 +193,7 @@ static void vulkan_swapchain_destroy(vulkan_context* context)
    vkDestroySwapchainKHR(context->device.logical_device, context->swapchain.handle, context->allocator);
 }
 
-static void vulkan_swapchain_present(arena* storage, vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)
+static b32 vulkan_swapchain_present(arena* storage, vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)
 {
    VkPresentInfoKHR info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
    info.pWaitSemaphores = &render_complete_semaphore;
@@ -200,11 +202,11 @@ static void vulkan_swapchain_present(arena* storage, vulkan_context* context, u3
    info.swapchainCount = 1;
 
    VkResult result = vkQueuePresentKHR(context->device.present_queue, &info);
-   // TODO: semcomp these
    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
       vulkan_swapchain_recreate(storage, context);
    else if(result != VK_SUCCESS)
-      ;  // TODO: error messages for vulkan
+      return false;
 
-   post(result == VK_SUCCESS);
+   context->current_frame = (context->current_frame + 1) % context->swapchain.max_image_count;
+   return true;
 }
