@@ -55,22 +55,7 @@ typedef struct
 
 static const u64 default_arena_size = KB(64);
 
-typedef enum {false, true} bool;
-
-cache_align typedef struct
-{
-   u32 x, y;
-} c_point;
-
-cache_align typedef struct
-{
-   f32 x, y;
-} c_f32_point;
-
-cache_align typedef struct
-{
-   f32 w, h;
-} c_area;
+enum {false, true};
 
 #define clamp(t, min, max) ((t) <= (min) ? (min) : (t) >= (max) ? (max) : (t))
 

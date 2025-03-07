@@ -3,7 +3,7 @@
 
 #include "arena.h"
 
-static bool vulkan_framebuffer_create(vulkan_context* context, vulkan_framebuffer* framebuffer)
+static b32 vulkan_framebuffer_create(vulkan_context* context, vulkan_framebuffer* framebuffer)
 {
    VkFramebufferCreateInfo framebuffer_info = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
    framebuffer_info.width = context->swapchain.support.surface_capabilities.currentExtent.width;

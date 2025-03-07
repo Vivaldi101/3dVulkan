@@ -26,8 +26,8 @@ cache_align typedef struct hw
    hw_renderer renderer;
    arena vulkan_perm, vulkan_scratch;
    hw_timer timer;
-   bool(*platform_loop)();
-   bool finished;
+   b32(*platform_loop)();
+   b32 finished;
 } hw;
 
 // Do all renderer includes here?
@@ -175,12 +175,12 @@ static int cmd_get_arg_count(char* cmd)
    return count;
 }
 
-static char** cmd_parse(arena* perm, char* cmd, int* argc)
+static char** cmd_parse(arena* storage, char* cmd, int* argc)
 {
 	*argc = cmd_get_arg_count(cmd);
    char* arg_start = cmd;
 
-   arena_result result = arena_alloc(*perm, sizeof(cmd), *argc);
+   arena_result result = arena_alloc(*storage, sizeof(cmd), *argc);
    for(size i = 0; i < result.count; ++i)
    {
       char* arg_end = strchr(arg_start, ' ');

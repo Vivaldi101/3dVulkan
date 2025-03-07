@@ -132,7 +132,7 @@ static void g_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
    g_plane_create(&frustum->b, &origin, &vbl, &vbr);
 }
 
-static bool g_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 vi[3])
+static b32 g_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 vi[3])
 {
    f32 a,b,t;
 

@@ -1,9 +1,9 @@
 #include "vulkan.h"
 #include "common.h"
 
-static bool vulkan_window_surface_create(vulkan_context* context, const hw_window* window, const char** extension_names, usize extension_count)
+static b32 vulkan_window_surface_create(vulkan_context* context, const hw_window* window, const char** extension_names, usize extension_count)
 {
-   bool isWin32Surface = false;
+   b32 isWin32Surface = false;
 
    for(usize i = 0; i < extension_count; ++i)
       if(strcmp(extension_names[i], VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0) {

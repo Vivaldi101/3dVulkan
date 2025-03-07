@@ -1,8 +1,8 @@
 #include "common.h"
 #include "vulkan.h"
 
-//static bool vulkan_renderpass_create(arena* perm, vulkan_context* context, vulkan_viewport* viewport, f32 clear_color[4], f32 depth, f32 stencil)
-static bool vulkan_renderpass_create(vulkan_context* context)
+//static b32 vulkan_renderpass_create(arena* storage, vulkan_context* context, vulkan_viewport* viewport, f32 clear_color[4], f32 depth, f32 stencil)
+static b32 vulkan_renderpass_create(vulkan_context* context)
 {
    VkSubpassDescription subpass = {};
    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -72,7 +72,7 @@ static bool vulkan_renderpass_create(vulkan_context* context)
    return true;
 }
 
-static bool vulkan_renderpass_begin(vulkan_renderpass* renderpass, vulkan_command_buffer* command_buffer, VkFramebuffer framebuffer)
+static b32 vulkan_renderpass_begin(vulkan_renderpass* renderpass, vulkan_command_buffer* command_buffer, VkFramebuffer framebuffer)
 {
    VkRenderPassBeginInfo begin_info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
    begin_info.renderPass = renderpass->handle;
@@ -96,7 +96,7 @@ static bool vulkan_renderpass_begin(vulkan_renderpass* renderpass, vulkan_comman
    command_buffer->state = COMMAND_BUFFER_RENDERPASS;
 }
 
-static bool vulkan_renderpass_end(vulkan_renderpass* renderpass, vulkan_command_buffer* command_buffer)
+static b32 vulkan_renderpass_end(vulkan_renderpass* renderpass, vulkan_command_buffer* command_buffer)
 {
    vkCmdEndRenderPass(command_buffer->handle);
    command_buffer->state = COMMAND_BUFFER_END_RECORDING;

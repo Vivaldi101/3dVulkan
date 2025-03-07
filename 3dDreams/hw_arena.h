@@ -54,7 +54,7 @@ static void hw_global_reserve_available()
    global_allocate(0, memory_status.ullAvailPhys, MEM_RESERVE, PAGE_READWRITE);
 }
 
-static bool hw_is_virtual_memory_reserved(void* address)
+static b32 hw_is_virtual_memory_reserved(void* address)
 {
    MEMORY_BASIC_INFORMATION mbi;
    if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
@@ -63,7 +63,7 @@ static bool hw_is_virtual_memory_reserved(void* address)
    return mbi.State == MEM_RESERVE;
 }
 
-static bool hw_is_virtual_memory_commited(void* address)
+static b32 hw_is_virtual_memory_commited(void* address)
 {
    MEMORY_BASIC_INFORMATION mbi;
    if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
@@ -193,17 +193,17 @@ static void hw_sub_buffer_release(hw_frame_arena* buffer)
 	memset(buffer, 0, sizeof(hw_frame_arena));
 }
 
-static bool hw_buffer_is_empty(const hw_arena *buffer) 
+static b32 hw_buffer_is_empty(const hw_arena *buffer) 
 {
 	return buffer->count == 0;
 }
 
-static bool hw_buffer_is_full(hw_arena *buffer) 
+static b32 hw_buffer_is_full(hw_arena *buffer) 
 {
 	return buffer->bytes_used == buffer->max_size;
 }
 
-static bool hw_buffer_is_set(hw_arena *buffer, usize count) 
+static b32 hw_buffer_is_set(hw_arena *buffer, usize count) 
 {
 	return buffer->count == count; 
 }

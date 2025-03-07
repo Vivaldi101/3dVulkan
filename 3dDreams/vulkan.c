@@ -11,6 +11,7 @@
 #include "vulkan_renderpass.c"
 #include "vulkan_command_buffer.c"
 #include "vulkan_framebuffer.c"
+#include "vulkan_fence.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
@@ -34,9 +35,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
    return VK_FALSE;
 }
 
-static bool vulkan_command_buffers_create(vulkan_context* context)
+static b32 vulkan_command_buffers_create(vulkan_context* context)
 {
-   bool result = true;
+   b32 result = true;
 
    pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
 
@@ -50,7 +51,7 @@ static bool vulkan_command_buffers_create(vulkan_context* context)
    return result;
 }
 
-static bool vulkan_regenerate_framebuffers(vulkan_context* context)
+static b32 vulkan_regenerate_framebuffers(vulkan_context* context)
 {
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
@@ -64,7 +65,7 @@ static bool vulkan_regenerate_framebuffers(vulkan_context* context)
    return true;
 }
 
-static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
+static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
 {
    // TODO: semcomp
    u32 ext_count = 0;
@@ -138,6 +139,9 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    if(!vulkan_regenerate_framebuffers(context))
       return false;
 
+   if(!vulkan_fence_create(context))
+      return false;
+
    return true;
 }
 
@@ -148,15 +152,15 @@ void vulkan_present(vulkan_context* context)
    // todo...
 }
 
-bool vulkan_initialize(hw* hw)
+b32 vulkan_initialize(hw* hw)
 {
-   bool result = true;
+   b32 result = true;
    pre(hw->renderer.window.handle);
 
    vulkan_context* context = new(&hw->vulkan_perm, vulkan_context);
    if(arena_end(&hw->vulkan_perm, context))
 		return false;
-   context->perm = &hw->vulkan_perm;
+   context->storage = &hw->vulkan_perm;
 
    //context->device.use_single_family_queue = true;
    result = vulkan_create_renderer(hw->vulkan_scratch, context, &hw->renderer.window);

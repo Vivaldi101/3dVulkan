@@ -1,7 +1,7 @@
 #include "common.h"
 #include "vulkan.h"
 
-static bool vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCommandPool pool)
+static b32 vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCommandPool pool)
 {
    VkCommandBufferAllocateInfo buffer_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
    buffer_info.commandPool = pool;
@@ -15,7 +15,7 @@ static bool vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCo
    return true;
 }
 
-static bool vulkan_command_buffer_allocate_secondary(vulkan_context* context, VkCommandPool pool)
+static b32 vulkan_command_buffer_allocate_secondary(vulkan_context* context, VkCommandPool pool)
 {
    VkCommandBufferAllocateInfo buffer_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
    buffer_info.commandPool = pool;
@@ -24,7 +24,7 @@ static bool vulkan_command_buffer_allocate_secondary(vulkan_context* context, Vk
 }
 
 // TODO: aggreate bools into bit flags
-static bool vulkan_command_buffer_begin(vulkan_command_buffer* command_buffer, b32 single_use, b32 renderpass_continue, b32 parallel_use)
+static b32 vulkan_command_buffer_begin(vulkan_command_buffer* command_buffer, b32 single_use, b32 renderpass_continue, b32 parallel_use)
 {
    VkCommandBufferBeginInfo begin_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 
@@ -42,7 +42,7 @@ static bool vulkan_command_buffer_begin(vulkan_command_buffer* command_buffer, b
    return true;
 }
 
-static bool vulkan_command_buffer_end(vulkan_command_buffer* command_buffer)
+static b32 vulkan_command_buffer_end(vulkan_command_buffer* command_buffer)
 {
    assert(command_buffer->state == COMMAND_BUFFER_BEGIN_RECORDING);
 
@@ -75,7 +75,7 @@ static void vulkan_command_buffer_free(vulkan_context* context, vulkan_command_b
    context->graphics_command_buffers->state = COMMAND_BUFFER_NOT_ALLOCATED;
 }
 
-static bool vulkan_command_buffer_allocate_end_single_use(vulkan_context* context, vulkan_command_buffer* command_buffer, VkCommandPool pool, VkQueue queue)
+static b32 vulkan_command_buffer_allocate_end_single_use(vulkan_context* context, vulkan_command_buffer* command_buffer, VkCommandPool pool, VkQueue queue)
 {
    vulkan_command_buffer_end(command_buffer);
 

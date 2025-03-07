@@ -6,7 +6,7 @@
 
 typedef struct app_some_type
 {
-   bool isvalid;
+   b32 isvalid;
    int arr[100];
    char* name;
 } app_some_type;

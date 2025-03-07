@@ -1,7 +1,7 @@
 #include "vulkan.h"
 #include "common.h"
 
-static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context)
+static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* context)
 {
    VkExtent2D swapchain_extent = {context->framebuffer_width, context->framebuffer_height};
    vulkan_swapchain* swapchain = &context->swapchain;
@@ -99,12 +99,12 @@ static bool vulkan_swapchain_surface_create(arena* perm, vulkan_context* context
    if(!VK_VALID(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->handle, &swapchain->image_count, 0)))
       return false;
    if(!swapchain->images)
-      swapchain->images = new(perm, VkImage, swapchain->image_count);
+      swapchain->images = new(storage, VkImage, swapchain->image_count);
    if(!swapchain->views)
-      swapchain->views = new(perm, VkImageView, swapchain->image_count);
+      swapchain->views = new(storage, VkImageView, swapchain->image_count);
 
-   if(arena_end(perm, swapchain->images) || 
-      arena_end(perm, swapchain->views) ||
+   if(arena_end(storage, swapchain->images) || 
+      arena_end(storage, swapchain->views) ||
       !VK_VALID(vkGetSwapchainImagesKHR(
       context->device.logical_device, swapchain->handle, 
       &swapchain->image_count, swapchain->images)))
@@ -136,9 +136,9 @@ static void swapchain_destroy(vulkan_swapchain* swapchain)
 {
 }
 
-static bool vulkan_swapchain_create(vulkan_context* context)
+static b32 vulkan_swapchain_create(vulkan_context* context)
 {
-	bool result = vulkan_swapchain_surface_create(context->perm, context);
+	b32 result = vulkan_swapchain_surface_create(context->storage, context);
    context->framebuffer_width = context->swapchain.support.surface_capabilities.currentExtent.width;
    context->framebuffer_height = context->swapchain.support.surface_capabilities.currentExtent.height;
 
@@ -150,7 +150,7 @@ static bool vulkan_swapchain_create(vulkan_context* context)
    image_info.memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
    image_info.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
    image_info.is_view = true;
-   context->swapchain.depth_attachment = vulkan_image_create(context->perm, context, &image_info, context->framebuffer_width, context->framebuffer_height);
+   context->swapchain.depth_attachment = vulkan_image_create(context->storage, context, &image_info, context->framebuffer_width, context->framebuffer_height);
 
    if(!context->swapchain.depth_attachment.handle)
       return false;
@@ -158,19 +158,19 @@ static bool vulkan_swapchain_create(vulkan_context* context)
 	return result;
 }
 
-static void vulkan_swapchain_recreate(arena* perm, vulkan_context* context)
+static void vulkan_swapchain_recreate(arena* storage, vulkan_context* context)
 {
-	vulkan_swapchain_surface_create(perm, context);
+	vulkan_swapchain_surface_create(storage, context);
 	swapchain_destroy(&context->swapchain);
 }
 
-static bool vulkan_swapchain_next_image_index(arena* perm, vulkan_context* context, u32 *image_index, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
+static b32 vulkan_swapchain_next_image_index(arena* storage, vulkan_context* context, u32 *image_index, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
 {
    const VkResult result = vkAcquireNextImageKHR(context->device.logical_device, context->swapchain.handle, timeout, image_available_semaphore, fence, image_index);
 
    if(result == VK_ERROR_OUT_OF_DATE_KHR)
    {
-      vulkan_swapchain_recreate(perm, context);
+      vulkan_swapchain_recreate(storage, context);
       return false;
    }
    else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -191,7 +191,7 @@ static void vulkan_swapchain_destroy(vulkan_context* context)
    vkDestroySwapchainKHR(context->device.logical_device, context->swapchain.handle, context->allocator);
 }
 
-static void vulkan_swapchain_present(arena* perm, vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)
+static void vulkan_swapchain_present(arena* storage, vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)
 {
    VkPresentInfoKHR info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
    info.pWaitSemaphores = &render_complete_semaphore;
@@ -202,7 +202,7 @@ static void vulkan_swapchain_present(arena* perm, vulkan_context* context, u32 p
    VkResult result = vkQueuePresentKHR(context->device.present_queue, &info);
    // TODO: semcomp these
    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-      vulkan_swapchain_recreate(perm, context);
+      vulkan_swapchain_recreate(storage, context);
    else if(result != VK_SUCCESS)
       ;  // TODO: error messages for vulkan
 

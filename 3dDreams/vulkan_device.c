@@ -1,10 +1,12 @@
 #include "vulkan.h"
 #include "common.h"
 
+enum { INVALID_QUEUE_INDEX = -1 };
+
 typedef struct vulkan_physical_device_requirements
 { 
-	bool is_graphics, is_present, is_compute, is_transfer;	// queue type predicates
-   bool is_anisotropy, is_discrete_gpu;
+	b32 is_graphics, is_present, is_compute, is_transfer;	// queue type predicates
+   b32 is_anisotropy, is_discrete_gpu;
    const char** device_extension_names;
 } vulkan_physical_device_requirements;
 
@@ -13,20 +15,20 @@ typedef struct vulkan_queue_family
 	u32 graphics_index, present_index, compute_index, transfer_index;
 } vulkan_queue_family;
 
-static bool vulkan_device_meets_requirements(arena* perm,
+static b32 vulkan_device_meets_requirements(arena* storage,
 															vulkan_context* context,
                                              const vulkan_physical_device_requirements* requirements,
                                              const VkPhysicalDeviceProperties* properties,
 															vulkan_queue_family* queue_family);
 
-static bool vulkan_device_select_physical(arena* perm, vulkan_context* context)
+static b32 vulkan_device_select_physical(arena* storage, vulkan_context* context)
 {
    u32 device_count = 0;
    if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
       return false;
 
-   VkPhysicalDevice* devices = new(perm, VkPhysicalDevice, device_count);
-   if(arena_end(perm, devices) || !VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
+   VkPhysicalDevice* devices = new(storage, VkPhysicalDevice, device_count);
+   if(arena_end(storage, devices) || !VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
       return false;
 
 	// get a suitable physical device 
@@ -49,7 +51,7 @@ static bool vulkan_device_select_physical(arena* perm, vulkan_context* context)
 
       vulkan_queue_family queue_family = {0};
 
-      if(!vulkan_device_meets_requirements(perm, context, &reqs, &properties, &queue_family))
+      if(!vulkan_device_meets_requirements(storage, context, &reqs, &properties, &queue_family))
 			continue;	// no device yet met the requirements
 
       context->device.queue_indexes[QUEUE_GRAPHICS_INDEX] = queue_family.graphics_index;
@@ -67,7 +69,7 @@ static bool vulkan_device_select_physical(arena* perm, vulkan_context* context)
    return false;
 }
 
-static bool vulkan_device_swapchain_support(arena* perm, vulkan_context* context, vulkan_swapchain_info* swapchain)
+static b32 vulkan_device_swapchain_support(arena* storage, vulkan_context* context, vulkan_swapchain_info* swapchain)
 {
 	if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
 		return false;
@@ -76,9 +78,9 @@ static bool vulkan_device_swapchain_support(arena* perm, vulkan_context* context
 		return false;
 
    if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
-      swapchain->surface_formats = new(perm, VkSurfaceFormatKHR, swapchain->surface_format_count);
+      swapchain->surface_formats = new(storage, VkSurfaceFormatKHR, swapchain->surface_format_count);
 
-	if(arena_end(perm, swapchain->surface_formats) || 
+	if(arena_end(storage, swapchain->surface_formats) || 
       !VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, 
       context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
 		return false;
@@ -87,9 +89,9 @@ static bool vulkan_device_swapchain_support(arena* perm, vulkan_context* context
 		return false;
 
 	if(swapchain->present_mode_count > 0 && !swapchain->present_modes)
-      swapchain->present_modes = new(perm, VkPresentModeKHR, swapchain->present_mode_count);
+      swapchain->present_modes = new(storage, VkPresentModeKHR, swapchain->present_mode_count);
 
-	if(arena_end(perm, swapchain->present_modes) || 
+	if(arena_end(storage, swapchain->present_modes) || 
       !VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, 
       context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
 		return false;
@@ -101,10 +103,10 @@ static u32 vulkan_find_unique_family_count(u32 g, u32 c, u32 p, u32 t)
 {
    u32 result = 1;
 
-   g %= (u32)-1;
-   c %= (u32)-1;
-   p %= (u32)-1;
-   t %= (u32)-1;
+   g %= (u32)INVALID_QUEUE_INDEX;
+   c %= (u32)INVALID_QUEUE_INDEX;
+   p %= (u32)INVALID_QUEUE_INDEX;
+   t %= (u32)INVALID_QUEUE_INDEX;
 
    if(g != c && g != p && g != t) result++;
    if(c != p && c != t) result++;
@@ -113,16 +115,16 @@ static u32 vulkan_find_unique_family_count(u32 g, u32 c, u32 p, u32 t)
    return result;
 }
 
-static bool vulkan_device_meets_requirements(arena* perm,
+static b32 vulkan_device_meets_requirements(arena* storage,
 															vulkan_context* context,
                                              const vulkan_physical_device_requirements* requirements,
                                              const VkPhysicalDeviceProperties* properties,
 															vulkan_queue_family* queue_family)
 {
-   queue_family->compute_index = (u32)-1;
-   queue_family->graphics_index = (u32)-1;
-   queue_family->present_index = (u32)-1;
-   queue_family->transfer_index = (u32)-1;
+   queue_family->compute_index = (u32)INVALID_QUEUE_INDEX;
+   queue_family->graphics_index = (u32)INVALID_QUEUE_INDEX;
+   queue_family->present_index = (u32)INVALID_QUEUE_INDEX;
+   queue_family->transfer_index = (u32)INVALID_QUEUE_INDEX;
 
    if(!implies(requirements->is_discrete_gpu,
       properties->deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))
@@ -130,9 +132,9 @@ static bool vulkan_device_meets_requirements(arena* perm,
 
    u32 queue_family_count = 0;
    vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, 0);
-   VkQueueFamilyProperties* queue_families = new(perm, VkQueueFamilyProperties, queue_family_count);
+   VkQueueFamilyProperties* queue_families = new(storage, VkQueueFamilyProperties, queue_family_count);
 
-   if(arena_end(perm, queue_families))
+   if(arena_end(storage, queue_families))
       return false;
 
    vkGetPhysicalDeviceQueueFamilyProperties(context->device.physical_device, &queue_family_count, queue_families);
@@ -199,7 +201,7 @@ static bool vulkan_device_meets_requirements(arena* perm,
 
             context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index,
                                                                                  queue_family->present_index, queue_family->transfer_index);
-            vulkan_device_swapchain_support(perm, context, &context->swapchain.support);
+            vulkan_device_swapchain_support(storage, context, &context->swapchain.support);
 
             return true;
          }
@@ -210,14 +212,14 @@ static bool vulkan_device_meets_requirements(arena* perm,
 
    context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index, 
                                                                         queue_family->present_index, queue_family->transfer_index);
-   vulkan_device_swapchain_support(perm, context, &context->swapchain.support);
+   vulkan_device_swapchain_support(storage, context, &context->swapchain.support);
 
    return true;
 }
 
-static bool vulkan_device_create(arena scratch, vulkan_context* context)
+static b32 vulkan_device_create(arena scratch, vulkan_context* context)
 {
-	if(!vulkan_device_select_physical(context->perm, context))
+	if(!vulkan_device_select_physical(context->storage, context))
 		return false;
 
    VkDeviceQueueCreateInfo* device_queue_infos = new(&scratch, VkDeviceQueueCreateInfo, context->device.queue_family_count);
@@ -229,7 +231,7 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
    u32 family_index = 0;
    while(queue != end)
    {
-      if(context->device.queue_indexes[family_index] == -1)
+      if(context->device.queue_indexes[family_index] == INVALID_QUEUE_INDEX)
       {
          family_index++;   // skip to the next family
          continue;
@@ -269,13 +271,13 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
    if(!VK_VALID(vkCreateDevice(context->device.physical_device, &device_create_info, 0, &context->device.logical_device)))
       return false;
 
-   if(context->device.queue_indexes[QUEUE_GRAPHICS_INDEX] != -1)
+   if(context->device.queue_indexes[QUEUE_GRAPHICS_INDEX] != INVALID_QUEUE_INDEX)
       vkGetDeviceQueue(context->device.logical_device, context->device.queue_indexes[QUEUE_GRAPHICS_INDEX], 0, &context->device.graphics_queue);
-   if(context->device.queue_indexes[QUEUE_PRESENT_INDEX] != -1)
+   if(context->device.queue_indexes[QUEUE_PRESENT_INDEX] != INVALID_QUEUE_INDEX)
       vkGetDeviceQueue(context->device.logical_device, context->device.queue_indexes[QUEUE_PRESENT_INDEX], 0, &context->device.present_queue);
-   if(context->device.queue_indexes[QUEUE_COMPUTE_INDEX] != -1)
+   if(context->device.queue_indexes[QUEUE_COMPUTE_INDEX] != INVALID_QUEUE_INDEX)
       vkGetDeviceQueue(context->device.logical_device, context->device.queue_indexes[QUEUE_COMPUTE_INDEX], 0, &context->device.compute_queue);
-   if(context->device.queue_indexes[QUEUE_TRANSFER_INDEX] != -1)
+   if(context->device.queue_indexes[QUEUE_TRANSFER_INDEX] != INVALID_QUEUE_INDEX)
       vkGetDeviceQueue(context->device.logical_device, context->device.queue_indexes[QUEUE_TRANSFER_INDEX], 0, &context->device.transfer_queue);
 
    VkCommandPoolCreateInfo pool_create_info = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
@@ -288,7 +290,7 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
 	return true;
 }
 
-static bool vulkan_device_depth_format(vulkan_context* context)
+static b32 vulkan_device_depth_format(vulkan_context* context)
 {
    const VkFormat depth_formats[] =
    {
@@ -324,5 +326,5 @@ static void vulkan_device_destroy(vulkan_context* context)
 	// TODO: platform memset
 	memset(context, 0, sizeof(*context));
 
-	memset(context->device.queue_indexes, -1, sizeof(context->device.queue_indexes));
+	memset(context->device.queue_indexes, INVALID_QUEUE_INDEX, sizeof(context->device.queue_indexes));
 }

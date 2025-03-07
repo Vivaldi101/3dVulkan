@@ -40,7 +40,7 @@ static void priority_queue_swap(priority_queue_type* a, priority_queue_type* b)
    *a = t;
 }
 
-static bool priority_queue_invariant(priority_queue* queue)
+static b32 priority_queue_invariant(priority_queue* queue)
 {
    usize root, lc, rc;
    usize i;
@@ -71,7 +71,7 @@ static void priority_queue_insert(priority_queue* queue, priority_queue_type dat
    // indexes
    usize parent, child;
    // min/max heap
-   const bool is_max = queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX;
+   const b32 is_max = queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX;
 
    assert(priority_queue_invariant(queue));
    assert(queue->count < priority_queue_max_count);
@@ -111,7 +111,7 @@ static priority_queue_type priority_queue_remove(priority_queue* queue)
    // indexes
    usize parent, child;
    // min/max heap
-   const bool is_max = queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX;
+   const b32 is_max = queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX;
 
    assert(priority_queue_invariant(queue));
    assert(queue->count > 0);

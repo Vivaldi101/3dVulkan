@@ -24,7 +24,7 @@
 #define arena_end_count(p, a, n) (void*)(p)!=(a)->end?(p)+(n):(p)
 #define scratch_end_count(p, a, n) (void*)(p)!=(a).end?(p)+(n):(p)
 
-// TODO: Different news for scratch and perm arenas
+// TODO: Different news for scratch and storage arenas
 
 #define newx(a,b,c,d,e,...) e
 #define new(...)            newx(__VA_ARGS__,new4,new3,new2)(__VA_ARGS__)

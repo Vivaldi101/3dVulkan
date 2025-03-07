@@ -17,7 +17,7 @@ enum { VULKAN_MAX_FRAME_BUFFER_COUNT = 3 };
 
 #define VK_VALID(v) (v) == VK_SUCCESS
 
-bool vulkan_initialize(hw* hw);
+b32 vulkan_initialize(hw* hw);
 
 typedef enum vulkan_renderpass_state
 {
@@ -38,6 +38,12 @@ typedef enum vulkan_command_buffer_state
    COMMAND_BUFFER_SUBMITTED,
    COMMAND_BUFFER_NOT_ALLOCATED,
 } vulkan_command_buffer_state;
+
+cache_align typedef struct vulkan_fence
+{
+   VkFence handle;
+   b32 is_signaled;
+} vulkan_fence;
 
 cache_align typedef struct vulkan_viewport
 {
@@ -81,7 +87,7 @@ cache_align typedef struct vulkan_image_info
    VkImageUsageFlags usage;
    VkMemoryPropertyFlags memory_flags;
    VkImageAspectFlags aspect_flags;
-   bool is_view;
+   b32 is_view;
 } vulkan_image_info;
 
 cache_align typedef struct vulkan_image
@@ -158,12 +164,19 @@ cache_align typedef struct vulkan_device
 
 cache_align typedef struct vulkan_context
 {
-   arena* perm;
+   arena* storage;
 
    vulkan_device device;
    vulkan_swapchain swapchain;
    vulkan_renderpass main_renderpass;
    vulkan_command_buffer graphics_command_buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
+
+   VkSemaphore image_available_semaphores[VULKAN_MAX_FRAME_BUFFER_COUNT];
+   VkSemaphore queue_complete_semaphores[VULKAN_MAX_FRAME_BUFFER_COUNT];
+
+   vulkan_fence in_flight_fences[VULKAN_MAX_FRAME_BUFFER_COUNT];
+
+   u32 in_flight_fence_count; 
 
    VkInstance instance;
    VkSurfaceKHR surface;
@@ -175,7 +188,7 @@ cache_align typedef struct vulkan_context
    u32 image_index;
    u32 current_frame;
 
-   bool do_recreate_swapchain;
+   b32 do_recreate_swapchain;
 } vulkan_context;
 
 #endif

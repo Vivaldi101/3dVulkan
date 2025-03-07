@@ -39,7 +39,7 @@ static u32 win32_time()
    return timeGetTime() - sys_time_base;
 }
 
-static bool win32_platform_loop()
+static b32 win32_platform_loop()
 {
    MSG msg;
    if(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -160,7 +160,7 @@ static void hw_global_reserve_available()
    global_allocate(0, memory_status.ullAvailPhys, MEM_RESERVE, PAGE_READWRITE);
 }
 
-static bool hw_is_virtual_memory_reserved(void* address)
+static b32 hw_is_virtual_memory_reserved(void* address)
 {
    MEMORY_BASIC_INFORMATION mbi;
    if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
@@ -169,7 +169,7 @@ static bool hw_is_virtual_memory_reserved(void* address)
    return mbi.State == MEM_RESERVE;
 }
 
-static bool hw_is_virtual_memory_commited(void* address)
+static b32 hw_is_virtual_memory_commited(void* address)
 {
    MEMORY_BASIC_INFORMATION mbi;
    if(VirtualQuery(address, &mbi, sizeof(mbi)) == 0)
