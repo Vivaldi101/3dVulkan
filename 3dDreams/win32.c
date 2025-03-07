@@ -257,9 +257,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
    hw_virtual_memory_init();
 
-   arena base = hw.vulkan_perm = arena_new(virtual_memory_amount);
+   arena base = hw.vulkan_storage = arena_new(virtual_memory_amount);
    hw.vulkan_scratch = arena_new(virtual_memory_amount);
-   argv = cmd_parse(&hw.vulkan_perm, lpszCmdLine, &argc);
+   argv = cmd_parse(&hw.vulkan_storage, lpszCmdLine, &argc);
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;

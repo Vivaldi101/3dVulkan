@@ -24,7 +24,7 @@ cache_align typedef struct hw_timer
 cache_align typedef struct hw
 {
    hw_renderer renderer;
-   arena vulkan_perm, vulkan_scratch;
+   arena vulkan_storage, vulkan_scratch;
    hw_timer timer;
    b32(*platform_loop)();
    b32 finished;

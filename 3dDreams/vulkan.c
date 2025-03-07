@@ -157,10 +157,10 @@ b32 vulkan_initialize(hw* hw)
    b32 result = true;
    pre(hw->renderer.window.handle);
 
-   vulkan_context* context = new(&hw->vulkan_perm, vulkan_context);
-   if(arena_end(&hw->vulkan_perm, context))
+   vulkan_context* context = new(&hw->vulkan_storage, vulkan_context);
+   if(arena_end(&hw->vulkan_storage, context))
 		return false;
-   context->storage = &hw->vulkan_perm;
+   context->storage = &hw->vulkan_storage;
 
    //context->device.use_single_family_queue = true;
    result = vulkan_create_renderer(hw->vulkan_scratch, context, &hw->renderer.window);
