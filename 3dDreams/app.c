@@ -74,4 +74,7 @@ void app_start(int argc, const char** argv, hw* hw)
 
    hw_event_loop_start(hw, app_frame, app_input_handle);
    hw_window_close(hw);
+
+   if(!vulkan_deinitialize(hw))
+		return;	// TODO: error message for vulkan deinit
 }

@@ -185,8 +185,11 @@ cache_align typedef struct vulkan_context
 
    u32 framebuffer_width;
    u32 framebuffer_height;
+   u64 framebuffer_size_generation;
+   u64 framebuffer_size_prev_generation;
 
    u32 current_frame_index;
+   u32 current_image_index;
 
    b32 do_recreate_swapchain;
 } vulkan_context;

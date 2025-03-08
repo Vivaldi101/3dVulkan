@@ -65,6 +65,11 @@ static b32 vulkan_regenerate_framebuffers(vulkan_context* context)
    return true;
 }
 
+static void vulkan_on_resize(vulkan_context* context, u32 w, u32 h)
+{
+   context->framebuffer_size_generation++;
+}
+
 static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
 {
    // TODO: semcomp
@@ -145,11 +150,46 @@ static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const 
    return true;
 }
 
+static b32 vulkan_frame_begin(vulkan_context* context)
+{
+   if(context->do_recreate_swapchain)
+      if(!vulkan_result(vkDeviceWaitIdle(context->device.logical_device)))
+         return false;
+
+   if(context->framebuffer_size_generation != context->framebuffer_size_prev_generation)
+   {
+      if(!vulkan_result(vkDeviceWaitIdle(context->device.logical_device)))
+         return false;
+      if(!vulkan_recreate_swapchain(context))
+         return false;
+      return false;
+   }
+
+   if(!vulkan_fence_wait(context, &context->in_flight_fences[context->current_frame_index], UINT64_MAX))
+      return false;
+
+   if(!vulkan_swapchain_next_image_index(context->storage, context, UINT64_MAX, context->image_available_semaphores[context->current_frame_index], 0))
+      return false;
+
+   vulkan_command_buffer* cmd_buffer = &context->graphics_command_buffers[context->current_image_index];
+   vulkan_command_buffer_reset(cmd_buffer);
+   vulkan_command_buffer_begin(cmd_buffer, false, false, false);
+
+   return true;
+}
+
+static b32 vulkan_frame_end(vulkan_context* context)
+{
+   return true;
+}
+
+// extern functions below this line
+
 void vulkan_present(vulkan_context* context)
 {
-	pre(context);
-
-   // todo...
+   if(!vulkan_frame_begin(context))
+      return;
+   vulkan_frame_end(context);
 }
 
 b32 vulkan_initialize(hw* hw)

@@ -94,6 +94,7 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
       return false;
 
    context->current_frame_index = 0;
+   context->current_image_index = 0;
 
    if(!VK_VALID(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->handle, &swapchain->image_count, 0)))
       return false;
@@ -165,9 +166,9 @@ static b32 vulkan_swapchain_recreate(arena* storage, vulkan_context* context)
    return result;
 }
 
-static b32 vulkan_swapchain_next_image_index(arena* storage, vulkan_context* context, u32 *image_index, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
+static b32 vulkan_swapchain_next_image_index(arena* storage, vulkan_context* context, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
 {
-   const VkResult result = vkAcquireNextImageKHR(context->device.logical_device, context->swapchain.handle, timeout, image_available_semaphore, fence, image_index);
+   const VkResult result = vkAcquireNextImageKHR(context->device.logical_device, context->swapchain.handle, timeout, image_available_semaphore, fence, &context->current_image_index);
 
    if(result == VK_ERROR_OUT_OF_DATE_KHR)
    {

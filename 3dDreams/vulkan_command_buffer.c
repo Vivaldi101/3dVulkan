@@ -53,12 +53,12 @@ static b32 vulkan_command_buffer_end(vulkan_command_buffer* command_buffer)
    return true;
 }
 
-static void vulkan_command_buffer_update_submitted(vulkan_command_buffer* command_buffer)
+static void vulkan_command_buffer_submit(vulkan_command_buffer* command_buffer)
 {
    command_buffer->state = COMMAND_BUFFER_SUBMITTED;
 }
 
-static void vulkan_command_buffer_update_reset(vulkan_command_buffer* command_buffer)
+static void vulkan_command_buffer_reset(vulkan_command_buffer* command_buffer)
 {
    command_buffer->state = COMMAND_BUFFER_READY;
 }
