@@ -18,6 +18,7 @@ enum { VULKAN_MAX_FRAME_BUFFER_COUNT = 3 };
 #define VK_VALID(v) (v) == VK_SUCCESS
 
 b32 vulkan_initialize(hw* hw);
+b32 vulkan_deinitialize(hw* hw);
 
 typedef enum vulkan_renderpass_state
 {
@@ -185,8 +186,7 @@ cache_align typedef struct vulkan_context
    u32 framebuffer_width;
    u32 framebuffer_height;
 
-   u32 image_index;
-   u32 current_frame;
+   u32 current_frame_index;
 
    b32 do_recreate_swapchain;
 } vulkan_context;

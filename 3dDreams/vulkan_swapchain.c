@@ -93,8 +93,7 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
    if(!VK_VALID(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_info, 0, &swapchain->handle)))
       return false;
 
-   context->current_frame = 0;
-   context->image_index = 0;
+   context->current_frame_index = 0;
 
    if(!VK_VALID(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->handle, &swapchain->image_count, 0)))
       return false;
@@ -207,6 +206,6 @@ static b32 vulkan_swapchain_present(arena* storage, vulkan_context* context, u32
    else if(result != VK_SUCCESS)
       return false;
 
-   context->current_frame = (context->current_frame + 1) % context->swapchain.max_image_count;
+   context->current_frame_index = (context->current_frame_index + 1) % context->swapchain.max_image_count;
    return true;
 }
