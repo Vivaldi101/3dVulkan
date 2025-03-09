@@ -39,14 +39,14 @@ static b32 vulkan_command_buffers_create(vulkan_context* context)
 {
    pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
 
-   // TODO: Allocate the command buffers at once instead of looping
+   VkCommandBuffer buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
+   if(!vulkan_command_buffer_allocate_primary(context, buffers, context->device.graphics_command_pool, context->swapchain.image_count))
+      return false;
+
+   memcpy(context->graphics_command_buffers, buffers, context->swapchain.image_count*sizeof(VkCommandBuffer));
+
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
-   {
-      if(context->graphics_command_buffers[i].handle)
-         vulkan_command_buffer_free(context, context->graphics_command_buffers + i, context->device.graphics_command_pool);
-      if(!vulkan_command_buffer_allocate_primary(context, context->graphics_command_buffers + i, context->device.graphics_command_pool))
-         return false;
-   }
+      context->command_buffer_state[i] = COMMAND_BUFFER_READY;
 
    return true;
 }
@@ -54,15 +54,8 @@ static b32 vulkan_command_buffers_create(vulkan_context* context)
 static b32 vulkan_regenerate_framebuffers(vulkan_context* context)
 {
    pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
-// TODO: Allocate the framebuffers at once instead of looping
-   for(u32 i = 0; i < context->swapchain.image_count; ++i)
-   {
-      VkImageView attachments[] = {context->swapchain.views[i], context->swapchain.depth_attachment.view};
-      context->swapchain.framebuffers[i].attachments = attachments;
-      context->swapchain.framebuffers[i].attachment_count = array_count(attachments);
-      if(!vulkan_framebuffer_create(context, context->swapchain.framebuffers + i))
-         return false;
-   }
+   if(!vulkan_framebuffer_create(context))
+      return false;
 
    return true;
 }
@@ -197,9 +190,9 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    if(!vulkan_swapchain_next_image_index(context->storage, context, UINT64_MAX, context->image_available_semaphores[context->current_frame_index], 0))
       return false;
 
-   vulkan_command_buffer* cmd_buffer = &context->graphics_command_buffers[context->current_image_index];
-   vulkan_command_buffer_reset(cmd_buffer);
+   VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
    vulkan_command_buffer_begin(cmd_buffer, false, false, false);
+   context->command_buffer_state[context->current_image_index] = COMMAND_BUFFER_BEGIN_RECORDING;
 
    VkViewport viewport = {};
    viewport.x = 0.0f;
@@ -214,8 +207,8 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    scissor.extent.width = context->framebuffer_width;
    scissor.extent.height = context->framebuffer_height;
 
-   vkCmdSetViewport(cmd_buffer->handle, 0, 1, &viewport);
-   vkCmdSetScissor(cmd_buffer->handle, 0, 1, &scissor);
+   vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
+   vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
    context->main_renderpass.viewport.w = context->framebuffer_width;
    context->main_renderpass.viewport.h = context->framebuffer_height;
@@ -231,7 +224,7 @@ static b32 vulkan_frame_begin(vulkan_context* context)
 
 static b32 vulkan_frame_end(vulkan_context* context)
 {
-   vulkan_command_buffer* cmd_buffer = &context->graphics_command_buffers[context->current_image_index];
+   VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
 
    vulkan_renderpass_end(&context->main_renderpass, cmd_buffer);
 
@@ -250,7 +243,7 @@ static b32 vulkan_frame_end(vulkan_context* context)
 
    VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
    submit_info.commandBufferCount = 1;
-   submit_info.pCommandBuffers = &cmd_buffer->handle;
+   submit_info.pCommandBuffers = &cmd_buffer;
    submit_info.signalSemaphoreCount = 1;
    submit_info.pSignalSemaphores = &context->queue_complete_semaphores[context->current_frame_index];
    submit_info.waitSemaphoreCount = 1;
@@ -259,10 +252,12 @@ static b32 vulkan_frame_end(vulkan_context* context)
    VkPipelineStageFlags flags[1] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
    submit_info.pWaitDstStageMask = flags;
 
+   //assert(context->command_buffer_state[context->current_frame_index] == COMMAND_BUFFER_END_RECORDING);
+
    if(!VK_VALID(vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->in_flight_fences[context->current_frame_index].handle)))
       return false;
 
-   vulkan_command_buffer_submit(cmd_buffer);
+   context->command_buffer_state[context->current_frame_index] = COMMAND_BUFFER_SUBMITTED;
 
    if(!vulkan_swapchain_present(context->storage, context, context->current_image_index, &context->queue_complete_semaphores[context->current_frame_index]))
       return false;

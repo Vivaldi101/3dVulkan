@@ -72,7 +72,7 @@ static b32 vulkan_renderpass_create(vulkan_context* context)
    return true;
 }
 
-static void vulkan_renderpass_begin(vulkan_renderpass* renderpass, vulkan_command_buffer* command_buffer, vulkan_framebuffer* framebuffer)
+static void vulkan_renderpass_begin(vulkan_renderpass* renderpass, VkCommandBuffer command_buffer, vulkan_framebuffer* framebuffer)
 {
    VkRenderPassBeginInfo begin_info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
    begin_info.renderPass = renderpass->handle;
@@ -92,12 +92,12 @@ static void vulkan_renderpass_begin(vulkan_renderpass* renderpass, vulkan_comman
    begin_info.clearValueCount = 2;
    begin_info.pClearValues = clear_values;
 
-   vkCmdBeginRenderPass(command_buffer->handle, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-   command_buffer->state = COMMAND_BUFFER_RENDERPASS;
+   vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+   //command_buffer->state = COMMAND_BUFFER_RENDERPASS;
 }
 
-static void vulkan_renderpass_end(vulkan_renderpass* renderpass, vulkan_command_buffer* command_buffer)
+static void vulkan_renderpass_end(vulkan_renderpass* renderpass, VkCommandBuffer command_buffer)
 {
-   vkCmdEndRenderPass(command_buffer->handle);
-   command_buffer->state = COMMAND_BUFFER_END_RECORDING;
+   vkCmdEndRenderPass(command_buffer);
+   //command_buffer->state = COMMAND_BUFFER_END_RECORDING;
 }

@@ -54,7 +54,6 @@ cache_align typedef struct vulkan_viewport
 cache_align typedef struct vulkan_command_buffer
 {
    VkCommandBuffer handle;
-   vulkan_command_buffer_state state;
 } vulkan_command_buffer;
 
 cache_align typedef struct vulkan_renderpass
@@ -170,9 +169,10 @@ cache_align typedef struct vulkan_context
    vulkan_device device;
    vulkan_swapchain swapchain;
    vulkan_renderpass main_renderpass;
+   vulkan_command_buffer_state command_buffer_state[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
    // TODO: Set these arrays dynamically or just use the max frame count as here?
-   vulkan_command_buffer graphics_command_buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
+   VkCommandBuffer graphics_command_buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
    VkSemaphore image_available_semaphores[VULKAN_MAX_FRAME_BUFFER_COUNT];
    VkSemaphore queue_complete_semaphores[VULKAN_MAX_FRAME_BUFFER_COUNT];
