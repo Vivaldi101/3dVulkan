@@ -11,7 +11,8 @@ static b32 vulkan_fence_wait(vulkan_context* context, vulkan_fence* fence, u64 t
       default:
          return false;
       case VK_SUCCESS:
-         return fence->is_signaled = true;
+         fence->is_signaled = true;
+         break;
    }
 
    return true;
@@ -19,6 +20,7 @@ static b32 vulkan_fence_wait(vulkan_context* context, vulkan_fence* fence, u64 t
 
 static b32 vulkan_fence_reset(vulkan_context* context, vulkan_fence* fence)
 {
+   // already reset
    if(!fence->is_signaled)
       return true;
 

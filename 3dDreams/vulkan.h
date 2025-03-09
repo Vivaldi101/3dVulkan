@@ -170,12 +170,15 @@ cache_align typedef struct vulkan_context
    vulkan_device device;
    vulkan_swapchain swapchain;
    vulkan_renderpass main_renderpass;
+
+   // TODO: Set these arrays dynamically or just use the max frame count as here?
    vulkan_command_buffer graphics_command_buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
    VkSemaphore image_available_semaphores[VULKAN_MAX_FRAME_BUFFER_COUNT];
    VkSemaphore queue_complete_semaphores[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
    vulkan_fence in_flight_fences[VULKAN_MAX_FRAME_BUFFER_COUNT];
+   vulkan_fence* images_in_flight[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
    u32 in_flight_fence_count; 
 

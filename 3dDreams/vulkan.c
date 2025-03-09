@@ -41,11 +41,12 @@ static b32 vulkan_command_buffers_create(vulkan_context* context)
 
    pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
 
+// TODO: Allocate the command buffers at once instead of looping
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
       if(context->graphics_command_buffers[i].handle)
          vulkan_command_buffer_free(context, context->graphics_command_buffers + i, context->device.graphics_command_pool);
-      result &= vulkan_command_buffer_allocate_primary(context, context->device.graphics_command_pool);
+      result &= vulkan_command_buffer_allocate_primary(context, context->graphics_command_buffers + i, context->device.graphics_command_pool);
    }
 
    return result;
@@ -150,6 +151,30 @@ static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const 
    return true;
 }
 
+// TODO: This
+static b32 vulkan_result(VkResult result)
+{
+   return result == VK_SUCCESS;
+}
+
+static b32 vulkan_recreate_swapchain(vulkan_context* context)
+{
+   if(context->do_recreate_swapchain)
+      return false;
+
+   if(context->framebuffer_width == 0 || context->framebuffer_height == 0)
+      return false;
+
+   context->do_recreate_swapchain = true;
+
+   if(!VK_VALID(vkDeviceWaitIdle(context->device.logical_device)))
+      return false;
+
+   //TODO: Fill the rest
+
+   return true;
+}
+
 static b32 vulkan_frame_begin(vulkan_context* context)
 {
    if(context->do_recreate_swapchain)
@@ -175,15 +200,74 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    vulkan_command_buffer_reset(cmd_buffer);
    vulkan_command_buffer_begin(cmd_buffer, false, false, false);
 
+   VkViewport viewport = {};
+   viewport.x = 0.0f;
+   viewport.y = (f32)context->framebuffer_height-1.0f;
+   viewport.width = (f32)context->framebuffer_width;
+   viewport.height = -(f32)context->framebuffer_height;
+   viewport.minDepth = 0.0f;
+   viewport.maxDepth = 1.0f;
+
+   VkRect2D scissor = {};
+   scissor.offset.x = scissor.offset.y = 0;
+   scissor.extent.width = context->framebuffer_width;
+   scissor.extent.height = context->framebuffer_height;
+
+   vkCmdSetViewport(cmd_buffer->handle, 0, 1, &viewport);
+   vkCmdSetScissor(cmd_buffer->handle, 0, 1, &scissor);
+
+   context->main_renderpass.viewport.w = context->framebuffer_width;
+   context->main_renderpass.viewport.h = context->framebuffer_height;
+   context->main_renderpass.r = 1.0f;
+   context->main_renderpass.g = 1.0f;
+   context->main_renderpass.b = 0.0f;
+   context->main_renderpass.a = 1.0f;
+
+   vulkan_renderpass_begin(&context->main_renderpass, cmd_buffer, &context->swapchain.framebuffers[context->current_image_index]);
+
    return true;
 }
 
 static b32 vulkan_frame_end(vulkan_context* context)
 {
+   vulkan_command_buffer* cmd_buffer = &context->graphics_command_buffers[context->current_image_index];
+
+   vulkan_renderpass_end(&context->main_renderpass, cmd_buffer);
+
+   vulkan_command_buffer_end(cmd_buffer);
+
+   if(context->images_in_flight[context->current_image_index] != VK_NULL_HANDLE)
+      // current image index is already used by previous frame so wait on the fence
+      if(!vulkan_fence_wait(context, context->images_in_flight[context->current_image_index], UINT64_MAX))
+         return false;
+
+   // current image index was not used so mark it as fenced
+   context->images_in_flight[context->current_image_index] = &context->in_flight_fences[context->current_frame_index];
+
+   // unsignal the current fence so that it can signaled again
+   vulkan_fence_reset(context, &context->in_flight_fences[context->current_frame_index]);
+
+   VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+   submit_info.commandBufferCount = 1;
+   submit_info.pCommandBuffers = &cmd_buffer->handle;
+   submit_info.signalSemaphoreCount = 1;
+   submit_info.pSignalSemaphores = &context->queue_complete_semaphores[context->current_frame_index];
+   submit_info.waitSemaphoreCount = 1;
+   submit_info.pWaitSemaphores = &context->image_available_semaphores[context->current_frame_index];
+
+   VkPipelineStageFlags flags[1] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+   submit_info.pWaitDstStageMask = flags;
+
+   if(!VK_VALID(vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->in_flight_fences[context->current_frame_index].handle)))
+      return false;
+
+   vulkan_command_buffer_submit(cmd_buffer);
+
+   if(!vulkan_swapchain_present(context->storage, context, context->current_image_index, &context->queue_complete_semaphores[context->current_frame_index]))
+      return false;
+
    return true;
 }
-
-// extern functions below this line
 
 void vulkan_present(vulkan_context* context)
 {

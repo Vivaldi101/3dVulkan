@@ -1,17 +1,18 @@
 #include "common.h"
 #include "vulkan.h"
 
-static b32 vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCommandPool pool)
+// TODO: Allocate the command buffers at once instead of looping
+static b32 vulkan_command_buffer_allocate_primary(vulkan_context* context, vulkan_command_buffer* buffer, VkCommandPool pool)
 {
    VkCommandBufferAllocateInfo buffer_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
    buffer_info.commandPool = pool;
    buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
    buffer_info.commandBufferCount = 1;
 
-   if(!VK_VALID(vkAllocateCommandBuffers(context->device.logical_device, &buffer_info, &context->graphics_command_buffers->handle)))
+   if(!VK_VALID(vkAllocateCommandBuffers(context->device.logical_device, &buffer_info, &buffer->handle)))
       return false;
 
-   context->graphics_command_buffers->state = COMMAND_BUFFER_READY;
+   buffer->state = COMMAND_BUFFER_READY;
    return true;
 }
 
@@ -44,8 +45,6 @@ static b32 vulkan_command_buffer_begin(vulkan_command_buffer* command_buffer, b3
 
 static b32 vulkan_command_buffer_end(vulkan_command_buffer* command_buffer)
 {
-   assert(command_buffer->state == COMMAND_BUFFER_BEGIN_RECORDING);
-
    if(!VK_VALID(vkEndCommandBuffer(command_buffer->handle)))
       return false;
 
@@ -63,11 +62,13 @@ static void vulkan_command_buffer_reset(vulkan_command_buffer* command_buffer)
    command_buffer->state = COMMAND_BUFFER_READY;
 }
 
+#if 0
 static void vulkan_command_buffer_allocate_and_begin_single_use(vulkan_context* context, VkCommandPool pool)
 {
    vulkan_command_buffer_allocate_primary(context, pool);
    vulkan_command_buffer_begin(context->graphics_command_buffers, true, false, false);
 }
+#endif
 
 static void vulkan_command_buffer_free(vulkan_context* context, vulkan_command_buffer* buffer, VkCommandPool pool)
 {

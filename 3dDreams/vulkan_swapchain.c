@@ -193,13 +193,14 @@ static void vulkan_swapchain_destroy(vulkan_context* context)
    vkDestroySwapchainKHR(context->device.logical_device, context->swapchain.handle, context->allocator);
 }
 
-static b32 vulkan_swapchain_present(arena* storage, vulkan_context* context, u32 present_image_index, VkSemaphore render_complete_semaphore)
+static b32 vulkan_swapchain_present(arena* storage, vulkan_context* context, u32 present_image_index, VkSemaphore* queue_complete_semaphore)
 {
    VkPresentInfoKHR info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-   info.pWaitSemaphores = &render_complete_semaphore;
+   info.pWaitSemaphores = queue_complete_semaphore;
    info.waitSemaphoreCount = 1;
    info.pSwapchains = &context->swapchain.handle;
    info.swapchainCount = 1;
+   info.pImageIndices = &present_image_index;
 
    VkResult result = vkQueuePresentKHR(context->device.present_queue, &info);
    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
