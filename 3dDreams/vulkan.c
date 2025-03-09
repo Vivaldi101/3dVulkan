@@ -37,23 +37,24 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
 
 static b32 vulkan_command_buffers_create(vulkan_context* context)
 {
-   b32 result = true;
-
    pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
 
-// TODO: Allocate the command buffers at once instead of looping
+   // TODO: Allocate the command buffers at once instead of looping
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
       if(context->graphics_command_buffers[i].handle)
          vulkan_command_buffer_free(context, context->graphics_command_buffers + i, context->device.graphics_command_pool);
-      result &= vulkan_command_buffer_allocate_primary(context, context->graphics_command_buffers + i, context->device.graphics_command_pool);
+      if(!vulkan_command_buffer_allocate_primary(context, context->graphics_command_buffers + i, context->device.graphics_command_pool))
+         return false;
    }
 
-   return result;
+   return true;
 }
 
 static b32 vulkan_regenerate_framebuffers(vulkan_context* context)
 {
+   pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
+// TODO: Allocate the framebuffers at once instead of looping
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
       VkImageView attachments[] = {context->swapchain.views[i], context->swapchain.depth_attachment.view};
