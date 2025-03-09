@@ -1,7 +1,19 @@
 #include "common.h"
 #include "vulkan.h"
 
-//static b32 vulkan_renderpass_create(arena* storage, vulkan_context* context, vulkan_viewport* viewport, f32 clear_color[4], f32 depth, f32 stencil)
+static VkAttachmentDescription vulkan_default_attachment(vulkan_context* context)
+{
+   VkAttachmentDescription attachment = {};
+   attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+   attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+   attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+   attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+   attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+   attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+   return attachment;
+}
+
 static b32 vulkan_renderpass_create(vulkan_context* context)
 {
    VkSubpassDescription subpass = {};
@@ -10,15 +22,9 @@ static b32 vulkan_renderpass_create(vulkan_context* context)
    VkAttachmentDescription attachements[2];
 
    // TODO: Compress into default attachement
-   VkAttachmentDescription color_attachment = {};
-   color_attachment.format = context->swapchain.image_format.format;
-   color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-   color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-   color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-   color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-   color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-   color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+   VkAttachmentDescription color_attachment = vulkan_default_attachment(context);
    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+   color_attachment.format = context->swapchain.image_format.format;
 
    attachements[0] = color_attachment;
 
@@ -29,15 +35,8 @@ static b32 vulkan_renderpass_create(vulkan_context* context)
    subpass.colorAttachmentCount = 1;
    subpass.pColorAttachments = &color_reference;
 
-   VkAttachmentDescription depth_attachment = {};
-   // TODO: Compress into default attachement
+   VkAttachmentDescription depth_attachment = vulkan_default_attachment(context);
    depth_attachment.format = context->device.depth_format;
-   depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-   depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-   depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-   depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-   depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-   depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
    depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
    attachements[1] = depth_attachment;
@@ -93,11 +92,9 @@ static void vulkan_renderpass_begin(vulkan_renderpass* renderpass, VkCommandBuff
    begin_info.pClearValues = clear_values;
 
    vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-   //command_buffer->state = COMMAND_BUFFER_RENDERPASS;
 }
 
 static void vulkan_renderpass_end(vulkan_renderpass* renderpass, VkCommandBuffer command_buffer)
 {
    vkCmdEndRenderPass(command_buffer);
-   //command_buffer->state = COMMAND_BUFFER_END_RECORDING;
 }

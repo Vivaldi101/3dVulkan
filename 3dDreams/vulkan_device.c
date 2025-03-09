@@ -219,6 +219,8 @@ static b32 vulkan_device_meets_requirements(arena* storage,
 
 static b32 vulkan_device_create(arena scratch, vulkan_context* context)
 {
+   pre((array_count(context->device.queue_indexes) >= context->device.queue_family_count));
+
 	if(!vulkan_device_select_physical(context->storage, context))
 		return false;
 
@@ -226,7 +228,6 @@ static b32 vulkan_device_create(arena scratch, vulkan_context* context)
    VkDeviceQueueCreateInfo* queue = device_queue_infos;
    const VkDeviceQueueCreateInfo* end = scratch_end_count(queue, scratch, context->device.queue_family_count);
 
-   assert((array_count(context->device.queue_indexes) >= context->device.queue_family_count));
 
    u32 family_index = 0;
    while(queue != end)

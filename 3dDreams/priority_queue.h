@@ -74,7 +74,7 @@ static void priority_queue_insert(priority_queue* queue, priority_queue_type dat
    const b32 is_max = queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX;
 
    assert(priority_queue_invariant(queue));
-   assert(queue->count < priority_queue_max_count);
+   pre(queue->count < priority_queue_max_count);
 
    queue->count++;
    queue->elements[queue->count - 1] = data;
@@ -114,7 +114,7 @@ static priority_queue_type priority_queue_remove(priority_queue* queue)
    const b32 is_max = queue->criteria == PRIORITY_QUEUE_CRITERIA_MAX;
 
    assert(priority_queue_invariant(queue));
-   assert(queue->count > 0);
+   pre(queue->count > 0);
 
    result = queue->elements[0];
    queue->elements[0] = queue->elements[queue->count - 1];

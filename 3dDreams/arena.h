@@ -66,7 +66,7 @@ static void* alloc(arena* a, size alloc_size, size align, size count, u32 flag)
 
    a->beg = (byte*)p + (count * alloc_size);          // advance arena 
 
-   assert(((uptr)p & (align - 1)) == 0);   // aligned result
+   post(((uptr)p & (align - 1)) == 0);   // aligned result
 
    return p;
 }
