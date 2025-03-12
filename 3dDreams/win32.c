@@ -53,8 +53,9 @@ static b32 win32_platform_loop()
    return true;
 }
 
-// TODO: Add all the extra garbage for handling window events
 static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam) {
+   hw_renderer* renderer = (hw_renderer*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+
    switch(umsg)
    {
       case WM_CLOSE:
@@ -70,6 +71,8 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
 
       case WM_SIZE:
          InvalidateRect(hwnd, NULL, TRUE); // Forces a repaint when resizing
+         if(renderer)
+            renderer->frame_resize(renderer->backends[renderer->renderer_index]);
          break;
    }
 

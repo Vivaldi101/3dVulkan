@@ -158,12 +158,30 @@ static b32 vulkan_swapchain_create(vulkan_context* context)
 	return result;
 }
 
-static b32 vulkan_swapchain_recreate(arena* storage, vulkan_context* context)
-{
-	b32 result = vulkan_swapchain_surface_create(storage, context);
-	swapchain_destroy(&context->swapchain);
+#define array_clear(a) memset((a), 0, array_count(a)*sizeof(*(a)))
 
-   return result;
+static b32 vulkan_swapchain_recreate(vulkan_context* context)
+{
+   if(context->do_recreate_swapchain)
+      return false;
+
+   if(context->framebuffer_width == 0 || context->framebuffer_height == 0)
+      return false;
+
+   context->do_recreate_swapchain = true;
+   vkDeviceWaitIdle(context->device.logical_device);
+
+   array_clear(context->images_in_flight);
+
+   if(!vulkan_device_depth_format(context))
+      return false;
+
+   if(!vulkan_swapchain_create(context))
+      return false;
+
+   context->framebuffer_size_prev_generation = context->framebuffer_size_generation;
+
+   return true;
 }
 
 static b32 vulkan_swapchain_next_image_index(arena* storage, vulkan_context* context, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
@@ -172,7 +190,7 @@ static b32 vulkan_swapchain_next_image_index(arena* storage, vulkan_context* con
 
    if(result == VK_ERROR_OUT_OF_DATE_KHR)
    {
-      vulkan_swapchain_recreate(storage, context);
+      vulkan_swapchain_recreate(context);
       return false;
    }
    else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -193,7 +211,7 @@ static void vulkan_swapchain_destroy(vulkan_context* context)
    vkDestroySwapchainKHR(context->device.logical_device, context->swapchain.handle, context->allocator);
 }
 
-static b32 vulkan_swapchain_present(arena* storage, vulkan_context* context, u32 present_image_index, VkSemaphore* queue_complete_semaphore)
+static b32 vulkan_swapchain_present(vulkan_context* context, u32 present_image_index, VkSemaphore* queue_complete_semaphore)
 {
    VkPresentInfoKHR info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
    info.pWaitSemaphores = queue_complete_semaphore;
@@ -204,7 +222,7 @@ static b32 vulkan_swapchain_present(arena* storage, vulkan_context* context, u32
 
    VkResult result = vkQueuePresentKHR(context->device.present_queue, &info);
    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-      vulkan_swapchain_recreate(storage, context);
+      vulkan_swapchain_recreate(context);
    else if(result != VK_SUCCESS)
       return false;
 

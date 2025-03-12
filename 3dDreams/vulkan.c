@@ -61,14 +61,13 @@ static b32 vulkan_regenerate_framebuffers(vulkan_context* context)
    return true;
 }
 
-static void vulkan_on_resize(vulkan_context* context, u32 w, u32 h)
+static void vulkan_resize(vulkan_context* context)
 {
    context->framebuffer_size_generation++;
 }
 
 static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
 {
-   // TODO: semcomp
    u32 ext_count = 0;
    if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
@@ -152,24 +151,6 @@ static b32 vulkan_result(VkResult result)
    return result == VK_SUCCESS;
 }
 
-static b32 vulkan_recreate_swapchain(vulkan_context* context)
-{
-   if(context->do_recreate_swapchain)
-      return false;
-
-   if(context->framebuffer_width == 0 || context->framebuffer_height == 0)
-      return false;
-
-   context->do_recreate_swapchain = true;
-
-   if(!VK_VALID(vkDeviceWaitIdle(context->device.logical_device)))
-      return false;
-
-   //TODO: Fill the rest
-
-   return true;
-}
-
 static b32 vulkan_frame_begin(vulkan_context* context)
 {
    if(context->do_recreate_swapchain)
@@ -180,7 +161,7 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    {
       if(!vulkan_result(vkDeviceWaitIdle(context->device.logical_device)))
          return false;
-      if(!vulkan_recreate_swapchain(context))
+      if(!vulkan_swapchain_recreate(context))
          return false;
       return false;
    }
@@ -260,7 +241,7 @@ static b32 vulkan_frame_end(vulkan_context* context)
 
    context->command_buffer_state[context->current_frame_index] = COMMAND_BUFFER_SUBMITTED;
 
-   if(!vulkan_swapchain_present(context->storage, context, context->current_image_index, &context->queue_complete_semaphores[context->current_frame_index]))
+   if(!vulkan_swapchain_present(context, context->current_image_index, &context->queue_complete_semaphores[context->current_frame_index]))
       return false;
 
    return true;
@@ -289,10 +270,12 @@ b32 vulkan_initialize(hw* hw)
    hw->renderer.backends[vulkan_renderer_index] = context;
    hw->renderer.frame_present = vulkan_present;
    hw->renderer.renderer_index = vulkan_renderer_index;
+   hw->renderer.frame_resize = vulkan_resize;
 
    post(hw->renderer.backends[vulkan_renderer_index]);
    post(hw->renderer.frame_present);
    post(hw->renderer.renderer_index == vulkan_renderer_index);
+   post(hw->renderer.frame_resize == vulkan_resize);
 
    return result;
 }

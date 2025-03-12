@@ -10,8 +10,9 @@ cache_align typedef struct hw_renderer
 {
    void* backends[renderer_count];
    void(*frame_present)(void* renderer);
+   void(*frame_resize)(void* renderer);
    void(*frame_wait)(void* renderer);
-   u32 renderer_index;	// ZII - change this so that zero is actually the software renderer
+   u32 renderer_index;
    hw_window window;
 } hw_renderer;
 
@@ -24,20 +25,20 @@ cache_align typedef struct hw_timer
 cache_align typedef struct hw
 {
    hw_renderer renderer;
-   arena vulkan_storage, vulkan_scratch;
+   arena vulkan_storage;
+   arena vulkan_scratch;
    hw_timer timer;
    b32(*platform_loop)();
    b32 finished;
 } hw;
 
-// Do all renderer includes here?
 //#include "d3d12.c"
 #include "vulkan.c"
 
 void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height)
 {
    hw->renderer.window.handle = hw->renderer.window.open(title, x, y, width, height);
-   // TODO: error on failure
+   SetWindowLongPtr(hw->renderer.window.handle, GWLP_USERDATA, (LONG_PTR)&hw->renderer);
 }
 
 void hw_window_close(hw* hw)
