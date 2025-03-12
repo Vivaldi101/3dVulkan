@@ -179,8 +179,8 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    VkViewport viewport = {};
    viewport.x = 0.0f;
    viewport.y = (f32)context->framebuffer_height-1.0f;
-   viewport.width = (f32)context->framebuffer_width;
-   viewport.height = -(f32)context->framebuffer_height;
+   viewport.width = (f32)context->framebuffer_width/2;
+   viewport.height = -(f32)context->framebuffer_height/2;
    viewport.minDepth = 0.0f;
    viewport.maxDepth = 1.0f;
 
@@ -192,8 +192,8 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
    vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-   context->main_renderpass.viewport.w = context->framebuffer_width;
-   context->main_renderpass.viewport.h = context->framebuffer_height;
+   context->main_renderpass.viewport.w = (i32)viewport.width;
+   context->main_renderpass.viewport.h = -(i32)viewport.height;
    context->main_renderpass.r = 0.0f;
    context->main_renderpass.g = 1.0f;
    context->main_renderpass.b = 1.0f;
