@@ -7,10 +7,10 @@
 #include "vulkan_device.c"
 #include "vulkan_surface.c"
 #include "vulkan_image.c"
-#include "vulkan_swapchain.c"
 #include "vulkan_renderpass.c"
-#include "vulkan_command_buffer.c"
 #include "vulkan_framebuffer.c"
+#include "vulkan_command_buffer.c"
+#include "vulkan_swapchain.c"
 #include "vulkan_fence.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
@@ -51,18 +51,10 @@ static b32 vulkan_command_buffers_create(vulkan_context* context)
    return true;
 }
 
-static b32 vulkan_regenerate_framebuffers(vulkan_context* context)
+static void vulkan_resize(vulkan_context* context, u32 width, u32 height)
 {
-   pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
-
-   if(!vulkan_framebuffer_create(context))
-      return false;
-
-   return true;
-}
-
-static void vulkan_resize(vulkan_context* context)
-{
+   context->framebuffer_width = width;
+   context->framebuffer_height = height;
    context->framebuffer_size_generation++;
 }
 
@@ -136,7 +128,7 @@ static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const 
    if(!vulkan_command_buffers_create(context))
       return false;
 
-   if(!vulkan_regenerate_framebuffers(context))
+   if(!vulkan_framebuffer_create(context))
       return false;
 
    if(!vulkan_fence_create(context))
@@ -179,8 +171,8 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    VkViewport viewport = {};
    viewport.x = 0.0f;
    viewport.y = (f32)context->framebuffer_height-1.0f;
-   viewport.width = (f32)context->framebuffer_width/2;
-   viewport.height = -(f32)context->framebuffer_height/2;
+   viewport.width = (f32)context->framebuffer_width/1;
+   viewport.height = -(f32)context->framebuffer_height/1;
    viewport.minDepth = 0.0f;
    viewport.maxDepth = 1.0f;
 

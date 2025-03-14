@@ -201,7 +201,7 @@ static b32 vulkan_device_meets_requirements(arena* storage,
 
             context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index,
                                                                                  queue_family->present_index, queue_family->transfer_index);
-            vulkan_device_swapchain_support(storage, context, &context->swapchain.support);
+            vulkan_device_swapchain_support(storage, context, &context->swapchain.info);
 
             return true;
          }
@@ -212,7 +212,7 @@ static b32 vulkan_device_meets_requirements(arena* storage,
 
    context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index, 
                                                                         queue_family->present_index, queue_family->transfer_index);
-   vulkan_device_swapchain_support(storage, context, &context->swapchain.support);
+   vulkan_device_swapchain_support(storage, context, &context->swapchain.info);
 
    return true;
 }

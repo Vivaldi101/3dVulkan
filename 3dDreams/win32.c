@@ -70,9 +70,12 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
       } break;
 
       case WM_SIZE:
-         InvalidateRect(hwnd, NULL, TRUE); // Forces a repaint when resizing
          if(renderer)
-            renderer->frame_resize(renderer->backends[renderer->renderer_index]);
+         {
+            int width = LOWORD(lparam);
+            int height = HIWORD(lparam);
+            renderer->frame_resize(renderer->backends[renderer->renderer_index], width, height);
+         }
          break;
    }
 

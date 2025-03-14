@@ -40,6 +40,7 @@ typedef struct
 //#define cache_align __declspec(align(64))    // assume 64 byte cacheline size.
 #define cache_align 
 
+#define array_clear(a) memset((a), 0, array_count(a)*sizeof(*(a)))
 #define array_count(a) sizeof((a)) / sizeof((a)[0])
 
 #define defer(start, end) \

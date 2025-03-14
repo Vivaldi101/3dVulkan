@@ -1,7 +1,6 @@
 #include "common.h"
 #include "vulkan.h"
 
-// TODO: Allocate the command buffers at once instead of looping
 static b32 vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCommandBuffer* buffers, VkCommandPool pool, u32 count)
 {
    VkCommandBufferAllocateInfo buffer_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};

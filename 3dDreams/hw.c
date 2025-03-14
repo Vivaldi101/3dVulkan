@@ -10,7 +10,7 @@ cache_align typedef struct hw_renderer
 {
    void* backends[renderer_count];
    void(*frame_present)(void* renderer);
-   void(*frame_resize)(void* renderer);
+   void(*frame_resize)(void* renderer, u32 width, u32 height);
    void(*frame_wait)(void* renderer);
    u32 renderer_index;
    hw_window window;

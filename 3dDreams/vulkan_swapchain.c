@@ -7,9 +7,9 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
    vulkan_swapchain* swapchain = &context->swapchain;
    swapchain->max_image_count = 2; // triple buffering
 
-   for(u32 i = 0; i < swapchain->support.surface_format_count; ++i)
+   for(u32 i = 0; i < swapchain->info.surface_format_count; ++i)
    {
-      VkSurfaceFormatKHR format = swapchain->support.surface_formats[i];
+      VkSurfaceFormatKHR format = swapchain->info.surface_formats[i];
 
       if(format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
       {
@@ -25,9 +25,9 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
    // always present
    VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
 
-   for(u32 i = 0; i < swapchain->support.present_mode_count; ++i)
+   for(u32 i = 0; i < swapchain->info.present_mode_count; ++i)
    {
-      VkPresentModeKHR mode = swapchain->support.present_modes[i];
+      VkPresentModeKHR mode = swapchain->info.present_modes[i];
       // use if present
       if(mode == VK_PRESENT_MODE_MAILBOX_KHR)
       {
@@ -36,18 +36,27 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
       }
    }
 
-   // TODO: requery swapchain support
+   // TODO: requery swapchain support if devices etc. change here
 
-   if(swapchain->support.surface_capabilities.currentExtent.width != UINT32_MAX)
-      swapchain_extent = swapchain->support.surface_capabilities.currentExtent;
+   VkSurfaceCapabilitiesKHR surface_caps;
+   if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &surface_caps)))
+      return false;
 
-   VkExtent2D min = swapchain->support.surface_capabilities.minImageExtent;
-   VkExtent2D max = swapchain->support.surface_capabilities.maxImageExtent;
+   if(surface_caps.currentExtent.width != UINT32_MAX)
+      // fixed size
+      swapchain_extent = surface_caps.currentExtent;
+   else
+   {
+      // surface allows to choose the size
+      VkExtent2D min = surface_caps.minImageExtent;
+      VkExtent2D max = surface_caps.maxImageExtent;
+      swapchain_extent.width = clamp(swapchain_extent.width, min.width, max.width);
+      swapchain_extent.height = clamp(swapchain_extent.height, min.height, max.height);
+   }
 
-   swapchain_extent.width = clamp(swapchain_extent.width, min.width, max.width);
-   swapchain_extent.height = clamp(swapchain_extent.height, min.height, max.height);
+   swapchain->info.surface_capabilities = surface_caps;
 
-   u32 image_count = swapchain->support.surface_capabilities.minImageCount + 1;
+   u32 image_count = swapchain->info.surface_capabilities.minImageCount + 1;
 
    if(image_count > VULKAN_MAX_FRAME_BUFFER_COUNT)
       return false;
@@ -84,11 +93,11 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
    inv(implies(swapchain_info.imageSharingMode == VK_SHARING_MODE_CONCURRENT, 
       swapchain_info.queueFamilyIndexCount > 1 && swapchain_info.pQueueFamilyIndices));
 
-   swapchain_info.preTransform = swapchain->support.surface_capabilities.currentTransform;
+   swapchain_info.preTransform = swapchain->info.surface_capabilities.currentTransform;
    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
    swapchain_info.clipped = VK_TRUE;
    swapchain_info.presentMode = swapchain->present_mode;
-   swapchain_info.oldSwapchain = 0;
+   swapchain_info.oldSwapchain = swapchain->handle;
 
    if(!VK_VALID(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_info, 0, &swapchain->handle)))
       return false;
@@ -132,15 +141,13 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
    return true;
 }
 
-static void swapchain_destroy(vulkan_swapchain* swapchain)
-{
-}
-
 static b32 vulkan_swapchain_create(vulkan_context* context)
 {
-	b32 result = vulkan_swapchain_surface_create(context->storage, context);
-   context->framebuffer_width = context->swapchain.support.surface_capabilities.currentExtent.width;
-   context->framebuffer_height = context->swapchain.support.surface_capabilities.currentExtent.height;
+	if(!vulkan_swapchain_surface_create(context->storage, context))
+      return false;
+
+   context->framebuffer_width = context->swapchain.info.surface_capabilities.currentExtent.width;
+   context->framebuffer_height = context->swapchain.info.surface_capabilities.currentExtent.height;
 
    // depth attachment
    vulkan_image_info image_info = {};
@@ -155,10 +162,8 @@ static b32 vulkan_swapchain_create(vulkan_context* context)
    if(!context->swapchain.depth_attachment.handle)
       return false;
 
-	return result;
+	return true;
 }
-
-#define array_clear(a) memset((a), 0, array_count(a)*sizeof(*(a)))
 
 static b32 vulkan_swapchain_recreate(vulkan_context* context)
 {
@@ -168,7 +173,6 @@ static b32 vulkan_swapchain_recreate(vulkan_context* context)
    if(context->framebuffer_width == 0 || context->framebuffer_height == 0)
       return false;
 
-   context->do_recreate_swapchain = true;
    vkDeviceWaitIdle(context->device.logical_device);
 
    array_clear(context->images_in_flight);
@@ -180,6 +184,15 @@ static b32 vulkan_swapchain_recreate(vulkan_context* context)
       return false;
 
    context->framebuffer_size_prev_generation = context->framebuffer_size_generation;
+
+   vulkan_command_buffer_free(context, context->graphics_command_buffers, context->device.graphics_command_pool, context->swapchain.image_count);
+   if(!vulkan_framebuffer_create(context))
+      return false;
+
+   context->do_recreate_swapchain = false;
+   if(!vulkan_command_buffer_allocate_primary(context, context->graphics_command_buffers, 
+      context->device.graphics_command_pool, context->swapchain.image_count))
+      return false;
 
    return true;
 }

@@ -136,7 +136,7 @@ cache_align typedef struct vulkan_swapchain
    vulkan_image depth_attachment;
    u32 attachment_count;
 
-   vulkan_swapchain_info support;
+   vulkan_swapchain_info info;
 } vulkan_swapchain;
 
 cache_align typedef struct vulkan_device
