@@ -5,11 +5,132 @@
 #include "common.h"
 #include <math.h>
 
+//#define USE_SIMD
+
+#if defined(USE_SIMD)
+#include <immintrin.h>
+#endif
+
 enum { G_PLANE_FRONT, G_PLANE_BACK, G_PLANE_ON, G_PLANE_SPLIT };
 
 #define DEG_TO_RAD(degrees) ((degrees) * (3.14159265358979323846f / 180.0f))
 
-cache_align typedef struct { f32 x,y,z; } vec3;
+cache_align typedef union
+{ 
+#if defined(USE_SIMD)
+   __declspec(align(16)) __m128 data;
+#else
+   __declspec(align(16)) f32 data[4];
+#endif
+   struct
+   {
+      union { f32 x, r, s; };
+      union { f32 y, g, t; };
+      union { f32 z, b, p; };
+      union { f32 w, a, q; };
+   };
+} vec4;
+
+cache_align typedef union
+{ 
+   f32 data[3];
+   struct
+   {
+      union { f32 x, r, s, u; };
+      union { f32 y, g, t, v; };
+      union { f32 z, b, p, w; };
+   };
+} vec3;
+
+cache_align typedef union
+{ 
+   f32 data[2];
+   struct
+   {
+      union { f32 x, r, s, u; };
+      union { f32 y, g, t, v; };
+   };
+} vec2;
+
+typedef vec4 quat;
+
+cache_align typedef union
+{ 
+#if defined(USE_SIMD)
+   __declspec(align(16)) vec4 rows[4];
+#else
+   __declspec(align(16)) f32 data[16];
+#endif
+} mat4;
+
+static inline mat4 mat4_identity()
+{
+   mat4 result = {};
+
+#if defined(USE_SIMD)
+   result.rows[0].data.m128_f32[0] = 1.0f;
+   result.rows[1].data.m128_f32[1] = 1.0f;
+   result.rows[2].data.m128_f32[2] = 1.0f;
+   result.rows[3].data.m128_f32[3] = 1.0f;
+#else
+   result.data[0] = 1.0f;
+   result.data[5] = 1.0f;
+   result.data[10] = 1.0f;
+   result.data[15] = 1.0f;
+#endif
+
+   return result;
+}
+
+static inline mat4 mat4_mul(mat4 a, mat4 b)
+{
+   mat4 result = mat4_identity();
+
+   f32* pa = a.data;
+   f32* pb = b.data;
+
+   f32* dst = result.data;
+
+   for(i32 i = 0; i < 4; ++i)
+   {
+      for(i32 j = 0; j < 4; ++j)
+      {
+         *dst = pa[0] * pb[0 + j]
+              + pa[1] * pb[4 + j]
+              + pa[2] * pb[8 + j]
+              + pa[3] * pb[12 + j];
+         dst++;
+      }
+      pa += 4; // advance to second row
+   }
+
+   return result;
+}
+
+static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
+{
+   mat4 result = mat4_identity();
+   result.data[14] = -1.0f;   // right-handed z so w = -z
+
+   f32 ax = 2*n / (r-l);
+   f32 bx = (r+l) / (r-l);
+
+   f32 ay = 2*n / (t-b);
+   f32 by = (t+b) / (t-b);
+
+   f32 z0 = -(f+n) / (f-n);
+   f32 z1 = -(2*f*n) / (f-n);
+
+   result.data[0] = ax;
+   result.data[2] = bx;
+   result.data[5] = ay;
+   result.data[7] = by;
+
+   result.data[10] = z0;
+   result.data[11] = z1;
+
+   return result;
+}
 
 // TODO: Also maybe we should remove these defines and just do functions..
 // TODO: typedefs for vertexes as float arrays to keeep them conceptually separate from directed vectors

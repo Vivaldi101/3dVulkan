@@ -171,8 +171,8 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    VkViewport viewport = {};
    viewport.x = 0.0f;
    viewport.y = (f32)context->framebuffer_height-1.0f;
-   viewport.width = (f32)context->framebuffer_width/1;
-   viewport.height = -(f32)context->framebuffer_height/1;
+   viewport.width = (f32)context->framebuffer_width;
+   viewport.height = -(f32)context->framebuffer_height;
    viewport.minDepth = 0.0f;
    viewport.maxDepth = 1.0f;
 
