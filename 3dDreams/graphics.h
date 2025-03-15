@@ -54,6 +54,7 @@ cache_align typedef union
 
 typedef vec4 quat;
 
+// Assumes row-major storage
 cache_align typedef union
 { 
 #if defined(USE_SIMD)

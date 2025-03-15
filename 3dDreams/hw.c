@@ -38,6 +38,7 @@ cache_align typedef struct hw
 void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height)
 {
    hw->renderer.window.handle = hw->renderer.window.open(title, x, y, width, height);
+   inv(hw->renderer.window.handle);
    SetWindowLongPtr(hw->renderer.window.handle, GWLP_USERDATA, (LONG_PTR)&hw->renderer);
 }
 
@@ -45,12 +46,6 @@ void hw_window_close(hw* hw)
 {
 	pre(hw->renderer.window.handle);
    hw->renderer.window.close(hw->renderer.window);
-}
-
-void hw_event_loop_end(hw* hw)
-{
-   if (hw->renderer.window.handle)
-      hw_window_close(hw);
 }
 
 #define MSEC_PER_SIM (16)

@@ -139,22 +139,12 @@ static void win32_abort(u32 code)
    ExitProcess(code);
 }
 
-#if 0
-static void hw_error(hw_frame_arena* error_arena, const char* s)
-{
-   const usize buffer_size = strlen(s) + 1; // string len + 1 for null
-   char* buffer = arena_push_string(error_arena, buffer_size);
-
-   memcpy(buffer, s, buffer_size);
-}
-#endif
-
 #define hw_error(m) MessageBox(NULL, (m), "Engine", MB_OK | MB_ICONSTOP | MB_SYSTEMMODAL);
 
 typedef LPVOID(*VirtualAllocPtr)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef VOID(*VirtualReleasePtr)(LPVOID, SIZE_T);
-static VirtualAllocPtr global_allocate;
-static VirtualReleasePtr global_release;
+static VirtualAllocPtr global_allocate = 0;
+static VirtualReleasePtr global_release = 0;
 
 static void hw_global_reserve_available()
 {
@@ -219,6 +209,8 @@ static void hw_virtual_memory_init()
 
    HMODULE hkernel32 = GetModuleHandleA("kernel32.dll");
 
+   inv(hkernel32);
+
    global_allocate = (VirtualAllocPtr)(GetProcAddress(hkernel32, "VirtualAlloc"));
    global_release = (VirtualReleasePtr)(GetProcAddress(hkernel32, "VirtualFree"));
 
@@ -263,7 +255,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
    hw_virtual_memory_init();
 
-   arena base = hw.vulkan_storage = arena_new(virtual_memory_amount);
+   arena base_storage = hw.vulkan_storage = arena_new(virtual_memory_amount);
    hw.vulkan_scratch = arena_new(virtual_memory_amount);
    argv = cmd_parse(&hw.vulkan_storage, lpszCmdLine, &argc);
 
@@ -279,7 +271,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    app_start(argc, argv, &hw);
    timeEndPeriod(1);
 
-   arena_free(&base);
+   arena_free(&base_storage);
    arena_free(&hw.vulkan_scratch);
 
    return 0;

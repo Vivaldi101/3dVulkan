@@ -22,10 +22,11 @@ enum
 
 typedef struct hw hw;
 typedef struct arena arena;
+
 typedef enum { HW_INPUT_TYPE_KEY, HW_INPUT_TYPE_MOUSE, HW_INPUT_TYPE_TOUCH } hw_input_type;
+
 void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height);
 void hw_window_close(hw* hw);
 
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void (*app_input_function)(struct app_input* input));
-void hw_event_loop_end(hw* hw);
 #endif

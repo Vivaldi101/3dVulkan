@@ -279,5 +279,7 @@ b32 vulkan_deinitialize(hw* hw)
    if(!VK_VALID(vkDeviceWaitIdle(context->device.logical_device)))
       return false;
 
+   // TODO...
+
    return true;
 }
