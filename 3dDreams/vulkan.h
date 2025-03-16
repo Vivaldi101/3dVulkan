@@ -17,8 +17,8 @@ enum { VULKAN_MAX_FRAME_BUFFER_COUNT = 3 };
 
 #define VK_VALID(v) (v) == VK_SUCCESS
 
-b32 vulkan_initialize(hw* hw);
-b32 vulkan_deinitialize(hw* hw);
+bool vulkan_initialize(hw* hw);
+bool vulkan_deinitialize(hw* hw);
 
 typedef enum vulkan_renderpass_state
 {
@@ -43,7 +43,7 @@ typedef enum vulkan_command_buffer_state
 cache_align typedef struct vulkan_fence
 {
    VkFence handle;
-   b32 is_signaled;
+   bool is_signaled;
 } vulkan_fence;
 
 cache_align typedef struct vulkan_viewport
@@ -87,7 +87,7 @@ cache_align typedef struct vulkan_image_info
    VkImageUsageFlags usage;
    VkMemoryPropertyFlags memory_flags;
    VkImageAspectFlags aspect_flags;
-   b32 is_view;
+   bool is_view;
 } vulkan_image_info;
 
 cache_align typedef struct vulkan_image
@@ -159,7 +159,7 @@ cache_align typedef struct vulkan_device
 
    VkFormat depth_format;
 
-   b32 use_single_family_queue;
+   bool use_single_family_queue;
 } vulkan_device;
 
 cache_align typedef struct vulkan_context
@@ -194,7 +194,7 @@ cache_align typedef struct vulkan_context
    u32 current_frame_index;
    u32 current_image_index;
 
-   b32 do_recreate_swapchain;
+   bool do_recreate_swapchain;
 } vulkan_context;
 
 #endif

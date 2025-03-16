@@ -1,7 +1,7 @@
 #include "vulkan.h"
 #include "common.h"
 
-static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* context)
+static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* context)
 {
    VkExtent2D swapchain_extent = {context->framebuffer_width, context->framebuffer_height};
    vulkan_swapchain* swapchain = &context->swapchain;
@@ -141,7 +141,7 @@ static b32 vulkan_swapchain_surface_create(arena* storage, vulkan_context* conte
    return true;
 }
 
-static b32 vulkan_swapchain_create(vulkan_context* context)
+static bool vulkan_swapchain_create(vulkan_context* context)
 {
 	if(!vulkan_swapchain_surface_create(context->storage, context))
       return false;
@@ -165,7 +165,7 @@ static b32 vulkan_swapchain_create(vulkan_context* context)
 	return true;
 }
 
-static b32 vulkan_swapchain_recreate(vulkan_context* context)
+static bool vulkan_swapchain_recreate(vulkan_context* context)
 {
    if(context->do_recreate_swapchain)
       return false;
@@ -197,7 +197,7 @@ static b32 vulkan_swapchain_recreate(vulkan_context* context)
    return true;
 }
 
-static b32 vulkan_swapchain_next_image_index(arena* storage, vulkan_context* context, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
+static bool vulkan_swapchain_next_image_index(arena* storage, vulkan_context* context, u64 timeout, VkSemaphore image_available_semaphore, VkFence fence)
 {
    const VkResult result = vkAcquireNextImageKHR(context->device.logical_device, context->swapchain.handle, timeout, image_available_semaphore, fence, &context->current_image_index);
 
@@ -224,7 +224,7 @@ static void vulkan_swapchain_destroy(vulkan_context* context)
    vkDestroySwapchainKHR(context->device.logical_device, context->swapchain.handle, context->allocator);
 }
 
-static b32 vulkan_swapchain_present(vulkan_context* context, u32 present_image_index, VkSemaphore* queue_complete_semaphore)
+static bool vulkan_swapchain_present(vulkan_context* context, u32 present_image_index, VkSemaphore* queue_complete_semaphore)
 {
    VkPresentInfoKHR info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
    info.pWaitSemaphores = queue_complete_semaphore;

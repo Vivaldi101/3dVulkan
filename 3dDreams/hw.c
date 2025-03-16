@@ -28,8 +28,8 @@ cache_align typedef struct hw
    arena vulkan_storage;
    arena vulkan_scratch;
    hw_timer timer;
-   b32(*platform_loop)();
-   b32 finished;
+   bool(*platform_loop)();
+   bool finished;
 } hw;
 
 //#include "d3d12.c"

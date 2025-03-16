@@ -3,7 +3,7 @@
 
 #include "arena.h"
 
-static b32 vulkan_framebuffer_create(vulkan_context* context)
+static bool vulkan_framebuffer_create(vulkan_context* context)
 {
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {

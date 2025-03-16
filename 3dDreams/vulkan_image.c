@@ -3,7 +3,7 @@
 
 #include "arena.h"
 
-static b32 vulkan_image_view_create(vulkan_context* context, vulkan_image* image, vulkan_image_info* image_info);
+static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* image, vulkan_image_info* image_info);
 
 static vulkan_image vulkan_image_create(arena* storage, vulkan_context* context, vulkan_image_info* image_info, u32 w, u32 h)
 {
@@ -53,7 +53,7 @@ static vulkan_image vulkan_image_create(arena* storage, vulkan_context* context,
    return result;
 }
 
-static b32 vulkan_image_view_create(vulkan_context* context, vulkan_image* image, vulkan_image_info* image_info)
+static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* image, vulkan_image_info* image_info)
 {
    VkImageViewCreateInfo image_view_info = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
    image_view_info.image = image->handle;

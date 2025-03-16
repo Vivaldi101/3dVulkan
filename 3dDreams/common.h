@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "hw.h"
 
 typedef uint8_t         u8;
-typedef int32_t         b32;
 typedef int32_t         i32;
 typedef uint32_t        u32;
 typedef uint64_t        u64;
@@ -37,8 +37,8 @@ typedef struct
 #define iff(p, q) (p) == (q)
 #define implies(p, q) (!(p) || (q))
 
-//#define cache_align __declspec(align(64))    // assume 64 byte cacheline size.
-#define cache_align 
+#define cache_align __declspec(align(64))    // assume 64 byte cacheline size.
+//#define cache_align 
 
 #define array_clear(a) memset((a), 0, array_count(a)*sizeof(*(a)))
 #define array_count(a) sizeof((a)) / sizeof((a)[0])
@@ -55,8 +55,6 @@ typedef struct
 #define GB(g) (1024ull)*MB((g))
 
 static const u64 default_arena_size = KB(64);
-
-enum {false, true};
 
 #define clamp(t, min, max) ((t) <= (min) ? (min) : (t) >= (max) ? (max) : (t))
 

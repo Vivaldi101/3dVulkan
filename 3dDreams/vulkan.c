@@ -35,7 +35,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
    return VK_FALSE;
 }
 
-static b32 vulkan_command_buffers_create(vulkan_context* context)
+static bool vulkan_command_buffers_create(vulkan_context* context)
 {
    pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
 
@@ -58,7 +58,7 @@ static void vulkan_resize(vulkan_context* context, u32 width, u32 height)
    context->framebuffer_size_generation++;
 }
 
-static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
+static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
 {
    u32 ext_count = 0;
    if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
@@ -138,12 +138,12 @@ static b32 vulkan_create_renderer(arena scratch, vulkan_context* context, const 
 }
 
 // TODO: This
-static b32 vulkan_result(VkResult result)
+static bool vulkan_result(VkResult result)
 {
    return result == VK_SUCCESS;
 }
 
-static b32 vulkan_frame_begin(vulkan_context* context)
+static bool vulkan_frame_begin(vulkan_context* context)
 {
    if(context->do_recreate_swapchain)
       if(!vulkan_result(vkDeviceWaitIdle(context->device.logical_device)))
@@ -196,7 +196,7 @@ static b32 vulkan_frame_begin(vulkan_context* context)
    return true;
 }
 
-static b32 vulkan_frame_end(vulkan_context* context)
+static bool vulkan_frame_end(vulkan_context* context)
 {
    VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
 
@@ -246,9 +246,9 @@ void vulkan_present(vulkan_context* context)
    vulkan_frame_end(context);
 }
 
-b32 vulkan_initialize(hw* hw)
+bool vulkan_initialize(hw* hw)
 {
-   b32 result = true;
+   bool result = true;
    pre(hw->renderer.window.handle);
 
    vulkan_context* context = new(&hw->vulkan_storage, vulkan_context);
@@ -272,7 +272,7 @@ b32 vulkan_initialize(hw* hw)
    return result;
 }
 
-b32 vulkan_deinitialize(hw* hw)
+bool vulkan_deinitialize(hw* hw)
 {
    vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
 

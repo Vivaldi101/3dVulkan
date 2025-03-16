@@ -1,7 +1,7 @@
 #include "vulkan.h"
 #include "common.h"
 
-static b32 vulkan_fence_wait(vulkan_context* context, vulkan_fence* fence, u64 timeout)
+static bool vulkan_fence_wait(vulkan_context* context, vulkan_fence* fence, u64 timeout)
 {
    if(fence->is_signaled)
       return true;
@@ -18,7 +18,7 @@ static b32 vulkan_fence_wait(vulkan_context* context, vulkan_fence* fence, u64 t
    return true;
 }
 
-static b32 vulkan_fence_reset(vulkan_context* context, vulkan_fence* fence)
+static bool vulkan_fence_reset(vulkan_context* context, vulkan_fence* fence)
 {
    // already reset
    if(!fence->is_signaled)
@@ -31,7 +31,7 @@ static b32 vulkan_fence_reset(vulkan_context* context, vulkan_fence* fence)
    return true;
 }
 
-static b32 vulkan_fence_create(vulkan_context* context)
+static bool vulkan_fence_create(vulkan_context* context)
 {
    for(u32 i = 0; i < VULKAN_MAX_FRAME_BUFFER_COUNT; ++i)
    {

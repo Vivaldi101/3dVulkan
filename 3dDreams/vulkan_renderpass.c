@@ -14,7 +14,7 @@ static VkAttachmentDescription vulkan_default_attachment(vulkan_context* context
    return attachment;
 }
 
-static b32 vulkan_renderpass_create(vulkan_context* context)
+static bool vulkan_renderpass_create(vulkan_context* context)
 {
    VkSubpassDescription subpass = {};
    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
