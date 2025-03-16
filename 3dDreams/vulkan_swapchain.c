@@ -5,7 +5,6 @@ static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* cont
 {
    VkExtent2D swapchain_extent = {context->framebuffer_width, context->framebuffer_height};
    vulkan_swapchain* swapchain = &context->swapchain;
-   swapchain->max_image_count = 2; // triple buffering
 
    for(u32 i = 0; i < swapchain->info.surface_format_count; ++i)
    {
@@ -60,6 +59,12 @@ static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* cont
 
    if(image_count > VULKAN_MAX_FRAME_BUFFER_COUNT)
       return false;
+
+   // atleast double buffering
+   if(image_count < 2)
+      return false;
+
+   swapchain->max_frames_in_flight_count = image_count - 1;
 
    VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
    swapchain_info.surface = context->surface;
@@ -239,6 +244,6 @@ static bool vulkan_swapchain_present(vulkan_context* context, u32 present_image_
    else if(result != VK_SUCCESS)
       return false;
 
-   context->current_frame_index = (context->current_frame_index + 1) % context->swapchain.max_image_count;
+   context->current_frame_index = (context->current_frame_index + 1) % context->swapchain.max_frames_in_flight_count;
    return true;
 }

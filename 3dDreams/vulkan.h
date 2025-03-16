@@ -127,7 +127,7 @@ align_struct vulkan_swapchain
    VkPresentModeKHR present_mode;
    VkSwapchainKHR handle;
 
-   u32 max_image_count;
+   u32 max_frames_in_flight_count;
    u32 image_count;
 
    VkImage* images;
