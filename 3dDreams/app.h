@@ -4,7 +4,7 @@
 #include "common.h"
 
 #if 1
-cache_align typedef struct app_input
+align_struct app_input
 {
    hw_input_type input_type;
    union { i32 pos[2]; u64 key; } ;

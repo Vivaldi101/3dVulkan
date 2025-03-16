@@ -6,7 +6,7 @@
 
 #define MAX_ARGV 32
 
-cache_align typedef struct hw_renderer
+align_struct hw_renderer
 {
    void* backends[renderer_count];
    void(*frame_present)(void* renderer);
@@ -16,13 +16,13 @@ cache_align typedef struct hw_renderer
    hw_window window;
 } hw_renderer;
 
-cache_align typedef struct hw_timer
+align_struct hw_timer
 {
    void(*sleep)(u32 ms);
    u32(*time)();
 } hw_timer;
 
-cache_align typedef struct hw
+align_struct hw
 {
    hw_renderer renderer;
    arena vulkan_storage;

@@ -40,23 +40,23 @@ typedef enum vulkan_command_buffer_state
    COMMAND_BUFFER_NOT_ALLOCATED,
 } vulkan_command_buffer_state;
 
-cache_align typedef struct vulkan_fence
+align_struct vulkan_fence
 {
    VkFence handle;
    bool is_signaled;
 } vulkan_fence;
 
-cache_align typedef struct vulkan_viewport
+align_struct vulkan_viewport
 {
    i32 x,y,w,h;
 } vulkan_viewport;
 
-cache_align typedef struct vulkan_command_buffer
+align_struct vulkan_command_buffer
 {
    VkCommandBuffer handle;
 } vulkan_command_buffer;
 
-cache_align typedef struct vulkan_renderpass
+align_struct vulkan_renderpass
 {
    VkRenderPass handle;
    vulkan_viewport viewport;
@@ -71,7 +71,7 @@ cache_align typedef struct vulkan_renderpass
    vulkan_renderpass_state state;
 } vulkan_renderpass;
 
-cache_align typedef struct vulkan_framebuffer
+align_struct vulkan_framebuffer
 {
    VkFramebuffer handle;
    u32 attachment_count;
@@ -79,7 +79,7 @@ cache_align typedef struct vulkan_framebuffer
    vulkan_renderpass* renderpass;
 } vulkan_framebuffer;
 
-cache_align typedef struct vulkan_image_info
+align_struct vulkan_image_info
 {
    VkImageType type;
    VkFormat format;
@@ -90,7 +90,7 @@ cache_align typedef struct vulkan_image_info
    bool is_view;
 } vulkan_image_info;
 
-cache_align typedef struct vulkan_image
+align_struct vulkan_image
 {
    VkImage handle;
    VkDeviceMemory memory;
@@ -99,7 +99,7 @@ cache_align typedef struct vulkan_image
    u32 height;
 } vulkan_image;
 
-cache_align typedef struct vulkan_swapchain_info
+align_struct vulkan_swapchain_info
 {
    VkSurfaceCapabilitiesKHR surface_capabilities;
 
@@ -120,7 +120,7 @@ enum
    QUEUE_INDEX_COUNT,
 };
 
-cache_align typedef struct vulkan_swapchain
+align_struct vulkan_swapchain
 {
    vulkan_framebuffer framebuffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
 	VkSurfaceFormatKHR image_format;
@@ -139,7 +139,7 @@ cache_align typedef struct vulkan_swapchain
    vulkan_swapchain_info info;
 } vulkan_swapchain;
 
-cache_align typedef struct vulkan_device
+align_struct vulkan_device
 {
    VkPhysicalDevice physical_device;
    VkDevice logical_device;
@@ -162,7 +162,7 @@ cache_align typedef struct vulkan_device
    bool use_single_family_queue;
 } vulkan_device;
 
-cache_align typedef struct vulkan_context
+align_struct vulkan_context
 {
    arena* storage;
 

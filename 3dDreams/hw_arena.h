@@ -37,7 +37,7 @@ static VirtualReleasePtr global_release;
 #define arena_index(arena, type, index) ((type*)(arena)->base + index)
 
 // TODO: arena chaining and or lookups
-cache_align typedef struct hw_arena
+align_struct hw_arena
 {
    byte* base;
    usize max_size, bytes_used;

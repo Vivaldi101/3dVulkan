@@ -7,7 +7,7 @@
 #include "common.h"
 #include "arena.h"
 
-cache_align typedef struct hw_window
+align_struct hw_window
 {
    HWND(*open)(const char* title, int x, int y, int width, int height);
    void (*close)(struct hw_window window);

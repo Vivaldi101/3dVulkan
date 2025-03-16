@@ -37,8 +37,9 @@ typedef struct
 #define iff(p, q) (p) == (q)
 #define implies(p, q) (!(p) || (q))
 
-#define cache_align __declspec(align(64))    // assume 64 byte cacheline size.
-//#define cache_align 
+#define custom_alignment 64
+#define align_struct __declspec(align(custom_alignment)) typedef struct
+#define align_union __declspec(align(custom_alignment)) typedef union
 
 #define array_clear(a) memset((a), 0, array_count(a)*sizeof(*(a)))
 #define array_count(a) sizeof((a)) / sizeof((a)[0])

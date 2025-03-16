@@ -15,7 +15,7 @@ enum { G_PLANE_FRONT, G_PLANE_BACK, G_PLANE_ON, G_PLANE_SPLIT };
 
 #define DEG_TO_RAD(degrees) ((degrees) * (3.14159265358979323846f / 180.0f))
 
-cache_align typedef union
+align_union
 { 
 #if defined(USE_SIMD)
    __declspec(align(16)) __m128 data;
@@ -31,7 +31,7 @@ cache_align typedef union
    };
 } vec4;
 
-cache_align typedef union
+align_union
 { 
    f32 data[3];
    struct
@@ -42,7 +42,7 @@ cache_align typedef union
    };
 } vec3;
 
-cache_align typedef union
+align_union
 { 
    f32 data[2];
    struct
@@ -55,7 +55,7 @@ cache_align typedef union
 typedef vec4 quat;
 
 // Assumes row-major storage
-cache_align typedef union
+align_union
 { 
 #if defined(USE_SIMD)
    __declspec(align(16)) vec4 rows[4];
@@ -167,9 +167,9 @@ static vec3 vec3_add(const vec3* a, const vec3* b)
 #define vec3_normalize(a) { f32 l = vec3_len((a)); (a).x /= l; (a).y /= l; (a).z /= l;}
 
 // normal and othogonal distance to the origin
-cache_align typedef struct g_plane { vec3 n; f32 d; } g_plane;
+align_struct g_plane { vec3 n; f32 d; } g_plane;
 
-cache_align typedef struct g_frustum { g_plane l,r,t,b,n,f; } g_frustum;
+align_struct g_frustum { g_plane l,r,t,b,n,f; } g_frustum;
 
 static int g_plane_classify_vertex_side(g_plane* plane, f32 vertex[3])
 {
