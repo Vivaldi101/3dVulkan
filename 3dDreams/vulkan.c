@@ -14,7 +14,8 @@
 #include "vulkan_fence.c"
 #include "vulkan_shader.c"
 
-#include "file_io.c"
+// TODO: pass these as function pointers from the platform
+#include "win32_file_io.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
