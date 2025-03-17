@@ -245,9 +245,7 @@ static bool vulkan_frame_end(vulkan_context* context)
 
 void vulkan_present(vulkan_context* context)
 {
-   if(!vulkan_frame_begin(context))
-      return;
-   vulkan_frame_end(context);
+   implies(vulkan_frame_begin(context), vulkan_frame_end(context));
 }
 
 bool vulkan_initialize(hw* hw)
