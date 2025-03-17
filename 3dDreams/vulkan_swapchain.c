@@ -64,6 +64,7 @@ static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* cont
    if(image_count < 2)
       return false;
 
+   // one image on display
    swapchain->max_frames_in_flight_count = image_count - 1;
 
    VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};

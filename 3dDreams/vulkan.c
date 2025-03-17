@@ -12,6 +12,9 @@
 #include "vulkan_command_buffer.c"
 #include "vulkan_swapchain.c"
 #include "vulkan_fence.c"
+#include "vulkan_shader.c"
+
+#include "file_io.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,

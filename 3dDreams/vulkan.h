@@ -8,12 +8,13 @@
 // other plats for vulkan
 #endif
 
+#include "common.h"
 #include <vulkan/vulkan.h>
 #include "arena.h"
 
 #pragma comment(lib,	"vulkan-1.lib")
 
-enum { VULKAN_MAX_FRAME_BUFFER_COUNT = 3 };
+enum { VULKAN_MAX_FRAME_BUFFER_COUNT = 3, OBJECT_SHADER_COUNT = 2 };
 
 #define VK_VALID(v) (v) == VK_SUCCESS
 
@@ -161,6 +162,25 @@ align_struct vulkan_device
 
    bool use_single_family_queue;
 } vulkan_device;
+
+align_struct vulkan_shader_stage
+{
+   VkShaderModuleCreateInfo module_create_info;
+   VkPipelineShaderStageCreateInfo pipeline_create_info;
+   VkShaderModule handle;
+} vulkan_shader_stage;
+
+align_struct vulkan_pipeline
+{
+	VkPipeline handle;
+	VkPipelineLayout layout;
+} vulkan_pipeline;
+
+align_struct vulkan_shader
+{
+   vulkan_shader_stage stages[OBJECT_SHADER_COUNT];
+   vulkan_pipeline pipeline;
+} vulkan_shader;
 
 align_struct vulkan_context
 {
