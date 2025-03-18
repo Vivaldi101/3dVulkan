@@ -176,16 +176,17 @@ align_struct vulkan_pipeline
 	VkPipelineLayout layout;
 } vulkan_pipeline;
 
-align_struct vulkan_shader
+align_struct vulkan_object_shader
 {
    vulkan_shader_stage stages[OBJECT_SHADER_COUNT];
    vulkan_pipeline pipeline;
-} vulkan_shader;
+} vulkan_object_shader;
 
 align_struct vulkan_context
 {
    arena* storage;
 
+   vulkan_object_shader shader;
    vulkan_device device;
    vulkan_swapchain swapchain;
    vulkan_renderpass main_renderpass;

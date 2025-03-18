@@ -2,6 +2,9 @@
 #include "common.h"
 #include "vulkan.h"
 
+// TODO: pass these as function pointers from the platform
+#include "win32_file_io.c"
+
 // unity build
 #include "vulkan_common.c"
 #include "vulkan_device.c"
@@ -14,8 +17,6 @@
 #include "vulkan_fence.c"
 #include "vulkan_shader.c"
 
-// TODO: pass these as function pointers from the platform
-#include "win32_file_io.c"
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
 static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
@@ -136,6 +137,9 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
       return false;
 
    if(!vulkan_fence_create(context))
+      return false;
+
+   if(!vulkan_shader_create(context))
       return false;
 
    return true;
