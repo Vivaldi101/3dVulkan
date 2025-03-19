@@ -26,7 +26,7 @@ static file_result vulkan_shader_spv_read(vulkan_context* context, const char* s
    }
 
    wsprintf(shader_name, shader_dir, array_count(shader_name));
-   wsprintf(shader_name, "%sassets\\shaders\\%s.%s.spv", shader_dir, BUILTIN_SHADER_NAME, type_name, array_count(shader_name));
+   wsprintf(shader_name, "%sbin\\assets\\shaders\\%s.%s.spv", shader_dir, BUILTIN_SHADER_NAME, type_name, array_count(shader_name));
 
    return win32_file_read(context->storage, shader_name);
 }
@@ -68,6 +68,7 @@ static bool vulkan_shader_create(vulkan_context* context)
       if(shader_file.file_size == 0)
          return false;
 
+      context->shader.stages[i].module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
       context->shader.stages[i].module_create_info.codeSize = shader_file.file_size;
       context->shader.stages[i].module_create_info.pCode = (u32*)shader_file.data;
 
