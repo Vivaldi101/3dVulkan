@@ -4,7 +4,7 @@
 
 align_struct file_result
 {
-   byte* data;
+   char* data;
 	size file_size;
 } file_result;
 

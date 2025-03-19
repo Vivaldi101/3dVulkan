@@ -4,21 +4,40 @@
 // This must match what is in the shader_build.bat file
 #define BUILTIN_SHADER_NAME "Builtin.ObjectShader"
 
-// TODO: Format file names
-// TODO: ATM expects shaders located in current working dir
-static file_result vulkan_shader_read_file(vulkan_context* context, const char* shader_name, VkShaderStageFlagBits stage)
+// This should be in a scratch arena
+static char global_shader_dir_buffer[MAX_PATH];
+
+// Reads the spv files
+static file_result vulkan_shader_spv_read(vulkan_context* context, const char* shader_dir, VkShaderStageFlagBits type)
 {
+   char* type_name;
+   char shader_name[MAX_PATH];
+
+   switch(type)
+   {
+      default:
+         type_name = "invalid";
+      case VK_SHADER_STAGE_VERTEX_BIT:
+         type_name = "vert";
+         break;
+      case VK_SHADER_STAGE_FRAGMENT_BIT:
+         type_name = "frag";
+         break;
+   }
+
+   wsprintf(shader_name, shader_dir, array_count(shader_name));
+   wsprintf(shader_name, "%sassets\\shaders\\%s.%s.spv", shader_dir, BUILTIN_SHADER_NAME, type_name, array_count(shader_name));
+
    return win32_file_read(context->storage, shader_name);
 }
 
 static file_result vulkan_shader_directory()
 {
    file_result result = {};
-   char shader_dir_buffer[MAX_PATH];
-   GetCurrentDirectory(MAX_PATH, shader_dir_buffer);
+   GetCurrentDirectory(MAX_PATH, global_shader_dir_buffer);
 
-   result.data = (byte*)shader_dir_buffer;
-   result.file_size = strlen(shader_dir_buffer);
+   result.data = global_shader_dir_buffer;
+   result.file_size = strlen(global_shader_dir_buffer);
 
    u32 count = 0;
    for(size i = result.file_size-1; i-- >= 0;)
@@ -45,7 +64,7 @@ static bool vulkan_shader_create(vulkan_context* context)
 
    for(u32 i = 0; i < OBJECT_SHADER_COUNT; ++i)
    {
-      file_result shader_file = vulkan_shader_read_file(context, BUILTIN_SHADER_NAME, shader_type_bits[i]);
+      file_result shader_file = vulkan_shader_spv_read(context, shader_dir.data, shader_type_bits[i]);
       if(shader_file.file_size == 0)
          return false;
 
