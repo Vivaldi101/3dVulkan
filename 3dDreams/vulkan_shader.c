@@ -94,4 +94,6 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
 
 static void vulkan_shader_use(vulkan_context* context)
 {
+   u32 index = context->current_image_index;
+   vulkan_pipeline_bind(context->graphics_command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, context->shader.pipeline.handle);
 }
