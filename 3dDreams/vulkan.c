@@ -140,11 +140,13 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    if(!vulkan_fence_create(context))
       return false;
 
-   if(!vulkan_shader_create(context))
+   if(!vulkan_shader_create(scratch, context))
       return false;
 
    if(!vulkan_pipeline_create(context))
       return false;
+
+   scratch_clear(scratch);
 
    return true;
 }

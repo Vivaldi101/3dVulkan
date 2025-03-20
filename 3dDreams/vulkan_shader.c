@@ -4,9 +4,6 @@
 // This must match what is in the shader_build.bat file
 #define BUILTIN_SHADER_NAME "Builtin.ObjectShader"
 
-// This should be in a scratch arena
-static char global_shader_dir_buffer[MAX_PATH];
-
 // Reads the spv files
 static file_result vulkan_shader_spv_read(vulkan_context* context, const char* shader_dir, VkShaderStageFlagBits type)
 {
@@ -31,13 +28,18 @@ static file_result vulkan_shader_spv_read(vulkan_context* context, const char* s
    return win32_file_read(context->storage, shader_name);
 }
 
-static file_result vulkan_shader_directory()
+static file_result vulkan_shader_directory(arena* storage)
 {
    file_result result = {};
-   GetCurrentDirectory(MAX_PATH, global_shader_dir_buffer);
 
-   result.data = global_shader_dir_buffer;
-   result.file_size = strlen(global_shader_dir_buffer);
+   if(arena_size(storage) < MAX_PATH)
+      return (file_result){0};
+
+   char* file_buffer = new(storage, char, MAX_PATH);
+   GetCurrentDirectory(MAX_PATH, file_buffer);
+
+   result.data = file_buffer;
+   result.file_size = strlen(file_buffer);
 
    u32 count = 0;
    for(size i = result.file_size-1; i-- >= 0;)
@@ -56,11 +58,11 @@ static file_result vulkan_shader_directory()
    return result;
 }
 
-static bool vulkan_shader_create(vulkan_context* context)
+static bool vulkan_shader_create(arena scratch, vulkan_context* context)
 {
    VkShaderStageFlagBits shader_type_bits[OBJECT_SHADER_COUNT] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
 
-   file_result shader_dir = vulkan_shader_directory();
+   file_result shader_dir = vulkan_shader_directory(&scratch);
 
    for(u32 i = 0; i < OBJECT_SHADER_COUNT; ++i)
    {

@@ -24,6 +24,8 @@
 #define arena_end_count(p, a, n) (void*)(p)!=(a)->end?(p)+(n):(p)
 #define scratch_end_count(p, a, n) (void*)(p)!=(a).end?(p)+(n):(p)
 
+#define scratch_clear(a) memset((a).beg, 0, scratch_size((a)))
+
 // TODO: Different news for scratch and storage arenas
 
 #define newx(a,b,c,d,e,...) e
