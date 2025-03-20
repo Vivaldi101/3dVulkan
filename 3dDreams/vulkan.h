@@ -41,6 +41,18 @@ typedef enum vulkan_command_buffer_state
    COMMAND_BUFFER_NOT_ALLOCATED,
 } vulkan_command_buffer_state;
 
+align_struct vulkan_buffer
+{
+   u64 total_size;
+   u64 offset;
+   VkBuffer handle;
+   VkBufferUsageFlagBits usage_flags;
+   VkDeviceMemory memory;
+   bool bind_on_create;
+   i32 memory_index;
+   u32 memory_flags;
+} vulkan_buffer;
+
 align_struct vulkan_fence
 {
    VkFence handle;
@@ -186,8 +198,10 @@ align_struct vulkan_context
 {
    arena* storage;
 
-   vulkan_pipeline pipeline;
+   vulkan_buffer vertex_buffer;
+   vulkan_buffer index_buffer;
 
+   vulkan_pipeline pipeline;
    vulkan_object_shader shader;
    vulkan_device device;
    vulkan_swapchain swapchain;

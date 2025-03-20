@@ -17,6 +17,7 @@
 #include "vulkan_fence.c"
 #include "vulkan_pipeline.c"
 #include "vulkan_shader.c"
+#include "vulkan_buffer.c"
 
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
@@ -62,6 +63,31 @@ static void vulkan_resize(vulkan_context* context, u32 width, u32 height)
    context->framebuffer_width = width;
    context->framebuffer_height = height;
    context->framebuffer_size_generation++;
+}
+
+static bool vulkan_buffers_create(vulkan_context* context)
+{
+   VkMemoryPropertyFlagBits memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+   u64 vertex_buffer_size = MB(64);
+
+   context->vertex_buffer.memory_flags = memory_flags;
+   context->vertex_buffer.total_size = vertex_buffer_size;
+   context->vertex_buffer.usage_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
+   context->vertex_buffer.bind_on_create = true;
+
+   if(!vulkan_buffer_create(context, &context->vertex_buffer))
+      return false;
+
+   u64 index_buffer_size = MB(64);
+   context->index_buffer.memory_flags = memory_flags;
+   context->index_buffer.total_size = index_buffer_size;
+   context->index_buffer.usage_flags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
+   context->index_buffer.bind_on_create = true;
+
+   if(!vulkan_buffer_create(context, &context->index_buffer))
+      return false;
+
+   return true;
 }
 
 static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
@@ -141,6 +167,9 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
       return false;
 
    if(!vulkan_shader_create(scratch, context))
+      return false;
+
+   if(!vulkan_buffers_create(context))
       return false;
 
    scratch_clear(scratch);
