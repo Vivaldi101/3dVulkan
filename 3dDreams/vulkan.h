@@ -186,6 +186,8 @@ align_struct vulkan_context
 {
    arena* storage;
 
+   vulkan_pipeline pipeline;
+
    vulkan_object_shader shader;
    vulkan_device device;
    vulkan_swapchain swapchain;

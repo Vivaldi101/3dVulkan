@@ -86,6 +86,9 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
       context->shader.stages[i].pipeline_create_info.pName = "main";
    }
 
+   if(!vulkan_pipeline_create(context))
+      return false;
+
    return true;
 }
 

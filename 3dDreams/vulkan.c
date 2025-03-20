@@ -15,8 +15,8 @@
 #include "vulkan_command_buffer.c"
 #include "vulkan_swapchain.c"
 #include "vulkan_fence.c"
-#include "vulkan_shader.c"
 #include "vulkan_pipeline.c"
+#include "vulkan_shader.c"
 
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
@@ -141,9 +141,6 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
       return false;
 
    if(!vulkan_shader_create(scratch, context))
-      return false;
-
-   if(!vulkan_pipeline_create(context))
       return false;
 
    scratch_clear(scratch);

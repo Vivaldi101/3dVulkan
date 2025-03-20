@@ -42,6 +42,11 @@ align_union
    };
 } vec3;
 
+align_struct
+{ 
+   vec3 vertex;
+} vertex3;
+
 align_union
 { 
    f32 data[2];
