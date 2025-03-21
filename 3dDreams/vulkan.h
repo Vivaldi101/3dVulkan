@@ -46,11 +46,11 @@ align_struct vulkan_buffer
    u64 total_size;
    u64 offset;
    VkBuffer handle;
-   VkBufferUsageFlagBits usage_flags;
+   VkBufferUsageFlags usage_flags;
    VkDeviceMemory memory;
    bool bind_on_create;
    i32 memory_index;
-   u32 memory_flags;
+   VkMemoryPropertyFlags memory_flags;
 } vulkan_buffer;
 
 align_struct vulkan_fence
@@ -192,7 +192,6 @@ align_struct vulkan_pipeline
 align_struct vulkan_object_shader
 {
    vulkan_shader_stage stages[OBJECT_SHADER_COUNT];
-   vulkan_pipeline pipeline;
 } vulkan_object_shader;
 
 align_struct vulkan_context

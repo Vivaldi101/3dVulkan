@@ -23,7 +23,7 @@ static file_result vulkan_shader_spv_read(vulkan_context* context, const char* s
    }
 
    wsprintf(shader_name, shader_dir, array_count(shader_name));
-   wsprintf(shader_name, "%sbin\\assets\\shaders\\%s.%s.spv", shader_dir, BUILTIN_SHADER_NAME, type_name, array_count(shader_name));
+   wsprintf(shader_name, "%sbin\\assets\\shaders\\%s.%s.spv", shader_dir, BUILTIN_SHADER_NAME, type_name);
 
    return win32_file_read(context->storage, shader_name);
 }
@@ -95,5 +95,5 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
 static void vulkan_shader_use(vulkan_context* context)
 {
    u32 index = context->current_image_index;
-   vulkan_pipeline_bind(context->graphics_command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, context->shader.pipeline.handle);
+   vulkan_pipeline_bind(context->graphics_command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline.handle);
 }

@@ -67,9 +67,9 @@ bool vulkan_pipeline_create(vulkan_context* context)
    multisample_info.alphaToOneEnable = VK_FALSE;
 
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-   depth_stencil_info.depthTestEnable = VK_TRUE;
-   depth_stencil_info.depthWriteEnable = VK_TRUE;
-   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;
+   depth_stencil_info.depthTestEnable = VK_FALSE;
+   depth_stencil_info.depthWriteEnable = VK_FALSE;
+   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_ALWAYS;
    depth_stencil_info.depthBoundsTestEnable = VK_FALSE;
    depth_stencil_info.stencilTestEnable = VK_FALSE;
 
@@ -85,10 +85,10 @@ bool vulkan_pipeline_create(vulkan_context* context)
    color_state.colorWriteMask = VK_COLOR_COMPONENT_A_BIT | VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;
 
    VkPipelineColorBlendStateCreateInfo color_blend_state_info = {VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
+   color_blend_state_info.logicOpEnable = VK_FALSE;
+   color_blend_state_info.logicOp = VK_LOGIC_OP_COPY;
    color_blend_state_info.attachmentCount = 1;
    color_blend_state_info.pAttachments = &color_state;
-   color_blend_state_info.logicOp = VK_LOGIC_OP_COPY;
-   color_blend_state_info.logicOpEnable = VK_FALSE;
 
    VkDynamicState dynamic_states[] = 
    {

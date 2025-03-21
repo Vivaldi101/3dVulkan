@@ -36,10 +36,10 @@ static bool vulkan_buffer_create(vulkan_context* context, vulkan_buffer* buffer)
    return true;
 }
 
-static void* vulkan_buffer_lock_memory(vulkan_context* context, vulkan_buffer* buffer)
+static void* vulkan_buffer_lock_memory(vulkan_context* context, vulkan_buffer* buffer, VkMemoryMapFlags flags)
 {
    void* memory = 0;
-   if(!VK_VALID(vkMapMemory(context->device.logical_device, buffer->memory, buffer->offset, buffer->total_size, buffer->memory_flags, &memory)))
+   if(!VK_VALID(vkMapMemory(context->device.logical_device, buffer->memory, buffer->offset, buffer->total_size, flags, &memory)))
       return 0;
 
    return memory;
@@ -50,36 +50,31 @@ static void vulkan_buffer_unlock_memory(vulkan_context* context, vulkan_buffer* 
    vkUnmapMemory(context->device.logical_device, buffer->memory);
 }
 
-static bool vulkan_buffer_copy(vulkan_context* context, VkBuffer source, VkBuffer dest, VkBufferCopy copy_region)
+static bool vulkan_buffer_copy(vulkan_context* context, VkBuffer dest, VkBuffer source, VkBufferCopy copy_region)
 {
    if(!VK_VALID(vkQueueWaitIdle(context->device.graphics_queue)))
       return false;
 
-   VkCommandBuffer temp;
+   VkCommandBuffer temp = 0;
    vulkan_command_buffer_allocate_and_begin_single_use(context, &temp, context->device.graphics_command_pool);
-
-   // TODO: Do this at the outset
-   //VkBufferCopy copy_region;
-   //copy_region.srcOffset = source_offset;
-   //copy_region.dstOffset = dest_offset;
-   //copy_region.size = copy_size;
 
    vkCmdCopyBuffer(temp, source, dest, 1, &copy_region);
 
    if(!vulkan_command_buffer_allocate_end_single_use(context, temp, context->device.graphics_command_pool, context->device.graphics_queue))
       return false;
+
+   return true;
 }
 
-#if 0
-// TODO: Support offset
-static void vulkan_buffer_load(vulkan_context* context, u64 size, const void* data)
+static void vulkan_buffer_load(vulkan_context* context, vulkan_buffer* buffer, VkMemoryMapFlags flags, u64 size, const void* data)
 {
-   void* memory = vulkan_buffer_lock_memory(context);
+   if(size > buffer->total_size)
+      return;
+
+   void* memory = vulkan_buffer_lock_memory(context, buffer, flags);
    if(!memory)
       return;
-   if(size > context->buffer.total_size)
-      return;
+
    memcpy(memory, data, size);
-   vulkan_buffer_unlock_memory(context);
+   vulkan_buffer_unlock_memory(context, buffer);
 }
-#endif

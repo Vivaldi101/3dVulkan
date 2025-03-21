@@ -67,7 +67,7 @@ static void vulkan_resize(vulkan_context* context, u32 width, u32 height)
 
 static bool vulkan_buffers_create(vulkan_context* context)
 {
-   VkMemoryPropertyFlagBits memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+   VkMemoryPropertyFlags memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
    u64 vertex_buffer_size = MB(64);
 
    context->vertex_buffer.memory_flags = memory_flags;
@@ -85,6 +85,31 @@ static bool vulkan_buffers_create(vulkan_context* context)
    context->index_buffer.bind_on_create = true;
 
    if(!vulkan_buffer_create(context, &context->index_buffer))
+      return false;
+
+   return true;
+}
+
+// TODO: Atm just uses offset of zero
+static bool vulkan_upload_data_to_buffer(vulkan_context* context, vulkan_buffer* buffer, u64 data_size, const void* data)
+{
+   vulkan_buffer staging_buffer = {};
+
+   staging_buffer.usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+   staging_buffer.memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+   staging_buffer.total_size = data_size;
+   staging_buffer.bind_on_create = true;
+   if(!vulkan_buffer_create(context, &staging_buffer))
+      return false;
+
+   vulkan_buffer_load(context, &staging_buffer, 0, data_size, data);
+
+   VkBufferCopy copy_region = {};
+   copy_region.srcOffset = 0;
+   copy_region.dstOffset = 0;
+   copy_region.size = data_size;
+
+   if(!vulkan_buffer_copy(context, buffer->handle, staging_buffer.handle, copy_region))
       return false;
 
    return true;
@@ -174,6 +199,28 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
 
    scratch_clear(scratch);
 
+   // TODO: test code
+   {
+      vertex3 verts[3] = {};
+
+      verts[0].vertex.x = 0.0f;
+      verts[0].vertex.y = -0.5f*2;
+
+      verts[1].vertex.x = 0.5f*2;
+      verts[1].vertex.y = 0.5f*2;
+
+      verts[2].vertex.x = 0;
+      verts[2].vertex.y = 0.5f*2;
+
+      u32 indexes[3] = {0,1,2};
+
+      if(!vulkan_upload_data_to_buffer(context, &context->vertex_buffer, sizeof(verts), verts))
+         return false;
+
+      if(!vulkan_upload_data_to_buffer(context, &context->index_buffer, sizeof(indexes), indexes))
+         return false;
+   }
+
    return true;
 }
 
@@ -206,7 +253,6 @@ static bool vulkan_frame_begin(vulkan_context* context)
 
    VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
    vulkan_command_buffer_begin(cmd_buffer, false, false, false);
-   context->command_buffer_state[context->current_image_index] = COMMAND_BUFFER_BEGIN_RECORDING;
 
    VkViewport viewport = {};
    viewport.x = 0.0f;
@@ -220,18 +266,30 @@ static bool vulkan_frame_begin(vulkan_context* context)
    scissor.offset.x = scissor.offset.y = 0;
    scissor.extent.width = context->framebuffer_width;
    scissor.extent.height = context->framebuffer_height;
+   context->main_renderpass.viewport.w = (i32)viewport.width;
+   context->main_renderpass.viewport.h = -(i32)viewport.height;
+   context->main_renderpass.r = 1.0f;
+   context->main_renderpass.g = 1.0f;
+   context->main_renderpass.b = 1.0f;
+   context->main_renderpass.a = 1.0f;
+
+   vulkan_renderpass_begin(&context->main_renderpass, cmd_buffer, &context->swapchain.framebuffers[context->current_image_index]);
+   vulkan_shader_use(context);
+
+   context->command_buffer_state[context->current_image_index] = COMMAND_BUFFER_BEGIN_RECORDING;
 
    vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
    vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-   context->main_renderpass.viewport.w = (i32)viewport.width;
-   context->main_renderpass.viewport.h = -(i32)viewport.height;
-   context->main_renderpass.r = 0.0f;
-   context->main_renderpass.g = 1.0f;
-   context->main_renderpass.b = 0.0f;
-   context->main_renderpass.a = 1.0f;
+   // TODO: test code
+   {
+      VkDeviceSize offsets[] = {0};
+      vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &context->vertex_buffer.handle, offsets);
 
-   vulkan_renderpass_begin(&context->main_renderpass, cmd_buffer, &context->swapchain.framebuffers[context->current_image_index]);
+      vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+
+      vkCmdDrawIndexed(cmd_buffer, 3, 1, 0, 0, 0);
+   }
 
    return true;
 }
