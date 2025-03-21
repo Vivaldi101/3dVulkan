@@ -228,7 +228,7 @@ static bool vulkan_frame_begin(vulkan_context* context)
    context->main_renderpass.viewport.h = -(i32)viewport.height;
    context->main_renderpass.r = 0.0f;
    context->main_renderpass.g = 1.0f;
-   context->main_renderpass.b = 1.0f;
+   context->main_renderpass.b = 0.0f;
    context->main_renderpass.a = 1.0f;
 
    vulkan_renderpass_begin(&context->main_renderpass, cmd_buffer, &context->swapchain.framebuffers[context->current_image_index]);

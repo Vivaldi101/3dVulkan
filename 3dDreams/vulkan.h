@@ -63,11 +63,12 @@ align_struct vulkan_viewport
 {
    i32 x,y,w,h;
 } vulkan_viewport;
-
+#if 0
 align_struct vulkan_command_buffer
 {
    VkCommandBuffer handle;
 } vulkan_command_buffer;
+#endif
 
 align_struct vulkan_renderpass
 {

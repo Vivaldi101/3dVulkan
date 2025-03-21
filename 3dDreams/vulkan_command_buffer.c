@@ -47,9 +47,9 @@ static bool vulkan_command_buffer_end(VkCommandBuffer buffer)
    return true;
 }
 
-static void vulkan_command_buffer_allocate_and_begin_single_use(vulkan_context* context, VkCommandBuffer buffer, VkCommandPool pool)
+static void vulkan_command_buffer_allocate_and_begin_single_use(vulkan_context* context, VkCommandBuffer* buffer, VkCommandPool pool)
 {
-   vulkan_command_buffer_allocate_primary(context, &buffer, pool, 1);
+   vulkan_command_buffer_allocate_primary(context, buffer, pool, 1);
    VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
    vulkan_command_buffer_begin(cmd_buffer, true, false, false);
 }

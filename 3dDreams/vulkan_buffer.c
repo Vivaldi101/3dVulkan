@@ -50,6 +50,26 @@ static void vulkan_buffer_unlock_memory(vulkan_context* context, vulkan_buffer* 
    vkUnmapMemory(context->device.logical_device, buffer->memory);
 }
 
+static bool vulkan_buffer_copy(vulkan_context* context, VkBuffer source, VkBuffer dest, VkBufferCopy copy_region)
+{
+   if(!VK_VALID(vkQueueWaitIdle(context->device.graphics_queue)))
+      return false;
+
+   VkCommandBuffer temp;
+   vulkan_command_buffer_allocate_and_begin_single_use(context, &temp, context->device.graphics_command_pool);
+
+   // TODO: Do this at the outset
+   //VkBufferCopy copy_region;
+   //copy_region.srcOffset = source_offset;
+   //copy_region.dstOffset = dest_offset;
+   //copy_region.size = copy_size;
+
+   vkCmdCopyBuffer(temp, source, dest, 1, &copy_region);
+
+   if(!vulkan_command_buffer_allocate_end_single_use(context, temp, context->device.graphics_command_pool, context->device.graphics_queue))
+      return false;
+}
+
 #if 0
 // TODO: Support offset
 static void vulkan_buffer_load(vulkan_context* context, u64 size, const void* data)
