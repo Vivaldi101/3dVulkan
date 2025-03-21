@@ -67,8 +67,8 @@ bool vulkan_pipeline_create(vulkan_context* context)
    multisample_info.alphaToOneEnable = VK_FALSE;
 
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-   depth_stencil_info.depthTestEnable = VK_FALSE;
-   depth_stencil_info.depthWriteEnable = VK_FALSE;
+   depth_stencil_info.depthTestEnable = VK_TRUE;
+   depth_stencil_info.depthWriteEnable = VK_TRUE;
    depth_stencil_info.depthCompareOp = VK_COMPARE_OP_ALWAYS;
    depth_stencil_info.depthBoundsTestEnable = VK_FALSE;
    depth_stencil_info.stencilTestEnable = VK_FALSE;

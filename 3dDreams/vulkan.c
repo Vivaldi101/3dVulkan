@@ -209,7 +209,7 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
       verts[1].vertex.x = 0.5f*2;
       verts[1].vertex.y = 0.5f*2;
 
-      verts[2].vertex.x = 0;
+      verts[2].vertex.x = -0.5f*2;
       verts[2].vertex.y = 0.5f*2;
 
       u32 indexes[3] = {0,1,2};
