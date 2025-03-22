@@ -24,7 +24,6 @@ static void debug_message(const char* format, ...)
    OutputDebugStringA(temp);
 }
 
-static u64 global_perf_counter_frequency;
 #include "hw.c"
 
 static void win32_sleep(u32 ms)
