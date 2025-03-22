@@ -60,13 +60,14 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
       case WM_CLOSE:
          PostQuitMessage(0);
          return 0;
+
       case WM_PAINT:
       {
          PAINTSTRUCT ps;
-         HDC hdc = BeginPaint(hwnd, &ps);
-         FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1)); // Default white background
+         BeginPaint(hwnd, &ps);
          EndPaint(hwnd, &ps);
-      } break;
+         return 0;
+      }
 
       case WM_SIZE:
          if(renderer)
