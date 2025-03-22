@@ -199,20 +199,23 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
 
    scratch_clear(scratch);
 
-   // TODO: test code
+   // TODO: test drawing code
    {
-      vertex3 verts[3] = {};
+      vertex3 verts[4] = {};
 
-      verts[0].vertex.x = 0.0f;
-      verts[0].vertex.y = -0.5f*2;
+      verts[0].vertex.x = -0.5f;
+      verts[0].vertex.y = -0.5f;
 
-      verts[1].vertex.x = 0.5f*2;
-      verts[1].vertex.y = 0.5f*2;
+      verts[1].vertex.x = 0.5f;
+      verts[1].vertex.y = -0.5f;
 
-      verts[2].vertex.x = -0.5f*2;
-      verts[2].vertex.y = 0.5f*2;
+      verts[2].vertex.x = 0.5f;
+      verts[2].vertex.y = 0.5f;
 
-      u32 indexes[3] = {0,1,2};
+      verts[3].vertex.x = -0.5f;
+      verts[3].vertex.y = 0.5f;
+
+      u32 indexes[6] = {0,1,2, 2,3,0};
 
       if(!vulkan_upload_data_to_buffer(context, &context->vertex_buffer, sizeof(verts), verts))
          return false;
@@ -288,7 +291,8 @@ static bool vulkan_frame_begin(vulkan_context* context)
 
       vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
 
-      vkCmdDrawIndexed(cmd_buffer, 3, 1, 0, 0, 0);
+      // TODO: get real count from the index buffer
+      vkCmdDrawIndexed(cmd_buffer, 6, 1, 0, 0, 0);
    }
 
    return true;
