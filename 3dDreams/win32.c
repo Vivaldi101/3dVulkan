@@ -71,11 +71,7 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
 
       case WM_SIZE:
          if(renderer)
-         {
-            int width = LOWORD(lparam);
-            int height = HIWORD(lparam);
-            renderer->frame_resize(renderer->backends[renderer->renderer_index], width, height);
-         }
+            renderer->frame_resize(renderer->backends[renderer->renderer_index], LOWORD(lparam), HIWORD(lparam));
          break;
    }
 
