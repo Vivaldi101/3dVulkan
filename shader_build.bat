@@ -1,5 +1,9 @@
 @echo off
 
+echo Running shader_build.bat > shader_build.log
+
+cd /d "%~dp0"
+
 IF NOT EXIST "%cd%\bin\assets\shaders" mkdir "%cd%\bin\assets\shaders"
 
 echo "Compiling shaders..."
