@@ -2,8 +2,6 @@
 #include "common.h"
 #include "app.h"
 
-#include <stdio.h>
-
 #define MAX_ARGV 32
 
 align_struct hw_renderer
@@ -60,6 +58,8 @@ static LARGE_INTEGER GetWallClock()
 
    return result;
 }
+
+static u64 global_perf_counter_frequency;
 
 static f32 GetSecondsElapsed(LARGE_INTEGER start, LARGE_INTEGER end)
 {
@@ -189,5 +189,5 @@ static char** cmd_parse(arena* storage, char* cmd, int* argc)
       arg_start = arg_end + 1;
    }
 
-   return result.data;
+   return (char**)result.data;
 }
