@@ -61,6 +61,9 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
          PostQuitMessage(0);
          return 0;
 
+      case WM_ERASEBKGND:
+         return 1; // prevent Windows from clearing the background with white
+
       case WM_PAINT:
       {
          PAINTSTRUCT ps;
@@ -70,9 +73,26 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
       }
 
       case WM_SIZE:
+      {
          if(renderer)
             renderer->frame_resize(renderer->backends[renderer->renderer_index], LOWORD(lparam), HIWORD(lparam));
-         break;
+         return 0;
+      }
+
+      case WM_DISPLAYCHANGE:
+      {
+         InvalidateRect(hwnd, NULL, FALSE);
+         UpdateWindow(hwnd);
+
+         RECT rect;
+         GetClientRect(hwnd, &rect);
+         int width = rect.right - rect.left;
+         int height = rect.bottom - rect.top;
+         if(renderer)
+            renderer->frame_resize(renderer->backends[renderer->renderer_index], width, height);
+
+         return 0;
+      }
    }
 
    return DefWindowProc(hwnd, umsg, wparam, lparam);
