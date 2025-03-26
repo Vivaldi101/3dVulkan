@@ -126,19 +126,12 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
    if(!vulkan_buffer_create(context, &context->shader.global_uniform_buffer))
       return false;
 
-   VkDescriptorSetLayout global_set_layouts[] = 
-   {
-      context->shader.global_descriptor_set_layout,
-      context->shader.global_descriptor_set_layout,
-      context->shader.global_descriptor_set_layout,
-   };
-
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
       VkDescriptorSetAllocateInfo set_allocate_info = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
       set_allocate_info.descriptorPool = context->shader.global_descriptor_pools[i];
       set_allocate_info.descriptorSetCount = 1;
-      set_allocate_info.pSetLayouts = global_set_layouts;
+      set_allocate_info.pSetLayouts = &context->shader.global_descriptor_set_layout;
 
       if(!VK_VALID(vkAllocateDescriptorSets(context->device.logical_device, &set_allocate_info, context->shader.global_descriptor_set + i)))
          return false;
@@ -159,9 +152,7 @@ static bool vulkan_shader_update_state(vulkan_context* context, u32 global_descr
    VkCommandBuffer buffer = context->graphics_command_buffers[image_index];
    VkDescriptorSet* desc_set = &context->shader.global_descriptor_set[image_index];
 
-   vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline.layout, global_descriptor_set_index, 1, desc_set, 0, 0);
-
-   u32 range = sizeof(context->shader.global_ubo);
+   u32 range = sizeof(global_uniform_object);
    u64 offset = 0;
 
    if(!vulkan_buffer_load(context, &context->shader.global_uniform_buffer, 0, range, &context->shader.global_ubo))
@@ -172,8 +163,10 @@ static bool vulkan_shader_update_state(vulkan_context* context, u32 global_descr
    buffer_info.offset = offset;
    buffer_info.range = range;
 
-   VkWriteDescriptorSet write_desc_set = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-   write_desc_set.dstSet = context->shader.global_descriptor_set[image_index];
+   VkWriteDescriptorSet write_desc_set = {};
+
+   write_desc_set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+   write_desc_set.dstSet = *desc_set;
    write_desc_set.dstBinding = 0;
    write_desc_set.dstArrayElement = 0;
    write_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -181,6 +174,8 @@ static bool vulkan_shader_update_state(vulkan_context* context, u32 global_descr
    write_desc_set.pBufferInfo = &buffer_info;
 
    vkUpdateDescriptorSets(context->device.logical_device, 1, &write_desc_set, 0, 0);
+
+   vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline.layout, global_descriptor_set_index, 1, desc_set, 0, 0);
 
    return true;
 }

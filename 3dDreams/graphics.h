@@ -88,18 +88,28 @@ static inline mat4 mat4_identity()
    return result;
 }
 
-static inline mat4 mat4_translate(f32 x, f32 y, f32 z)
+static inline mat4 mat4_scale(f32 s)
 {
    mat4 result = mat4_identity();
-
-   result.data[12] = x;  // Translate X
-   result.data[13] = y;  // Translate Y
-   result.data[14] = z;  // Translate Z
+   result.data[0] *= s;
+   result.data[5] *= s;
+   result.data[10] *= s;
+   result.data[15] *= s;
 
    return result;
 }
 
-#if 0
+static inline mat4 mat4_translate(vec3 t)
+{
+   mat4 result = mat4_identity();
+
+   result.data[12] = t.x;
+   result.data[13] = t.y;
+   result.data[14] = t.z;
+
+   return result;
+}
+
 static inline mat4 mat4_mul(mat4 a, mat4 b)
 {
    mat4 result = mat4_identity();
@@ -128,7 +138,6 @@ static inline mat4 mat4_mul(mat4 a, mat4 b)
 static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
 {
    mat4 result = mat4_identity();
-   result.data[14] = -1.0f;   // right-handed z so w = -z
 
    f32 ax = 2*n / (r-l);
    f32 bx = (r+l) / (r-l);
@@ -136,20 +145,53 @@ static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
    f32 ay = 2*n / (t-b);
    f32 by = (t+b) / (t-b);
 
-   //f32 z0 = -(f+n) / (f-n); // [-1,1]
-   //f32 z1 = -(2*f*n) / (f-n);
-   f32 z0 = f / (f-n);        // [0, 1]
-   f32 z1 = -(f*n) / (f-n);
+   f32 z0 = f / (f - n);
+   f32 z1 = -n * z0;
 
    result.data[0] = ax;
-   result.data[2] = bx;
    result.data[5] = ay;
-   result.data[7] = by;
+
+   result.data[8] = bx;
+   result.data[9] = by;
 
    result.data[10] = z0;
-   result.data[11] = z1;
+   result.data[11] = -1.0f;
+   result.data[14] = z1;
 
    return result;
+}
+
+static inline mat4 mat4_perspective_fov(f32 fovh, f32 aspect, f32 n, f32 f)
+{
+   f32 half_fovh_rad = DEG_TO_RAD(fovh)*0.5f;
+
+   f32 w = n*tanf(half_fovh_rad);
+
+   //return mat4_perspective(n, f, -w*aspect, w*aspect, -w, w);
+
+   mat4 result = mat4_identity();
+
+   //f32 ax = 2*n / (r-l);
+   //f32 bx = (r+l) / (r-l);
+
+   //f32 ay = 2*n / (t-b);
+   //f32 by = (t+b) / (t-b);
+
+   //f32 z0 = f / (f - n);
+   //f32 z1 = -n * z0;
+
+   result.data[0] = 1.0f / (aspect*half_fovh_rad);
+   result.data[5] = 1.0f / half_fovh_rad;
+
+   //result.data[8] = bx;
+   //result.data[9] = by;
+
+   result.data[10] = -((f + n) / (f - n));
+   result.data[11] = -1.0f;
+   result.data[14] = -((2.0f * f * n) / (f - n));
+
+   return result;
+
 }
 
 // TODO: Also maybe we should remove these defines and just do functions..

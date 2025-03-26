@@ -4,7 +4,7 @@
 #include "common.h"
 #include "graphics.h"
 
-align_struct global_uniform_object
+typedef struct global_uniform_object
 {
    mat4 view;
    mat4 proj;

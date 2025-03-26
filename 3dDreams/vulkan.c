@@ -203,24 +203,19 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    {
       vertex3 verts[4] = {};
 
-      const f32 z = 0.9f;
-      const f32 s = 1.0f;
+      const f32 s = 1.0f*0.5f;
 
       verts[0].vertex.x = -0.5f*s;
       verts[0].vertex.y = -0.5f*s;
-      verts[0].vertex.z = z;
 
       verts[1].vertex.x = 0.5f*s;
       verts[1].vertex.y = -0.5f*s;
-      verts[1].vertex.z = z;
 
       verts[2].vertex.x = 0.5f*s;
       verts[2].vertex.y = 0.5f*s;
-      verts[2].vertex.z = z;
 
       verts[3].vertex.x = -0.5f*s;
       verts[3].vertex.y = 0.5f*s;
-      verts[3].vertex.z = z;
 
       u32 indexes[6] = {0,1,2, 2,3,0};
 
@@ -298,13 +293,24 @@ static bool vulkan_frame_begin(vulkan_context* context)
 
 static bool vulkan_frame_update_state(vulkan_context* context, mat4 proj, mat4 view)
 {
-   VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
    vulkan_shader_pipeline_bind(context);
 
    context->shader.global_ubo.proj = proj;
    context->shader.global_ubo.view = view;
 
-   return vulkan_shader_update_state(context, 0);
+   if(!vulkan_shader_update_state(context, 0))
+      return false;
+
+   // TODO: test code
+   VkDeviceSize offsets[] = {0};
+   const VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
+   vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &context->vertex_buffer.handle, offsets);
+
+   vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+
+   vkCmdDrawIndexed(cmd_buffer, 6, 1, 0, 0, 0);
+
+   return true;
 }
 
 static bool vulkan_frame_end(vulkan_context* context)
@@ -334,10 +340,8 @@ static bool vulkan_frame_end(vulkan_context* context)
    submit_info.waitSemaphoreCount = 1;
    submit_info.pWaitSemaphores = &context->image_available_semaphores[context->current_frame_index];
 
-   VkPipelineStageFlags flags[1] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+   VkPipelineStageFlags flags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
    submit_info.pWaitDstStageMask = flags;
-
-   //assert(context->command_buffer_state[context->current_frame_index] == COMMAND_BUFFER_END_RECORDING);
 
    if(!VK_VALID(vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->in_flight_fences[context->current_frame_index].handle)))
       return false;
@@ -355,20 +359,13 @@ bool vulkan_present(vulkan_context* context)
    if(!vulkan_frame_begin(context))
       return false;
 
-   // Tets projection
-   mat4 proj = mat4_perspective(1.0f, 100.0f, -1.0f, 1.0f, 1.0f, -1.0f);
-   mat4 view = mat4_translate(0.0f, 0.0f, -10.0f);
+   // Test projection
+   //mat4 proj = mat4_perspective_fov(90.0f, (f32)context->framebuffer_width/context->framebuffer_height, 0.01f, 1000.f);
+   //static f32 z = -1.0f;
+   //z -= 0.01f;
+   //mat4 view = mat4_translate((vec3){0.0f, 0.0f, z});
    if(!vulkan_frame_update_state(context, mat4_identity(), mat4_identity()))
       return false;
-
-   // TODO: test code
-   VkDeviceSize offsets[] = {0};
-   const VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
-   vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &context->vertex_buffer.handle, offsets);
-
-   vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
-
-   vkCmdDrawIndexed(cmd_buffer, 6, 1, 0, 0, 0);
 
    if(!vulkan_frame_end(context))
       return false;
