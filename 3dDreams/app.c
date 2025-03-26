@@ -1,6 +1,7 @@
+#include "hw.h"
 #include "app.h"
 #include "graphics.h"
-#include "vulkan.h"
+#include "vulkan_ng.h"
 #include "arena.h"
 
 typedef struct app_some_type
@@ -67,13 +68,13 @@ void app_start(int argc, const char** argv, hw* hw)
    hw_window_open(hw, "App window", 0, 0, w, h);
 
    if(!vulkan_initialize(hw))
-		return;	// TODO: error message for vulkan init
+      hw_message("Could not open Vulkan");
 
    g_frustum_create(&frustum, (f32)w, (f32)h, 90.0f);
 
    hw_event_loop_start(hw, app_frame, app_input_handle);
    hw_window_close(hw);
 
-   if(!vulkan_deinitialize(hw))
-		return;	// TODO: error message for vulkan deinit
+   if(!vulkan_uninitialize(hw))
+      hw_message("Could not close Vulkan");
 }

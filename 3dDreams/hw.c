@@ -7,7 +7,7 @@
 align_struct hw_renderer
 {
    void* backends[renderer_count];
-   bool(*frame_present)(void* renderer);
+   void(*frame_present)(void* renderer);
    void(*frame_resize)(void* renderer, u32 width, u32 height);
    void(*frame_wait)(void* renderer);
    u32 renderer_index;
@@ -25,17 +25,20 @@ align_struct hw
    hw_renderer renderer;
    arena vulkan_storage;
    arena vulkan_scratch;
+   arena misc_storage;
    hw_timer timer;
    bool(*platform_loop)();
    bool finished;
 } hw;
 
-//#include "d3d12.c"
-#include "vulkan.c"
+#include "vulkan_ng.c"
 
-void hw_window_open(hw* hw, const char *title, int x, int y, int width, int height)
+void hw_window_open(hw* hw, const char *title, int x, int y, int w, int h)
 {
-   hw->renderer.window.handle = hw->renderer.window.open(title, x, y, width, height);
+   hw->renderer.window.handle = hw->renderer.window.open(title, x, y, w, h);
+   hw->renderer.window.width = w;
+   hw->renderer.window.height = h;
+
    inv(hw->renderer.window.handle);
    SetWindowLongPtr(hw->renderer.window.handle, GWLP_USERDATA, (LONG_PTR)&hw->renderer);
 }

@@ -399,7 +399,7 @@ bool vulkan_initialize(hw* hw)
    return result;
 }
 
-bool vulkan_deinitialize(hw* hw)
+bool vulkan_uninitialize(hw* hw)
 {
    vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
 

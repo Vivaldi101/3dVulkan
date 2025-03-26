@@ -11,6 +11,7 @@ align_struct hw_window
 {
    HWND(*open)(const char* title, int x, int y, int width, int height);
    void (*close)(struct hw_window window);
+   u32 width, height;
    HWND handle;
 } hw_window;
 
@@ -57,6 +58,22 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
 
    switch(umsg)
    {
+      case WM_CREATE:
+      {
+         CREATESTRUCT* pCreate = (CREATESTRUCT*)(lparam);
+         int width = pCreate->cx;
+         int height = pCreate->cy;
+
+         if(renderer)
+         {
+            renderer->window.width = width;
+            renderer->window.height = height;
+            renderer->frame_resize(renderer->backends[renderer->renderer_index], renderer->window.width, renderer->window.height);
+         }
+
+         return 0;
+      }
+
       case WM_CLOSE:
          PostQuitMessage(0);
          return 0;
@@ -75,7 +92,11 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
       case WM_SIZE:
       {
          if(renderer)
-            renderer->frame_resize(renderer->backends[renderer->renderer_index], LOWORD(lparam), HIWORD(lparam));
+         {
+            renderer->window.width = LOWORD(lparam);
+            renderer->window.height = HIWORD(lparam);
+            renderer->frame_resize(renderer->backends[renderer->renderer_index], renderer->window.width, renderer->window.height);
+         }
          return 0;
       }
 
@@ -243,10 +264,10 @@ static arena arena_new(size cap)
    void* base = hw_virtual_memory_reserve(cap);
    hw_virtual_memory_commit(base, cap);
 
-   if(!VirtualLock(base, cap))
+   //if(!VirtualLock(base, cap))
    {
-      hw_virtual_memory_release(base, cap);
-      return a;
+      //hw_virtual_memory_release(base, cap);
+      //return a;
    }
 
    // set the base pointer and size on success
@@ -273,7 +294,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
    arena base_storage = hw.vulkan_storage = arena_new(virtual_memory_amount);
    hw.vulkan_scratch = arena_new(virtual_memory_amount);
-   argv = cmd_parse(&hw.vulkan_storage, lpszCmdLine, &argc);
+   hw.misc_storage = arena_new(virtual_memory_amount);
+   argv = cmd_parse(&hw.misc_storage, lpszCmdLine, &argc);
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;

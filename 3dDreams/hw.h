@@ -2,6 +2,8 @@
 #define _HW_H
 
 #if _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 #define hw_message(p) { MessageBoxA(0, #p, "Assertion", MB_OK); __debugbreak(); }
 #pragma comment(lib,	"winmm.lib") // timers etc.
 #elif
