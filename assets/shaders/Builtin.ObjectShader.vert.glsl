@@ -5,8 +5,8 @@ layout(location = 0) in vec3 in_position;
 
 layout(set = 0, binding = 0) uniform global_uniform
 {
-    layout(row_major) mat4 proj;
-    layout(row_major) mat4 view;
+    mat4 proj;
+    mat4 view;
 } global_ubo;
 
 

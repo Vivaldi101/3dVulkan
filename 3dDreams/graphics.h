@@ -92,13 +92,14 @@ static inline mat4 mat4_translate(f32 x, f32 y, f32 z)
 {
    mat4 result = mat4_identity();
 
-   result.data[3] = x;
-   result.data[7] = y;
-   result.data[11] = z;
+   result.data[12] = x;  // Translate X
+   result.data[13] = y;  // Translate Y
+   result.data[14] = z;  // Translate Z
 
    return result;
 }
 
+#if 0
 static inline mat4 mat4_mul(mat4 a, mat4 b)
 {
    mat4 result = mat4_identity();

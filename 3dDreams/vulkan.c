@@ -203,7 +203,7 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    {
       vertex3 verts[4] = {};
 
-      const f32 z = 1.0f;
+      const f32 z = 0.9f;
       const f32 s = 1.0f;
 
       verts[0].vertex.x = -0.5f*s;
@@ -249,9 +249,9 @@ static bool vulkan_frame_begin(vulkan_context* context)
    if(context->framebuffer_size_generation != context->framebuffer_size_prev_generation)
    {
       if(!vulkan_result(vkDeviceWaitIdle(context->device.logical_device)))
-         return false;
+         return false;  // TODO: Diagnostics
       if(!vulkan_swapchain_recreate(context))
-         return false;
+         return false;  // TODO: Diagnostics
       return false;
    }
 
@@ -350,25 +350,30 @@ static bool vulkan_frame_end(vulkan_context* context)
    return true;
 }
 
-void vulkan_present(vulkan_context* context)
+bool vulkan_present(vulkan_context* context)
 {
-   if(vulkan_frame_begin(context))
-   {
-      mat4 proj = mat4_perspective(0.001f, 100.0f, -0.1f, 0.1f, 0.1f, -0.1f);
-      mat4 view = mat4_translate(0.0f, 0.0f, -5.0f);
-      vulkan_frame_update_state(context, mat4_identity(), mat4_identity());
+   if(!vulkan_frame_begin(context))
+      return false;
 
-      // TODO: test code
-      VkDeviceSize offsets[] = {0};
-      const VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
-      vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &context->vertex_buffer.handle, offsets);
+   // Tets projection
+   mat4 proj = mat4_perspective(1.0f, 100.0f, -1.0f, 1.0f, 1.0f, -1.0f);
+   mat4 view = mat4_translate(0.0f, 0.0f, -10.0f);
+   if(!vulkan_frame_update_state(context, mat4_identity(), mat4_identity()))
+      return false;
 
-      vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+   // TODO: test code
+   VkDeviceSize offsets[] = {0};
+   const VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
+   vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &context->vertex_buffer.handle, offsets);
 
-      vkCmdDrawIndexed(cmd_buffer, 6, 1, 0, 0, 0);
+   vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
 
-      vulkan_frame_end(context);
-   }
+   vkCmdDrawIndexed(cmd_buffer, 6, 1, 0, 0, 0);
+
+   if(!vulkan_frame_end(context))
+      return false;
+
+   return true;
 }
 
 bool vulkan_initialize(hw* hw)
