@@ -16,7 +16,7 @@ align_struct hw_window
 
 static void debug_message(const char* format, ...)
 {
-   char temp[1024];
+   static char temp[1024*4];
    va_list args;
    va_start(args, format);
    wvsprintfA(temp, format, args);

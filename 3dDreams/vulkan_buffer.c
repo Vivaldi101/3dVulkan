@@ -66,15 +66,17 @@ static bool vulkan_buffer_copy(vulkan_context* context, VkBuffer dest, VkBuffer 
    return true;
 }
 
-static void vulkan_buffer_load(vulkan_context* context, vulkan_buffer* buffer, VkMemoryMapFlags flags, u64 size, const void* data)
+static bool vulkan_buffer_load(vulkan_context* context, vulkan_buffer* buffer, VkMemoryMapFlags flags, u64 size, const void* data)
 {
    if(size > buffer->total_size)
-      return;
+      return false;
 
    void* memory = vulkan_buffer_lock_memory(context, buffer, flags);
    if(!memory)
-      return;
+      return false;
 
    memcpy(memory, data, size);
    vulkan_buffer_unlock_memory(context, buffer);
+
+   return true;
 }

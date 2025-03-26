@@ -16,8 +16,8 @@
 #include "vulkan_swapchain.c"
 #include "vulkan_fence.c"
 #include "vulkan_pipeline.c"
-#include "vulkan_shader.c"
 #include "vulkan_buffer.c"
+#include "vulkan_shader.c"
 
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
@@ -203,17 +203,24 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    {
       vertex3 verts[4] = {};
 
-      verts[0].vertex.x = -0.5f;
-      verts[0].vertex.y = -0.5f;
+      const f32 z = 1.0f;
+      const f32 s = 1.0f;
 
-      verts[1].vertex.x = 0.5f;
-      verts[1].vertex.y = -0.5f;
+      verts[0].vertex.x = -0.5f*s;
+      verts[0].vertex.y = -0.5f*s;
+      verts[0].vertex.z = z;
 
-      verts[2].vertex.x = 0.5f;
-      verts[2].vertex.y = 0.5f;
+      verts[1].vertex.x = 0.5f*s;
+      verts[1].vertex.y = -0.5f*s;
+      verts[1].vertex.z = z;
 
-      verts[3].vertex.x = -0.5f;
-      verts[3].vertex.y = 0.5f;
+      verts[2].vertex.x = 0.5f*s;
+      verts[2].vertex.y = 0.5f*s;
+      verts[2].vertex.z = z;
+
+      verts[3].vertex.x = -0.5f*s;
+      verts[3].vertex.y = 0.5f*s;
+      verts[3].vertex.z = z;
 
       u32 indexes[6] = {0,1,2, 2,3,0};
 
@@ -279,30 +286,30 @@ static bool vulkan_frame_begin(vulkan_context* context)
    context->main_renderpass.a = 1.0f;
 
    vulkan_renderpass_begin(&context->main_renderpass, cmd_buffer, &context->swapchain.framebuffers[context->current_image_index]);
-   vulkan_shader_use(context);
+   vulkan_shader_pipeline_bind(context);
 
    context->command_buffer_state[context->current_image_index] = COMMAND_BUFFER_BEGIN_RECORDING;
 
    vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
    vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-   // TODO: test code
-   {
-      VkDeviceSize offsets[] = {0};
-      vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &context->vertex_buffer.handle, offsets);
-
-      vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
-
-      // TODO: get real count from the index buffer
-      vkCmdDrawIndexed(cmd_buffer, 6, 1, 0, 0, 0);
-   }
-
    return true;
+}
+
+static bool vulkan_frame_update_state(vulkan_context* context, mat4 proj, mat4 view)
+{
+   VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
+   vulkan_shader_pipeline_bind(context);
+
+   context->shader.global_ubo.proj = proj;
+   context->shader.global_ubo.view = view;
+
+   return vulkan_shader_update_state(context, 0);
 }
 
 static bool vulkan_frame_end(vulkan_context* context)
 {
-   VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
+   const VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
 
    vulkan_renderpass_end(&context->main_renderpass, cmd_buffer);
 
@@ -345,7 +352,23 @@ static bool vulkan_frame_end(vulkan_context* context)
 
 void vulkan_present(vulkan_context* context)
 {
-   implies(vulkan_frame_begin(context), vulkan_frame_end(context));
+   if(vulkan_frame_begin(context))
+   {
+      mat4 proj = mat4_perspective(0.001f, 100.0f, -0.1f, 0.1f, 0.1f, -0.1f);
+      mat4 view = mat4_translate(0.0f, 0.0f, -5.0f);
+      vulkan_frame_update_state(context, mat4_identity(), mat4_identity());
+
+      // TODO: test code
+      VkDeviceSize offsets[] = {0};
+      const VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
+      vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &context->vertex_buffer.handle, offsets);
+
+      vkCmdBindIndexBuffer(cmd_buffer, context->index_buffer.handle, 0, VK_INDEX_TYPE_UINT32);
+
+      vkCmdDrawIndexed(cmd_buffer, 6, 1, 0, 0, 0);
+
+      vulkan_frame_end(context);
+   }
 }
 
 bool vulkan_initialize(hw* hw)

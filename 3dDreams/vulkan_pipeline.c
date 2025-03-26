@@ -117,8 +117,8 @@ bool vulkan_pipeline_create(vulkan_context* context)
    assembly_info.primitiveRestartEnable = VK_FALSE;
 
    VkPipelineLayoutCreateInfo pipeline_layout_info = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-   pipeline_layout_info.setLayoutCount = 0;  // 0 for now
-   pipeline_layout_info.pSetLayouts = 0;     // 0 for now
+   pipeline_layout_info.setLayoutCount = 1;
+   pipeline_layout_info.pSetLayouts = &context->shader.global_descriptor_set_layout;
 
    if(!VK_VALID(vkCreatePipelineLayout(context->device.logical_device, &pipeline_layout_info, context->allocator, &context->pipeline.layout)))
       return false;

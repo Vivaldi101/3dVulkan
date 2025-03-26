@@ -88,6 +88,17 @@ static inline mat4 mat4_identity()
    return result;
 }
 
+static inline mat4 mat4_translate(f32 x, f32 y, f32 z)
+{
+   mat4 result = mat4_identity();
+
+   result.data[3] = x;
+   result.data[7] = y;
+   result.data[11] = z;
+
+   return result;
+}
+
 static inline mat4 mat4_mul(mat4 a, mat4 b)
 {
    mat4 result = mat4_identity();
@@ -124,8 +135,10 @@ static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
    f32 ay = 2*n / (t-b);
    f32 by = (t+b) / (t-b);
 
-   f32 z0 = -(f+n) / (f-n);
-   f32 z1 = -(2*f*n) / (f-n);
+   //f32 z0 = -(f+n) / (f-n); // [-1,1]
+   //f32 z1 = -(2*f*n) / (f-n);
+   f32 z0 = f / (f-n);        // [0, 1]
+   f32 z1 = -(f*n) / (f-n);
 
    result.data[0] = ax;
    result.data[2] = bx;

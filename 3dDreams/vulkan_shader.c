@@ -86,14 +86,101 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
       context->shader.stages[i].pipeline_create_info.pName = "main";
    }
 
+   // Descriptors for uniform object buffers
+   VkDescriptorSetLayoutBinding global_ubo_binding;
+   global_ubo_binding.binding = 0;
+   global_ubo_binding.descriptorCount = 1;
+   global_ubo_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   global_ubo_binding.pImmutableSamplers = 0;
+   global_ubo_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+   VkDescriptorSetLayoutCreateInfo global_ubo_layout_info = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+   global_ubo_layout_info.bindingCount = 1;
+   global_ubo_layout_info.pBindings = &global_ubo_binding;
+
+   if(!VK_VALID(vkCreateDescriptorSetLayout(context->device.logical_device, &global_ubo_layout_info, context->allocator, &context->shader.global_descriptor_set_layout)))
+      return false;
+
+   VkDescriptorPoolSize global_pool_size;
+   global_pool_size.type = global_ubo_binding.descriptorType;
+   global_pool_size.descriptorCount = 1;
+
+   for(u32 i = 0; i < context->swapchain.image_count; ++i)
+   {
+      VkDescriptorPoolCreateInfo global_pool_info = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+      global_pool_info.poolSizeCount = 1;
+      global_pool_info.pPoolSizes = &global_pool_size;
+      global_pool_info.maxSets = 1;
+      if(!VK_VALID(vkCreateDescriptorPool(context->device.logical_device, &global_pool_info, context->allocator, context->shader.global_descriptor_pools + i)))
+         return false;
+   }
+
    if(!vulkan_pipeline_create(context))
       return false;
+
+   context->shader.global_uniform_buffer.total_size = sizeof(global_uniform_object);
+   context->shader.global_uniform_buffer.usage_flags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+   context->shader.global_uniform_buffer.memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+   context->shader.global_uniform_buffer.bind_on_create = true;
+
+   if(!vulkan_buffer_create(context, &context->shader.global_uniform_buffer))
+      return false;
+
+   VkDescriptorSetLayout global_set_layouts[] = 
+   {
+      context->shader.global_descriptor_set_layout,
+      context->shader.global_descriptor_set_layout,
+      context->shader.global_descriptor_set_layout,
+   };
+
+   for(u32 i = 0; i < context->swapchain.image_count; ++i)
+   {
+      VkDescriptorSetAllocateInfo set_allocate_info = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
+      set_allocate_info.descriptorPool = context->shader.global_descriptor_pools[i];
+      set_allocate_info.descriptorSetCount = 1;
+      set_allocate_info.pSetLayouts = global_set_layouts;
+
+      if(!VK_VALID(vkAllocateDescriptorSets(context->device.logical_device, &set_allocate_info, context->shader.global_descriptor_set + i)))
+         return false;
+   }
 
    return true;
 }
 
-static void vulkan_shader_use(vulkan_context* context)
+static void vulkan_shader_pipeline_bind(vulkan_context* context)
 {
    u32 index = context->current_image_index;
    vulkan_pipeline_bind(context->graphics_command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline.handle);
+}
+
+static bool vulkan_shader_update_state(vulkan_context* context, u32 global_descriptor_set_index)
+{
+   u32 image_index = context->current_image_index;
+   VkCommandBuffer buffer = context->graphics_command_buffers[image_index];
+   VkDescriptorSet* desc_set = &context->shader.global_descriptor_set[image_index];
+
+   vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline.layout, global_descriptor_set_index, 1, desc_set, 0, 0);
+
+   u32 range = sizeof(context->shader.global_ubo);
+   u64 offset = 0;
+
+   if(!vulkan_buffer_load(context, &context->shader.global_uniform_buffer, 0, range, &context->shader.global_ubo))
+      return false;
+
+   VkDescriptorBufferInfo buffer_info;
+   buffer_info.buffer = context->shader.global_uniform_buffer.handle;
+   buffer_info.offset = offset;
+   buffer_info.range = range;
+
+   VkWriteDescriptorSet write_desc_set = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+   write_desc_set.dstSet = context->shader.global_descriptor_set[image_index];
+   write_desc_set.dstBinding = 0;
+   write_desc_set.dstArrayElement = 0;
+   write_desc_set.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+   write_desc_set.descriptorCount = 1;
+   write_desc_set.pBufferInfo = &buffer_info;
+
+   vkUpdateDescriptorSets(context->device.logical_device, 1, &write_desc_set, 0, 0);
+
+   return true;
 }

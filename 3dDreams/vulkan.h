@@ -9,6 +9,7 @@
 #endif
 
 #include "common.h"
+#include "shaders.h"
 #include <vulkan/vulkan.h>
 #include "arena.h"
 
@@ -63,12 +64,6 @@ align_struct vulkan_viewport
 {
    i32 x,y,w,h;
 } vulkan_viewport;
-#if 0
-align_struct vulkan_command_buffer
-{
-   VkCommandBuffer handle;
-} vulkan_command_buffer;
-#endif
 
 align_struct vulkan_renderpass
 {
@@ -192,6 +187,14 @@ align_struct vulkan_pipeline
 align_struct vulkan_object_shader
 {
    vulkan_shader_stage stages[OBJECT_SHADER_COUNT];
+
+   // TODO: compress descriptors
+   VkDescriptorPool global_descriptor_pools[VULKAN_MAX_FRAME_BUFFER_COUNT];
+   VkDescriptorSet global_descriptor_set[VULKAN_MAX_FRAME_BUFFER_COUNT];
+   VkDescriptorSetLayout global_descriptor_set_layout;
+
+   global_uniform_object global_ubo;
+   vulkan_buffer global_uniform_buffer;
 } vulkan_object_shader;
 
 align_struct vulkan_context
@@ -208,7 +211,6 @@ align_struct vulkan_context
    vulkan_renderpass main_renderpass;
    vulkan_command_buffer_state command_buffer_state[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
-   // TODO: Set these arrays dynamically or just use the max frame count as here?
    VkCommandBuffer graphics_command_buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
 
    VkSemaphore image_available_semaphores[VULKAN_MAX_FRAME_BUFFER_COUNT];
