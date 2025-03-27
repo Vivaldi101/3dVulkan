@@ -98,9 +98,8 @@ static VkSwapchainKHR vulkan_swapchain_create(vulkan_context* context, u32 queue
    VK_TEST_HANDLE(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->pdev, context->surface, &surface_caps));
 
 #if 0
-   // TODO: This
+      // surface does not allow to choose the size
    if(surface_caps.currentExtent.width != UINT32_MAX)
-      // fixed size
       swapchain_extent = surface_caps.currentExtent;
    else
    {
@@ -112,9 +111,15 @@ static VkSwapchainKHR vulkan_swapchain_create(vulkan_context* context, u32 queue
    }
 #endif
 
+   u32 image_count = surface_caps.minImageCount + 1;
+
+   // atleast double buffering
+   if(image_count < 2)
+      return 0;
+
    VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
    swapchain_info.surface = context->surface;
-   swapchain_info.minImageCount = 2;
+   swapchain_info.minImageCount = image_count; // triple buffering
    swapchain_info.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
    swapchain_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
    swapchain_info.imageExtent.width = w;
