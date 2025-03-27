@@ -264,12 +264,6 @@ static arena arena_new(size cap)
    void* base = hw_virtual_memory_reserve(cap);
    hw_virtual_memory_commit(base, cap);
 
-   //if(!VirtualLock(base, cap))
-   {
-      //hw_virtual_memory_release(base, cap);
-      //return a;
-   }
-
    // set the base pointer and size on success
    a.beg = base;
    a.end = a.beg ? a.beg + cap : 0;

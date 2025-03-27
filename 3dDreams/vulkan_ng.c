@@ -31,7 +31,6 @@ align_struct
    VkSurfaceKHR surface;
    VkSwapchainKHR swapchain;
    VkAllocationCallbacks* allocator;
-   u32 queue_family_index;
 } vulkan_context;
 
 void vulkan_resize(void* renderer, u32 width, u32 height)
@@ -58,8 +57,9 @@ static VkPhysicalDevice vulkan_pdevice_select(vulkan_context* context)
       if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
          return devs[i];
    }
-
-   return dev_count > 0 ? devs[0] : 0;
+   if(dev_count > 0)
+      return devs[0];
+   return 0;
 }
 
 static u32 vulkan_ldevice_select_index(vulkan_context* context)
@@ -90,11 +90,29 @@ static VkDevice vulkan_ldevice_select(vulkan_context* context, u32 family_index)
    return VK_VALID(r) ? dev : 0;
 }
 
-static VkSwapchainKHR vulkan_swapchain_create(vulkan_context* context, u32 w, u32 h)
+static VkSwapchainKHR vulkan_swapchain_create(vulkan_context* context, u32 queue_family_index, u32 w, u32 h)
 {
    VkSwapchainKHR swapchain;
-   VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 
+   VkSurfaceCapabilitiesKHR surface_caps;
+   VK_TEST_HANDLE(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->pdev, context->surface, &surface_caps));
+
+#if 0
+   // TODO: This
+   if(surface_caps.currentExtent.width != UINT32_MAX)
+      // fixed size
+      swapchain_extent = surface_caps.currentExtent;
+   else
+   {
+      // surface allows to choose the size
+      VkExtent2D min = surface_caps.minImageExtent;
+      VkExtent2D max = surface_caps.maxImageExtent;
+      swapchain_extent.width = clamp(swapchain_extent.width, min.width, max.width);
+      swapchain_extent.height = clamp(swapchain_extent.height, min.height, max.height);
+   }
+#endif
+
+   VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
    swapchain_info.surface = context->surface;
    swapchain_info.minImageCount = 2;
    swapchain_info.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
@@ -104,8 +122,12 @@ static VkSwapchainKHR vulkan_swapchain_create(vulkan_context* context, u32 w, u3
    swapchain_info.imageArrayLayers = 1;
    swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
    swapchain_info.queueFamilyIndexCount = 1;
-   swapchain_info.pQueueFamilyIndices = &context->queue_family_index;
+   swapchain_info.pQueueFamilyIndices = &queue_family_index;
    swapchain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+   swapchain_info.preTransform = surface_caps.currentTransform;
+   swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+   swapchain_info.clipped = VK_TRUE;
+   swapchain_info.oldSwapchain = context->swapchain;
 
    VkResult r = vkCreateSwapchainKHR(context->ldev, &swapchain_info, context->allocator, &swapchain);
 
@@ -181,11 +203,11 @@ bool vulkan_initialize(hw* hw)
 
    VK_TEST(vkCreateInstance(&instance_info, 0, &context->instance));
 
+   u32 queue_family_index = vulkan_ldevice_select_index(context);
    context->pdev = vulkan_pdevice_select(context);
-   context->queue_family_index = vulkan_ldevice_select_index(context);
-   context->ldev = vulkan_ldevice_select(context, context->queue_family_index);
+   context->ldev = vulkan_ldevice_select(context, queue_family_index);
    context->surface = vulkan_window_surface_create(context, &hw->renderer.window, ext_names, ext_count);
-   context->swapchain = vulkan_swapchain_create(context, hw->renderer.window.width, hw->renderer.window.height);
+   context->swapchain = vulkan_swapchain_create(context, queue_family_index, hw->renderer.window.width, hw->renderer.window.height);
 
    // app callbacks
    hw->renderer.backends[vulkan_renderer_index] = context;
