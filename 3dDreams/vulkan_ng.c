@@ -50,6 +50,7 @@ align_struct swapchain_surface_info
 align_struct
 {
    arena* storage;
+
    VkInstance instance;
    VkPhysicalDevice pdev;
    VkDevice ldev;
@@ -79,6 +80,8 @@ static VkFormat vulkan_swapchain_format(VkPhysicalDevice pdev, VkSurfaceKHR surf
    if(!vk_valid(vkGetPhysicalDeviceSurfaceFormatsKHR(pdev, surface, &format_count, formats)))
       return VK_FORMAT_UNDEFINED;
 
+   // for now expect rgba unorm
+   assert(formats[0].format == VK_FORMAT_R8G8B8A8_UNORM);
    return formats[0].format;
 }
 
@@ -351,14 +354,22 @@ void vulkan_present(vulkan_context* context)
 
    vk_assert(vkBeginCommandBuffer(buffer, &buffer_begin_info));
 
-   VkClearColorValue color = {1, 0, 1, 1};
+   VkRenderPassBeginInfo renderpass_info = {vk_info_begin(RENDER_PASS)};
+   renderpass_info.renderPass = context->renderpass;
+   renderpass_info.framebuffer = context->framebuffers[image_index];
+   renderpass_info.renderArea.extent = (VkExtent2D)
+   { context->swapchain_info.image_width, context->swapchain_info.image_height };
+   { 
+      f32 c = 255.0f, r = 48, g = 10, b = 36; 
+      renderpass_info.clearValueCount = 1;
+      renderpass_info.pClearValues = &(VkClearValue){r/c, g/c, b/c, 1.0f};
+   }
 
-   VkImageSubresourceRange range = {};
-   range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-   range.layerCount = 1;
-   range.levelCount = 1;
+   vkCmdBeginRenderPass(buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 
-   vkCmdClearColorImage(buffer, context->swapchain_images[image_index], VK_IMAGE_LAYOUT_GENERAL, &color, 1, &range);
+   // ... draw calls
+
+   vkCmdEndRenderPass(buffer);
 
    vk_assert(vkEndCommandBuffer(buffer));
 
