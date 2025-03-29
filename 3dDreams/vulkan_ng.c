@@ -445,41 +445,34 @@ bool vulkan_initialize(hw* hw)
 
    u32 queue_family_index = vulkan_ldevice_select_index();
 
-   VkPhysicalDevice pdev = vulkan_pdevice_select(instance);
+   context->pdev = vulkan_pdevice_select(instance);
 
-   VkDevice ldev = vulkan_ldevice_create(pdev, queue_family_index);
+   context->ldev = vulkan_ldevice_create(context->pdev, queue_family_index);
 
-   VkSurfaceKHR surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
+   context->surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
 
-   swapchain_surface_info surface_info = vulkan_window_swapchain_surface_info(pdev, hw->renderer.window.width, hw->renderer.window.height, surface);
+   context->swapchain_info = vulkan_window_swapchain_surface_info(context->pdev, hw->renderer.window.width, hw->renderer.window.height, context->surface);
 
-   VkSwapchainKHR swapchain = vulkan_swapchain_create(ldev, &surface_info, queue_family_index);
+   context->swapchain = vulkan_swapchain_create(context->ldev, &context->swapchain_info, queue_family_index);
 
-   context->image_ready_semaphore = vulkan_semaphore_create(ldev);
-   context->image_done_semaphore = vulkan_semaphore_create(ldev);
+   context->image_ready_semaphore = vulkan_semaphore_create(context->ldev);
+   context->image_done_semaphore = vulkan_semaphore_create(context->ldev);
 
-   context->graphics_queue = vulkan_graphics_queue_create(ldev, queue_family_index);
+   context->graphics_queue = vulkan_graphics_queue_create(context->ldev, queue_family_index);
 
-   context->command_pool = vulkan_command_pool_create(ldev, queue_family_index);
+   context->command_pool = vulkan_command_pool_create(context->ldev, queue_family_index);
 
-   context->command_buffer = vulkan_command_buffer_create(ldev, context->command_pool);
+   context->command_buffer = vulkan_command_buffer_create(context->ldev, context->command_pool);
 
-   context->renderpass = vulkan_renderpass_create(ldev, &surface_info);
+   context->renderpass = vulkan_renderpass_create(context->ldev, &context->swapchain_info);
 
-   vk_test_return(vkGetSwapchainImagesKHR(ldev, swapchain, &surface_info.image_count, context->swapchain_images));
+   vk_test_return(vkGetSwapchainImagesKHR(context->ldev, context->swapchain, &context->swapchain_info.image_count, context->swapchain_images));
 
-   for(u32 i = 0; i < surface_info.image_count; ++i)
+   for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
    {
-      context->swapchain_image_views[i] = vulkan_image_view_create(ldev, surface_info.format, context->swapchain_images[i]);
-      context->framebuffers[i] = vulkan_framebuffer_create(ldev, context->renderpass, &surface_info, context->swapchain_image_views[i]);
+      context->swapchain_image_views[i] = vulkan_image_view_create(context->ldev, context->swapchain_info.format, context->swapchain_images[i]);
+      context->framebuffers[i] = vulkan_framebuffer_create(context->ldev, context->renderpass, &context->swapchain_info, context->swapchain_image_views[i]);
    }
-
-   context->instance = instance;
-   context->pdev = pdev;
-   context->ldev = ldev;
-   context->surface = surface;
-   context->swapchain = swapchain;
-   context->swapchain_info = surface_info;
 
    // app callbacks
    hw->renderer.backends[vulkan_renderer_index] = context;
