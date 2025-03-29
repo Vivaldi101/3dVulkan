@@ -96,7 +96,7 @@ static swapchain_surface_info vulkan_window_swapchain_surface_info(VkPhysicalDev
    if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pdev, surface, &surface_caps)))
       return (swapchain_surface_info){0};
 
-   // atleast triple buffering
+   // triple buffering
    if(surface_caps.minImageCount < 2)
       return (swapchain_surface_info){0};
 
@@ -416,13 +416,13 @@ bool vulkan_initialize(hw* hw)
    VkInstanceCreateInfo instance_info = {vk_info(INSTANCE)};
    instance_info.pApplicationInfo = &(VkApplicationInfo) { .apiVersion = VK_API_VERSION_1_2 };
 
-   arena scratch = hw->vulkan_scratch;
-   // extensions
    u32 ext_count = 0;
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
+
+   arena scratch = hw->vulkan_scratch;
    VkExtensionProperties* ext = new(&scratch, VkExtensionProperties, ext_count);
-   if(scratch_end(scratch, ext) || !vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext)))
+   if(!implies(!scratch_end(scratch, ext), vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext))))
       return false;
    const char** ext_names = new(&scratch, const char*, ext_count);
 
@@ -442,8 +442,6 @@ bool vulkan_initialize(hw* hw)
 
    VkInstance instance = 0;
    vk_test_return(vkCreateInstance(&instance_info, 0, &instance));
-
-   vk_valid_handle(instance);
 
    u32 queue_family_index = vulkan_ldevice_select_index();
 
