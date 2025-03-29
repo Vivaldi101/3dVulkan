@@ -4,8 +4,8 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 
-// TODO: pass these as function pointers from the platform
-#include "win32_file_io.c"
+#include "win32_file_io.c" // TODO: pass these as function pointers from the platform
+#include "vulkan_spirv_loader.c"
 
 #pragma comment(lib,	"vulkan-1.lib")
 
@@ -49,6 +49,12 @@ align_struct swapchain_surface_info
 
 align_struct
 {
+   VkShaderModule vs;
+   VkShaderModule fs;
+} vulkan_shader_modules;
+
+align_struct
+{
    arena* storage;
 
    VkInstance instance;
@@ -63,6 +69,7 @@ align_struct
    VkCommandPool command_pool;
    VkCommandBuffer command_buffer;
    VkRenderPass renderpass;
+   VkPipeline pipeline;
    VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
    VkImage swapchain_images[MAX_VULKAN_OBJECT_COUNT];
    VkImageView swapchain_image_views[MAX_VULKAN_OBJECT_COUNT];
@@ -366,8 +373,27 @@ void vulkan_present(vulkan_context* context)
    }
 
    vkCmdBeginRenderPass(buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
-
    // ... draw calls
+
+   VkViewport viewport = {};
+   viewport.x = 0.0f;
+   viewport.y = (f32)context->swapchain_info.image_height-1.0f;
+   viewport.width = (f32)context->swapchain_info.image_width;
+   viewport.height = -(f32)context->swapchain_info.image_height;
+   viewport.minDepth = 0;
+   viewport.maxDepth = 1;
+
+   vkCmdSetViewport(buffer, 0, 1, &viewport);
+
+   VkRect2D scissor = {};
+   scissor.offset.x = 0;
+   scissor.offset.y = 0;
+   scissor.extent.width = (u32)context->swapchain_info.image_width;
+   scissor.extent.height = (u32)context->swapchain_info.image_height;
+   vkCmdSetScissor(buffer, 0, 1, &scissor);
+
+   vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline);
+   vkCmdDraw(buffer, 3, 1, 0, 0);
 
    vkCmdEndRenderPass(buffer);
 
@@ -400,6 +426,115 @@ void vulkan_present(vulkan_context* context)
 
    // wait until all queue ops are done
    vk_assert(vkDeviceWaitIdle(context->ldev));
+}
+
+static vulkan_shader_modules vulkan_shaders_load(VkDevice ldev, arena scratch)
+{
+   assert(vk_valid_handle(ldev));
+
+   vulkan_shader_modules shader_modules = {};
+   VkShaderStageFlagBits shader_type_bits[OBJECT_SHADER_COUNT] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
+
+   file_result shader_dir = vulkan_shader_directory(&scratch);
+
+   for(u32 i = 0; i < OBJECT_SHADER_COUNT; ++i)
+   {
+      file_result shader_file = vulkan_shader_spv_read(&scratch, shader_dir.data, shader_type_bits[i]);
+      if(shader_file.file_size == 0)
+         return (vulkan_shader_modules){};
+
+      VkShaderModuleCreateInfo module_info = {};
+      module_info.sType = vk_info(SHADER_MODULE);
+      module_info.pCode = (u32*)shader_file.data;
+      module_info.codeSize = shader_file.file_size;
+
+      if(!vk_valid(vkCreateShaderModule(ldev, 
+                           &module_info, 
+                           0,
+                           shader_type_bits[i] == VK_SHADER_STAGE_VERTEX_BIT ? &shader_modules.vs : &shader_modules.fs)))
+         return (vulkan_shader_modules){};
+   }
+
+   return shader_modules;
+}
+
+static VkPipelineLayout vulkan_pipeline_layout_create(VkDevice ldev)
+{
+   VkPipelineLayout layout = 0;
+
+   VkPipelineLayoutCreateInfo info = {vk_info(PIPELINE_LAYOUT)};
+   vk_test_return(vkCreatePipelineLayout(ldev, &info, 0, &layout));
+
+   return layout;
+}
+
+static VkPipeline vulkan_pipeline_create(VkDevice ldev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vulkan_shader_modules* shaders)
+{
+   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(shaders->fs));
+   assert(vk_valid_handle(shaders->fs));
+   assert(!vk_valid_handle(cache));
+
+   VkPipeline pipeline = 0;
+
+   VkPipelineShaderStageCreateInfo stages[OBJECT_SHADER_COUNT] = {};
+
+   stages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+   stages[0].module = shaders->vs;
+   stages[0].pName = "main";
+
+   stages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+   stages[1].module = shaders->fs;
+   stages[1].pName = "main";
+
+   VkGraphicsPipelineCreateInfo pipeline_info = {vk_info(GRAPHICS_PIPELINE)};
+   pipeline_info.stageCount = array_count(stages);
+   pipeline_info.pStages = stages;
+
+   VkPipelineVertexInputStateCreateInfo vertex_input_info = {vk_info(PIPELINE_VERTEX_INPUT_STATE)};
+   pipeline_info.pVertexInputState = &vertex_input_info;
+
+   VkPipelineInputAssemblyStateCreateInfo assembly_info = {vk_info(PIPELINE_INPUT_ASSEMBLY_STATE)};
+   assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+   pipeline_info.pInputAssemblyState = &assembly_info;
+
+   VkPipelineViewportStateCreateInfo viewport_info = {vk_info(PIPELINE_VIEWPORT_STATE)};
+   viewport_info.scissorCount = 1;
+   viewport_info.viewportCount = 1;
+   pipeline_info.pViewportState = &viewport_info;
+
+   VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
+   raster_info.lineWidth = 1.0f;
+   pipeline_info.pRasterizationState = &raster_info;
+
+   VkPipelineMultisampleStateCreateInfo sample_info = {vk_info(PIPELINE_MULTISAMPLE_STATE)};
+   sample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   pipeline_info.pMultisampleState = &sample_info;
+
+   VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
+   pipeline_info.pDepthStencilState = &depth_stencil_info;
+
+   VkPipelineColorBlendAttachmentState color_blend_attachment = {};
+   color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+   VkPipelineColorBlendStateCreateInfo color_blend_info = {vk_info(PIPELINE_COLOR_BLEND_STATE)};
+   color_blend_info.attachmentCount = 1;
+   color_blend_info.pAttachments = &color_blend_attachment;
+   pipeline_info.pColorBlendState = &color_blend_info;
+
+   VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
+   dynamic_info.pDynamicStates = (VkDynamicState[2]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+   dynamic_info.dynamicStateCount = 2;
+   pipeline_info.pDynamicState = &dynamic_info;
+
+   pipeline_info.renderPass = renderpass;
+   pipeline_info.layout = layout;
+
+   vk_test_return(vkCreateGraphicsPipelines(ldev, cache, 1, &pipeline_info, 0, &pipeline));
+
+   return pipeline;
 }
 
 bool vulkan_initialize(hw* hw)
@@ -446,24 +581,15 @@ bool vulkan_initialize(hw* hw)
    u32 queue_family_index = vulkan_ldevice_select_index();
 
    context->pdev = vulkan_pdevice_select(instance);
-
    context->ldev = vulkan_ldevice_create(context->pdev, queue_family_index);
-
    context->surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
-
    context->swapchain_info = vulkan_window_swapchain_surface_info(context->pdev, hw->renderer.window.width, hw->renderer.window.height, context->surface);
-
    context->swapchain = vulkan_swapchain_create(context->ldev, &context->swapchain_info, queue_family_index);
-
    context->image_ready_semaphore = vulkan_semaphore_create(context->ldev);
    context->image_done_semaphore = vulkan_semaphore_create(context->ldev);
-
    context->graphics_queue = vulkan_graphics_queue_create(context->ldev, queue_family_index);
-
    context->command_pool = vulkan_command_pool_create(context->ldev, queue_family_index);
-
    context->command_buffer = vulkan_command_buffer_create(context->ldev, context->command_pool);
-
    context->renderpass = vulkan_renderpass_create(context->ldev, &context->swapchain_info);
 
    vk_test_return(vkGetSwapchainImagesKHR(context->ldev, context->swapchain, &context->swapchain_info.image_count, context->swapchain_images));
@@ -473,6 +599,11 @@ bool vulkan_initialize(hw* hw)
       context->swapchain_image_views[i] = vulkan_image_view_create(context->ldev, context->swapchain_info.format, context->swapchain_images[i]);
       context->framebuffers[i] = vulkan_framebuffer_create(context->ldev, context->renderpass, &context->swapchain_info, context->swapchain_image_views[i]);
    }
+
+   vulkan_shader_modules shaders = vulkan_shaders_load(context->ldev, scratch);
+   VkPipelineCache cache = 0; // TODO: enable
+   VkPipelineLayout layout = vulkan_pipeline_layout_create(context->ldev);
+   context->pipeline = vulkan_pipeline_create(context->ldev, context->renderpass, cache, layout, &shaders);
 
    // app callbacks
    hw->renderer.backends[vulkan_renderer_index] = context;
@@ -485,12 +616,14 @@ bool vulkan_initialize(hw* hw)
 
 bool vulkan_uninitialize(hw* hw)
 {
+#if 0
    vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
 
    vkDestroySwapchainKHR(context->ldev, context->swapchain, 0);
    vkDestroySurfaceKHR(context->instance, context->surface, 0);
    vkDestroyDevice(context->ldev, 0);
    vkDestroyInstance(context->instance, 0);
+#endif
 
    return true;
 }
