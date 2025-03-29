@@ -9,23 +9,43 @@
 
 #pragma comment(lib,	"vulkan-1.lib")
 
-enum { OBJECT_SHADER_COUNT = 2 };
+enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 
 // TODO: Why release wont build
 
-#define VK_VALID(v) ((v) == VK_SUCCESS)
-#define VK_TEST(v) if(!VK_VALID((v))) return false
-#define VK_TEST_HANDLE(v) if(!VK_VALID((v))) return VK_NULL_HANDLE
+#define vk_valid_handle(v) ((v) != VK_NULL_HANDLE)
+#define vk_valid_format(v) ((v) != VK_FORMAT_UNDEFINED)
+
+#define vk_valid(v) ((v) == VK_SUCCESS)
+#define vk_test_return(v) if(!vk_valid((v))) return false
+#define vk_test_return_handle(v) if(!vk_valid((v))) return VK_NULL_HANDLE
+
+#define vk_info(i) VK_STRUCTURE_TYPE_##i##_CREATE_INFO
+#define vk_info_allocate(i) VK_STRUCTURE_TYPE_##i##_ALLOCATE_INFO
+#define vk_info_khr(i) VK_STRUCTURE_TYPE_##i##_CREATE_INFO_KHR
+
+#define vk_info_begin(i) VK_STRUCTURE_TYPE_##i##_BEGIN_INFO
+#define vk_info_end(i) VK_STRUCTURE_TYPE_##i##_END_INFO
 
 #ifdef _DEBUG
-#define VK_ASSERT(v) \
+#define vk_assert(v) \
         do { \
           VkResult r = (v); \
-          assert(VK_VALID(r)); \
+          assert(vk_valid(r)); \
         } while(0)
 #else
-#define VK_ASSERT(v) (v)
+#define vk_assert(v) (v)
 #endif
+
+align_struct swapchain_surface_info
+{
+   u32 image_width;
+   u32 image_height;
+   u32 image_count;
+   VkFormat format;
+   VkSurfaceTransformFlagBitsKHR transform;
+   VkSurfaceKHR surface;
+} swapchain_surface_info;
 
 align_struct
 {
@@ -41,16 +61,74 @@ align_struct
    VkQueue graphics_queue;
    VkCommandPool command_pool;
    VkCommandBuffer command_buffer;
+   VkRenderPass renderpass;
+   VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
+   VkImage swapchain_images[MAX_VULKAN_OBJECT_COUNT];
+   VkImageView swapchain_image_views[MAX_VULKAN_OBJECT_COUNT];
 
-   VkImage swapchain_images[16]; // should be big enough
-   u32 swapchain_image_count;
+   swapchain_surface_info swapchain_info;
 } vulkan_context;
 
-static VkPhysicalDevice vulkan_pdevice_select(vulkan_context* context)
+static VkFormat vulkan_swapchain_format(VkPhysicalDevice pdev, VkSurfaceKHR surface)
 {
-   VkPhysicalDevice devs[16];
+   assert(vk_valid_handle(pdev));
+   assert(vk_valid_handle(surface));
+
+   VkSurfaceFormatKHR formats[MAX_VULKAN_OBJECT_COUNT] = {};
+   u32 format_count = array_count(formats);
+   if(!vk_valid(vkGetPhysicalDeviceSurfaceFormatsKHR(pdev, surface, &format_count, formats)))
+      return VK_FORMAT_UNDEFINED;
+
+   return formats[0].format;
+}
+
+static swapchain_surface_info vulkan_window_swapchain_surface_info(VkPhysicalDevice pdev, u32 width, u32 height, VkSurfaceKHR surface)
+{
+   assert(vk_valid_handle(pdev));
+   assert(vk_valid_handle(surface));
+
+   swapchain_surface_info result = {};
+
+   VkSurfaceCapabilitiesKHR surface_caps;
+   if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pdev, surface, &surface_caps)))
+      return (swapchain_surface_info){0};
+
+   // atleast triple buffering
+   if(surface_caps.minImageCount < 2)
+      return (swapchain_surface_info){0};
+
+   if(!implies(surface_caps.maxImageCount != 0, surface_caps.maxImageCount >= surface_caps.minImageCount + 1))
+      return (swapchain_surface_info){0};
+
+   u32 image_count = surface_caps.minImageCount + 1;
+
+   result.image_width = width;
+   result.image_height = height;
+   result.image_count = image_count;
+   result.transform = surface_caps.currentTransform;
+   result.format = vulkan_swapchain_format(pdev, surface);
+   result.surface = surface;
+
+   // wp(imgcount = min + 1, imgcount >= 3)
+   // min + 1 >= 3
+   // min >= 2
+
+   // wp(imgcount = min + 1, maximgcount == 0 || maximgcount >= imgcount)
+   // (maximgcount == 0 || maximgcount >= min + 1)
+
+   // (maximgcount == 0 || maximgcount >= min + 1)
+   // implies(maximgcount != 0, maximgcount >= min + 1)
+
+   return result;
+}
+
+static VkPhysicalDevice vulkan_pdevice_select(VkInstance instance)
+{
+   assert(vk_valid_handle(instance));
+
+   VkPhysicalDevice devs[MAX_VULKAN_OBJECT_COUNT] = {};
    u32 dev_count = array_count(devs);
-   VK_TEST_HANDLE(vkEnumeratePhysicalDevices(context->instance, &dev_count, devs));
+   vk_test_return_handle(vkEnumeratePhysicalDevices(instance, &dev_count, devs));
 
    for(u32 i = 0; i < dev_count; ++i)
    {
@@ -65,158 +143,193 @@ static VkPhysicalDevice vulkan_pdevice_select(vulkan_context* context)
    return 0;
 }
 
-static u32 vulkan_ldevice_select_index(vulkan_context* context)
+static u32 vulkan_ldevice_select_index()
 {
    // placeholder
    return 0;
 }
 
-static VkDevice vulkan_ldevice_create(vulkan_context* context, u32 queue_family_index)
+static VkDevice vulkan_ldevice_create(VkPhysicalDevice pdev, u32 queue_family_index)
 {
+   assert(vk_valid_handle(pdev));
    f32 queue_prio = 1.0f;
 
-   VkDeviceQueueCreateInfo queue_info = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
+   VkDeviceQueueCreateInfo queue_info = {vk_info(DEVICE_QUEUE)};
    queue_info.queueFamilyIndex = queue_family_index; // TODO: query the right queue family
    queue_info.queueCount = 1;
    queue_info.pQueuePriorities = &queue_prio;
 
-   VkDeviceCreateInfo ldev_info = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+   VkDeviceCreateInfo ldev_info = {vk_info(DEVICE)};
    const char* dev_ext_names[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
    ldev_info.queueCreateInfoCount = 1;
    ldev_info.pQueueCreateInfos = &queue_info;
    ldev_info.enabledExtensionCount = array_count(dev_ext_names);
    ldev_info.ppEnabledExtensionNames = dev_ext_names;
 
-   VkDevice dev;
-   VK_TEST_HANDLE(vkCreateDevice(context->pdev, &ldev_info, context->allocator, &dev));
+   VkDevice ldev;
+   vk_test_return_handle(vkCreateDevice(pdev, &ldev_info, 0, &ldev));
 
-   return dev;
+   return ldev;
 }
 
-static VkQueue vulkan_graphics_queue_create(vulkan_context* context, u32 queue_family_index)
+static VkQueue vulkan_graphics_queue_create(VkDevice ldev, u32 queue_family_index)
 {
+   assert(vk_valid_handle(ldev));
+
    VkQueue graphics_queue = 0;
 
    // TODO: Get the queue index
-   vkGetDeviceQueue(context->ldev, queue_family_index, 0, &graphics_queue);
+   vkGetDeviceQueue(ldev, queue_family_index, 0, &graphics_queue);
 
    return graphics_queue;
 }
 
-static VkSemaphore vulkan_semaphore_create(vulkan_context* context)
+static VkSemaphore vulkan_semaphore_create(VkDevice ldev)
 {
+   assert(vk_valid_handle(ldev));
+
    VkSemaphore sema = 0;
 
-   VkSemaphoreCreateInfo sema_info = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-   VK_TEST_HANDLE(vkCreateSemaphore(context->ldev, &sema_info, context->allocator, &sema));
+   VkSemaphoreCreateInfo sema_info = {vk_info(SEMAPHORE)};
+   vk_test_return_handle(vkCreateSemaphore(ldev, &sema_info, 0, &sema));
 
    return sema;
 }
 
-static VkSwapchainKHR vulkan_swapchain_create(vulkan_context* context, u32 queue_family_index, u32 w, u32 h)
+static VkSwapchainKHR vulkan_swapchain_create(VkDevice ldev, swapchain_surface_info* surface_info, u32 queue_family_index)
 {
+   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(surface_info->surface));
+   assert(vk_valid_format(surface_info->format));
+
    VkSwapchainKHR swapchain = 0;
 
-   VkSurfaceCapabilitiesKHR surface_caps;
-   VK_TEST_HANDLE(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->pdev, context->surface, &surface_caps));
-
-#if 0
-      // surface does not allow to choose the size
-   if(surface_caps.currentExtent.width != UINT32_MAX)
-      swapchain_extent = surface_caps.currentExtent;
-   else
-   {
-      // surface allows to choose the size
-      VkExtent2D min = surface_caps.minImageExtent;
-      VkExtent2D max = surface_caps.maxImageExtent;
-      swapchain_extent.width = clamp(swapchain_extent.width, min.width, max.width);
-      swapchain_extent.height = clamp(swapchain_extent.height, min.height, max.height);
-   }
-#endif
-
-   u32 image_count = surface_caps.minImageCount + 1;
-
-   // atleast double buffering
-   if(image_count < 2)
-      return 0;
-
-   context->swapchain_image_count = image_count;
-
-   VkSwapchainCreateInfoKHR swapchain_info = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
-   swapchain_info.surface = context->surface;
-   swapchain_info.minImageCount = image_count; // triple buffering
-   swapchain_info.imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+   VkSwapchainCreateInfoKHR swapchain_info = {vk_info_khr(SWAPCHAIN)};
+   swapchain_info.surface = surface_info->surface;
+   swapchain_info.minImageCount = surface_info->image_count;
+   swapchain_info.imageFormat = surface_info->format;
    swapchain_info.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-   swapchain_info.imageExtent.width = w;
-   swapchain_info.imageExtent.height = h;
+   swapchain_info.imageExtent.width = surface_info->image_width;
+   swapchain_info.imageExtent.height = surface_info->image_height;
    swapchain_info.imageArrayLayers = 1;
-   swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+   swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
    swapchain_info.queueFamilyIndexCount = 1;
    swapchain_info.pQueueFamilyIndices = &queue_family_index;
    swapchain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-   swapchain_info.preTransform = surface_caps.currentTransform;
+   swapchain_info.preTransform = surface_info->transform;
    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
    swapchain_info.clipped = VK_TRUE;
-   swapchain_info.oldSwapchain = context->swapchain;
+   swapchain_info.oldSwapchain = swapchain;
 
-   VK_TEST_HANDLE(vkCreateSwapchainKHR(context->ldev, &swapchain_info, context->allocator, &swapchain));
+   vk_test_return_handle(vkCreateSwapchainKHR(ldev, &swapchain_info, 0, &swapchain));
 
    return swapchain;
 }
 
-VkCommandBuffer vulkan_command_buffer_create(vulkan_context* context)
+static VkCommandBuffer vulkan_command_buffer_create(VkDevice ldev, VkCommandPool pool)
 {
+   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(pool));
+
    VkCommandBuffer buffer = 0;
-   VkCommandBufferAllocateInfo buffer_allocate_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+   VkCommandBufferAllocateInfo buffer_allocate_info = {vk_info_allocate(COMMAND_BUFFER)};
 
    buffer_allocate_info.commandBufferCount = 1;
-   buffer_allocate_info.commandPool = context->command_pool;
+   buffer_allocate_info.commandPool = pool;
    buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-   VK_ASSERT(vkAllocateCommandBuffers(context->ldev, &buffer_allocate_info, &buffer));
+   vk_assert(vkAllocateCommandBuffers(ldev, &buffer_allocate_info, &buffer));
 
    return buffer;
 }
 
-VkCommandPool vulkan_command_pool_create(vulkan_context* context, u32 queue_family_index)
+static VkCommandPool vulkan_command_pool_create(VkDevice ldev, u32 queue_family_index)
 {
+   assert(vk_valid_handle(ldev));
+
    VkCommandPool pool = 0;
 
-   VkCommandPoolCreateInfo pool_info = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+   VkCommandPoolCreateInfo pool_info = {vk_info(COMMAND_POOL)};
    pool_info.queueFamilyIndex = queue_family_index;
 
-   VK_TEST_HANDLE(vkCreateCommandPool(context->ldev, &pool_info, context->allocator, &pool));
+   vk_test_return_handle(vkCreateCommandPool(ldev, &pool_info, 0, &pool));
 
    return pool;
 }
 
-static VkSurfaceKHR vulkan_window_surface_create(vulkan_context* context, const hw_window* window, const char** const extension_names, usize extension_count)
+static VkRenderPass vulkan_renderpass_create(VkDevice ldev, swapchain_surface_info* surface_info)
 {
-   bool isWin32Surface = false;
+   assert(vk_valid_handle(ldev));
+   assert(vk_valid_format(surface_info->format));
 
-   for(usize i = 0; i < extension_count; ++i)
-      if(strcmp(extension_names[i], VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == 0) {
-         isWin32Surface = true;
-         break;
-      }
+   VkRenderPass renderpass = 0;
 
-   if(!isWin32Surface)
-      return 0;
+   u32 attachment_index = 0;
+   VkAttachmentReference attachment_ref = {attachment_index, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}; 
 
-   PFN_vkCreateWin32SurfaceKHR vkWin32SurfaceFunction = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(context->instance, "vkCreateWin32SurfaceKHR");
+   VkSubpassDescription subpass = {};
+   subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+   subpass.colorAttachmentCount = 1;
+   subpass.pColorAttachments = &attachment_ref;
 
-   if(!vkWin32SurfaceFunction)
-      return 0;
+   VkAttachmentDescription attachments[1] = {};
 
-   VkWin32SurfaceCreateInfoKHR win32SurfaceInfo = {0};
-   win32SurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-   win32SurfaceInfo.hinstance = GetModuleHandleA(0);
-   win32SurfaceInfo.hwnd = window->handle;
+   attachments[attachment_index].format = surface_info->format;
+   attachments[attachment_index].samples = VK_SAMPLE_COUNT_1_BIT;
+   attachments[attachment_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+   attachments[attachment_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+   attachments[attachment_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+   attachments[attachment_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+   attachments[attachment_index].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+   attachments[attachment_index].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-   VkSurfaceKHR surface;
-   VK_TEST_HANDLE(vkWin32SurfaceFunction(context->instance, &win32SurfaceInfo, 0, &surface));
+   VkRenderPassCreateInfo renderpass_info = {vk_info(RENDER_PASS)}; 
+   renderpass_info.subpassCount = 1;
+   renderpass_info.pSubpasses = &subpass;
+   renderpass_info.attachmentCount = array_count(attachments);
+   renderpass_info.pAttachments = attachments;
 
-   return surface;
+   vk_test_return_handle(vkCreateRenderPass(ldev, &renderpass_info, 0, &renderpass));
+
+   return renderpass;
+}
+
+static VkFramebuffer vulkan_framebuffer_create(VkDevice ldev, VkRenderPass renderpass, swapchain_surface_info* surface_info, VkImageView image_view)
+{
+   VkFramebuffer framebuffer = 0;
+
+   VkFramebufferCreateInfo framebuffer_info = {vk_info(FRAMEBUFFER)};
+   framebuffer_info.renderPass = renderpass;
+   framebuffer_info.attachmentCount = 1;
+   framebuffer_info.pAttachments = &image_view;
+   framebuffer_info.width = surface_info->image_width;
+   framebuffer_info.height = surface_info->image_height;
+   framebuffer_info.layers = 1;
+
+   vk_test_return_handle(vkCreateFramebuffer(ldev, &framebuffer_info, 0, &framebuffer));
+
+   return framebuffer;
+}
+
+static VkImageView vulkan_image_view_create(VkDevice ldev, VkFormat format, VkImage image)
+{
+   assert(vk_valid_handle(ldev));
+   assert(vk_valid_format(format));
+   assert(vk_valid_handle(image));
+
+   VkImageView image_view = 0;
+
+   VkImageViewCreateInfo view_info = {vk_info(IMAGE_VIEW)};
+   view_info.image = image;
+   view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+   view_info.format = format;
+   view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   view_info.subresourceRange.layerCount = 1;
+   view_info.subresourceRange.levelCount = 1;
+
+   vk_test_return_handle(vkCreateImageView(ldev, &view_info, 0, &image_view));
+
+   return image_view;
 }
 
 void vulkan_resize(void* renderer, u32 width, u32 height)
@@ -228,15 +341,15 @@ void vulkan_present(vulkan_context* context)
 {
    u32 image_index = 0;
 
-   VK_ASSERT(vkAcquireNextImageKHR(context->ldev, context->swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
-   VK_ASSERT(vkResetCommandPool(context->ldev, context->command_pool, 0));
+   vk_assert(vkAcquireNextImageKHR(context->ldev, context->swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
+   vk_assert(vkResetCommandPool(context->ldev, context->command_pool, 0));
 
-   VkCommandBufferBeginInfo buffer_begin_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+   VkCommandBufferBeginInfo buffer_begin_info = {vk_info_begin(COMMAND_BUFFER)};
    buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
    VkCommandBuffer buffer = context->command_buffer;
 
-   VK_ASSERT(vkBeginCommandBuffer(buffer, &buffer_begin_info));
+   vk_assert(vkBeginCommandBuffer(buffer, &buffer_begin_info));
 
    VkClearColorValue color = {1, 0, 1, 1};
 
@@ -247,7 +360,7 @@ void vulkan_present(vulkan_context* context)
 
    vkCmdClearColorImage(buffer, context->swapchain_images[image_index], VK_IMAGE_LAYOUT_GENERAL, &color, 1, &range);
 
-   VK_ASSERT(vkEndCommandBuffer(buffer));
+   vk_assert(vkEndCommandBuffer(buffer));
 
    VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
    submit_info.waitSemaphoreCount = 1;
@@ -261,7 +374,7 @@ void vulkan_present(vulkan_context* context)
    submit_info.signalSemaphoreCount = 1;
    submit_info.pSignalSemaphores = &context->image_done_semaphore;
 
-   VK_ASSERT(vkQueueSubmit(context->graphics_queue, 1, &submit_info, VK_NULL_HANDLE));
+   vk_assert(vkQueueSubmit(context->graphics_queue, 1, &submit_info, VK_NULL_HANDLE));
 
    VkPresentInfoKHR present_info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
    present_info.swapchainCount = 1;
@@ -272,10 +385,10 @@ void vulkan_present(vulkan_context* context)
    present_info.waitSemaphoreCount = 1;
    present_info.pWaitSemaphores = &context->image_done_semaphore;
 
-   VK_ASSERT(vkQueuePresentKHR(context->graphics_queue, &present_info));
+   vk_assert(vkQueuePresentKHR(context->graphics_queue, &present_info));
 
    // wait until all queue ops are done
-   VK_ASSERT(vkDeviceWaitIdle(context->ldev));
+   vk_assert(vkDeviceWaitIdle(context->ldev));
 }
 
 bool vulkan_initialize(hw* hw)
@@ -289,16 +402,16 @@ bool vulkan_initialize(hw* hw)
 
    context->storage = &hw->vulkan_storage;
 
-   VkInstanceCreateInfo instance_info = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+   VkInstanceCreateInfo instance_info = {vk_info(INSTANCE)};
    instance_info.pApplicationInfo = &(VkApplicationInfo) { .apiVersion = VK_API_VERSION_1_2 };
 
    arena scratch = hw->vulkan_scratch;
    // extensions
    u32 ext_count = 0;
-   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
+   if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
    VkExtensionProperties* ext = new(&scratch, VkExtensionProperties, ext_count);
-   if(scratch_end(scratch, ext) || !VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext)))
+   if(scratch_end(scratch, ext) || !vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext)))
       return false;
    const char** ext_names = new(&scratch, const char*, ext_count);
 
@@ -316,20 +429,48 @@ bool vulkan_initialize(hw* hw)
    }
 #endif
 
-   VK_TEST(vkCreateInstance(&instance_info, 0, &context->instance));
+   VkInstance instance = 0;
+   vk_test_return(vkCreateInstance(&instance_info, 0, &instance));
 
-   u32 queue_family_index = vulkan_ldevice_select_index(context);
-   context->pdev = vulkan_pdevice_select(context);
-   context->ldev = vulkan_ldevice_create(context, queue_family_index);
-   context->surface = vulkan_window_surface_create(context, &hw->renderer.window, ext_names, ext_count);
-   context->swapchain = vulkan_swapchain_create(context, queue_family_index, hw->renderer.window.width, hw->renderer.window.height);
-   context->image_ready_semaphore = vulkan_semaphore_create(context);
-   context->image_done_semaphore = vulkan_semaphore_create(context);
-   context->graphics_queue = vulkan_graphics_queue_create(context, queue_family_index);
-   context->command_pool = vulkan_command_pool_create(context, queue_family_index);
-   context->command_buffer = vulkan_command_buffer_create(context);
+   vk_valid_handle(instance);
 
-   VK_TEST(vkGetSwapchainImagesKHR(context->ldev, context->swapchain, &context->swapchain_image_count, context->swapchain_images));
+   u32 queue_family_index = vulkan_ldevice_select_index();
+
+   VkPhysicalDevice pdev = vulkan_pdevice_select(instance);
+
+   VkDevice ldev = vulkan_ldevice_create(pdev, queue_family_index);
+
+   VkSurfaceKHR surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
+
+   swapchain_surface_info surface_info = vulkan_window_swapchain_surface_info(pdev, hw->renderer.window.width, hw->renderer.window.height, surface);
+
+   VkSwapchainKHR swapchain = vulkan_swapchain_create(ldev, &surface_info, queue_family_index);
+
+   context->image_ready_semaphore = vulkan_semaphore_create(ldev);
+   context->image_done_semaphore = vulkan_semaphore_create(ldev);
+
+   context->graphics_queue = vulkan_graphics_queue_create(ldev, queue_family_index);
+
+   context->command_pool = vulkan_command_pool_create(ldev, queue_family_index);
+
+   context->command_buffer = vulkan_command_buffer_create(ldev, context->command_pool);
+
+   context->renderpass = vulkan_renderpass_create(ldev, &surface_info);
+
+   vk_test_return(vkGetSwapchainImagesKHR(ldev, swapchain, &surface_info.image_count, context->swapchain_images));
+
+   for(u32 i = 0; i < surface_info.image_count; ++i)
+   {
+      context->swapchain_image_views[i] = vulkan_image_view_create(ldev, surface_info.format, context->swapchain_images[i]);
+      context->framebuffers[i] = vulkan_framebuffer_create(ldev, context->renderpass, &surface_info, context->swapchain_image_views[i]);
+   }
+
+   context->instance = instance;
+   context->pdev = pdev;
+   context->ldev = ldev;
+   context->surface = surface;
+   context->swapchain = swapchain;
+   context->swapchain_info = surface_info;
 
    // app callbacks
    hw->renderer.backends[vulkan_renderer_index] = context;
@@ -344,10 +485,10 @@ bool vulkan_uninitialize(hw* hw)
 {
    vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
 
-   vkDestroySwapchainKHR(context->ldev, context->swapchain, context->allocator);
-   vkDestroySurfaceKHR(context->instance, context->surface, context->allocator);
-   vkDestroyDevice(context->ldev, context->allocator);
-   vkDestroyInstance(context->instance, context->allocator);
+   vkDestroySwapchainKHR(context->ldev, context->swapchain, 0);
+   vkDestroySurfaceKHR(context->instance, context->surface, 0);
+   vkDestroyDevice(context->ldev, 0);
+   vkDestroyInstance(context->instance, 0);
 
    return true;
 }
