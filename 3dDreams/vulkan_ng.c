@@ -357,47 +357,48 @@ void vulkan_present(vulkan_context* context)
    VkCommandBufferBeginInfo buffer_begin_info = {vk_info_begin(COMMAND_BUFFER)};
    buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-   VkCommandBuffer buffer = context->command_buffer;
-
-   vk_assert(vkBeginCommandBuffer(buffer, &buffer_begin_info));
-
    VkRenderPassBeginInfo renderpass_info = {vk_info_begin(RENDER_PASS)};
    renderpass_info.renderPass = context->renderpass;
    renderpass_info.framebuffer = context->framebuffers[image_index];
    renderpass_info.renderArea.extent = (VkExtent2D)
    { context->swapchain_info.image_width, context->swapchain_info.image_height };
-   { 
-      f32 c = 255.0f, r = 48, g = 10, b = 36; 
+
+   VkCommandBuffer buffer = context->command_buffer;
+   {
+      vk_assert(vkBeginCommandBuffer(buffer, &buffer_begin_info));
+
+      const f32 c = 255.0f, r = 48, g = 10, b = 36;
+      VkClearValue clear = {r / c, g / c, b / c, 1.0f};
+
       renderpass_info.clearValueCount = 1;
-      renderpass_info.pClearValues = &(VkClearValue){r/c, g/c, b/c, 1.0f};
+      renderpass_info.pClearValues = &clear;
+
+      vkCmdBeginRenderPass(buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
+
+      VkViewport viewport = {};
+      viewport.x = 0.0f;
+      viewport.y = (f32)context->swapchain_info.image_height;
+      viewport.width = (f32)context->swapchain_info.image_width;
+      viewport.height = -(f32)context->swapchain_info.image_height;
+      viewport.minDepth = 0;
+      viewport.maxDepth = 1;
+
+      vkCmdSetViewport(buffer, 0, 1, &viewport);
+
+      VkRect2D scissor = {};
+      scissor.offset.x = 0;
+      scissor.offset.y = 0;
+      scissor.extent.width = (u32)context->swapchain_info.image_width;
+      scissor.extent.height = (u32)context->swapchain_info.image_height;
+      vkCmdSetScissor(buffer, 0, 1, &scissor);
+
+      vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline);
+      vkCmdDraw(buffer, 3, 1, 0, 0);
+
+      vkCmdEndRenderPass(buffer);
+
+      vk_assert(vkEndCommandBuffer(buffer));
    }
-
-   vkCmdBeginRenderPass(buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
-   // ... draw calls
-
-   VkViewport viewport = {};
-   viewport.x = 0.0f;
-   viewport.y = (f32)context->swapchain_info.image_height-1.0f;
-   viewport.width = (f32)context->swapchain_info.image_width;
-   viewport.height = -(f32)context->swapchain_info.image_height;
-   viewport.minDepth = 0;
-   viewport.maxDepth = 1;
-
-   vkCmdSetViewport(buffer, 0, 1, &viewport);
-
-   VkRect2D scissor = {};
-   scissor.offset.x = 0;
-   scissor.offset.y = 0;
-   scissor.extent.width = (u32)context->swapchain_info.image_width;
-   scissor.extent.height = (u32)context->swapchain_info.image_height;
-   vkCmdSetScissor(buffer, 0, 1, &scissor);
-
-   vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline);
-   vkCmdDraw(buffer, 3, 1, 0, 0);
-
-   vkCmdEndRenderPass(buffer);
-
-   vk_assert(vkEndCommandBuffer(buffer));
 
    VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
    submit_info.waitSemaphoreCount = 1;
