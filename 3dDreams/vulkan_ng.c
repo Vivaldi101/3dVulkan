@@ -145,16 +145,6 @@ static swapchain_surface_info vk_window_swapchain_surface_info(VkPhysicalDevice 
    result.format = vk_swapchain_format(physical_dev, surface);
    result.surface = surface;
 
-   // wp(imgcount = min + 1, imgcount >= 3)
-   // min + 1 >= 3
-   // min >= 2
-
-   // wp(imgcount = min + 1, maximgcount == 0 || maximgcount >= imgcount)
-   // (maximgcount == 0 || maximgcount >= min + 1)
-
-   // (maximgcount == 0 || maximgcount >= min + 1)
-   // implies(maximgcount != 0, maximgcount >= min + 1)
-
    return result;
 }
 
