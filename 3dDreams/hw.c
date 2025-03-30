@@ -10,6 +10,7 @@ align_struct hw_renderer
    void(*frame_present)(void* renderer);
    void(*frame_resize)(void* renderer, u32 width, u32 height);
    void(*frame_wait)(void* renderer);
+   void* (*window_surface_create)(void* instance, void* window_handle);
    u32 renderer_index;
    hw_window window;
 } hw_renderer;
@@ -32,6 +33,25 @@ align_struct hw
 } hw;
 
 #include "vulkan_ng.c"
+
+static VkSurfaceKHR window_surface_create(void* instance, void* window_handle)
+{
+   PFN_vkCreateWin32SurfaceKHR vk_surface_function = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
+
+   if(!vk_surface_function)
+      return 0;
+
+   VkWin32SurfaceCreateInfoKHR surface_info = {0};
+   surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+   surface_info.hinstance = GetModuleHandleA(0);
+   surface_info.hwnd = window_handle;
+
+   VkSurfaceKHR surface;
+   vk_test_return_handle(vk_surface_function(instance, &surface_info, 0, &surface));
+
+   return surface;
+}
+
 
 void hw_window_open(hw* hw, const char *title, int x, int y, int w, int h)
 {

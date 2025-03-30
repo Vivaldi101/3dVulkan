@@ -514,6 +514,12 @@ static VkPipeline vulkan_pipeline_create(VkDevice ldev, VkRenderPass renderpass,
    pipeline_info.pMultisampleState = &sample_info;
 
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
+   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
+   depth_stencil_info.depthTestEnable = VK_TRUE;
+   depth_stencil_info.depthWriteEnable = VK_TRUE;
+   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;
+   depth_stencil_info.minDepthBounds = 0;
+   depth_stencil_info.maxDepthBounds = 0;
    pipeline_info.pDepthStencilState = &depth_stencil_info;
 
    VkPipelineColorBlendAttachmentState color_blend_attachment = {};

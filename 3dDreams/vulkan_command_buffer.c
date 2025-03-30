@@ -8,7 +8,7 @@ static bool vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCo
    buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
    buffer_info.commandBufferCount = count;
 
-   if(!VK_VALID(vkAllocateCommandBuffers(context->device.logical_device, &buffer_info, buffers)))
+   if(!vk_valid(vkAllocateCommandBuffers(context->device.logical_device, &buffer_info, buffers)))
       return false;
 
    return true;
@@ -33,7 +33,7 @@ static bool vulkan_command_buffer_begin(VkCommandBuffer command_buffer, bool sin
    if(parallel_use)
       begin_info.flags |= VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-   if(!VK_VALID(vkBeginCommandBuffer(command_buffer, &begin_info)))
+   if(!vk_valid(vkBeginCommandBuffer(command_buffer, &begin_info)))
       return false;
 
    return true;
@@ -41,7 +41,7 @@ static bool vulkan_command_buffer_begin(VkCommandBuffer command_buffer, bool sin
 
 static bool vulkan_command_buffer_end(VkCommandBuffer buffer)
 {
-   if(!VK_VALID(vkEndCommandBuffer(buffer)))
+   if(!vk_valid(vkEndCommandBuffer(buffer)))
       return false;
 
    return true;
@@ -68,10 +68,10 @@ static bool vulkan_command_buffer_allocate_end_single_use(vulkan_context* contex
    submit_info.commandBufferCount = 1;
    submit_info.pCommandBuffers = &buffer;
 
-   if(!VK_VALID(vkQueueSubmit(queue, 1, &submit_info, 0)))
+   if(!vk_valid(vkQueueSubmit(queue, 1, &submit_info, 0)))
       return false;
 
-   if(!VK_VALID(vkQueueWaitIdle(queue)))
+   if(!vk_valid(vkQueueWaitIdle(queue)))
       return false;
 
    vulkan_command_buffer_free(context, &buffer, pool, 1);

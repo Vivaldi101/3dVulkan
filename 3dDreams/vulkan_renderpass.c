@@ -65,7 +65,7 @@ static bool vulkan_renderpass_create(vulkan_context* context)
 
    context->swapchain.attachment_count = array_count(attachements);
 
-   if(!VK_VALID(vkCreateRenderPass(context->device.logical_device, &render_info, context->allocator, &context->main_renderpass.handle)))
+   if(!vk_valid(vkCreateRenderPass(context->device.logical_device, &render_info, context->allocator, &context->main_renderpass.handle)))
       return false;
 
    return true;

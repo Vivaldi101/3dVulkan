@@ -24,11 +24,11 @@ static bool vulkan_device_meets_requirements(arena* storage,
 static bool vulkan_device_select_physical(arena* storage, vulkan_context* context)
 {
    u32 device_count = 0;
-   if(!VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
+   if(!vk_valid(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
       return false;
 
    VkPhysicalDevice* devices = new(storage, VkPhysicalDevice, device_count);
-   if(arena_end(storage, devices) || !VK_VALID(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
+   if(arena_end(storage, devices) || !vk_valid(vkEnumeratePhysicalDevices(context->instance, &device_count, devices)))
       return false;
 
 	// get a suitable physical device 
@@ -71,28 +71,28 @@ static bool vulkan_device_select_physical(arena* storage, vulkan_context* contex
 
 static bool vulkan_device_swapchain_support(arena* storage, vulkan_context* context, vulkan_swapchain_info* swapchain)
 {
-	if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
+	if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
 		return false;
 
-	if(!VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, 0)))
+	if(!vk_valid(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, context->surface, &swapchain->surface_format_count, 0)))
 		return false;
 
    if(swapchain->surface_format_count > 0 && !swapchain->surface_formats)
       swapchain->surface_formats = new(storage, VkSurfaceFormatKHR, swapchain->surface_format_count);
 
 	if(arena_end(storage, swapchain->surface_formats) || 
-      !VK_VALID(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, 
+      !vk_valid(vkGetPhysicalDeviceSurfaceFormatsKHR(context->device.physical_device, 
       context->surface, &swapchain->surface_format_count, swapchain->surface_formats)))
 		return false;
 
-	if(!VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, 0)))
+	if(!vk_valid(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, context->surface, &swapchain->present_mode_count, 0)))
 		return false;
 
 	if(swapchain->present_mode_count > 0 && !swapchain->present_modes)
       swapchain->present_modes = new(storage, VkPresentModeKHR, swapchain->present_mode_count);
 
 	if(arena_end(storage, swapchain->present_modes) || 
-      !VK_VALID(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, 
+      !vk_valid(vkGetPhysicalDeviceSurfacePresentModesKHR(context->device.physical_device, 
       context->surface, &swapchain->present_mode_count, swapchain->present_modes)))
 		return false;
    
@@ -159,7 +159,7 @@ static bool vulkan_device_meets_requirements(arena* storage,
          }
 
          VkBool32 supports_present = false;
-         if(!VK_VALID(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
+         if(!vk_valid(vkGetPhysicalDeviceSurfaceSupportKHR(context->device.physical_device, i, context->surface, &supports_present)))
             return false;
 
          if(supports_present)
@@ -269,7 +269,7 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
     .ppEnabledLayerNames = 0,
    };
 
-   if(!VK_VALID(vkCreateDevice(context->device.physical_device, &device_create_info, 0, &context->device.logical_device)))
+   if(!vk_valid(vkCreateDevice(context->device.physical_device, &device_create_info, 0, &context->device.logical_device)))
       return false;
 
    if(context->device.queue_indexes[QUEUE_GRAPHICS_INDEX] != INVALID_QUEUE_INDEX)
@@ -285,7 +285,7 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
    pool_create_info.queueFamilyIndex = context->device.queue_indexes[QUEUE_GRAPHICS_INDEX];
    pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-   if(!VK_VALID(vkCreateCommandPool(context->device.logical_device, &pool_create_info, context->allocator, &context->device.graphics_command_pool)))
+   if(!vk_valid(vkCreateCommandPool(context->device.logical_device, &pool_create_info, context->allocator, &context->device.graphics_command_pool)))
       return false;
 
 	return true;

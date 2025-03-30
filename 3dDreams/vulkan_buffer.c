@@ -13,7 +13,7 @@ static bool vulkan_buffer_create(vulkan_context* context, vulkan_buffer* buffer)
    buffer_info.usage = buffer->usage_flags;      // cannot be zero
    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;  // single queue only
 
-   if(!VK_VALID(vkCreateBuffer(context->device.logical_device, &buffer_info, context->allocator, &buffer->handle)))
+   if(!vk_valid(vkCreateBuffer(context->device.logical_device, &buffer_info, context->allocator, &buffer->handle)))
       return false;
 
    VkMemoryRequirements requirements = {};
@@ -27,11 +27,11 @@ static bool vulkan_buffer_create(vulkan_context* context, vulkan_buffer* buffer)
    alloc_info.allocationSize = requirements.size;
    alloc_info.memoryTypeIndex = buffer->memory_index;
 
-   if(!VK_VALID(vkAllocateMemory(context->device.logical_device, &alloc_info, context->allocator, &buffer->memory)))
+   if(!vk_valid(vkAllocateMemory(context->device.logical_device, &alloc_info, context->allocator, &buffer->memory)))
       return false;
 
    if(buffer->bind_on_create)
-      return VK_VALID(vulkan_buffer_bind(context, buffer));
+      return vk_valid(vulkan_buffer_bind(context, buffer));
 
    return true;
 }
@@ -39,7 +39,7 @@ static bool vulkan_buffer_create(vulkan_context* context, vulkan_buffer* buffer)
 static void* vulkan_buffer_lock_memory(vulkan_context* context, vulkan_buffer* buffer, VkMemoryMapFlags flags)
 {
    void* memory = 0;
-   if(!VK_VALID(vkMapMemory(context->device.logical_device, buffer->memory, buffer->offset, buffer->total_size, flags, &memory)))
+   if(!vk_valid(vkMapMemory(context->device.logical_device, buffer->memory, buffer->offset, buffer->total_size, flags, &memory)))
       return 0;
 
    return memory;
@@ -52,7 +52,7 @@ static void vulkan_buffer_unlock_memory(vulkan_context* context, vulkan_buffer* 
 
 static bool vulkan_buffer_copy(vulkan_context* context, VkBuffer dest, VkBuffer source, VkBufferCopy copy_region)
 {
-   if(!VK_VALID(vkQueueWaitIdle(context->device.graphics_queue)))
+   if(!vk_valid(vkQueueWaitIdle(context->device.graphics_queue)))
       return false;
 
    VkCommandBuffer temp = 0;

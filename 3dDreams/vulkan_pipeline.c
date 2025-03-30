@@ -120,7 +120,7 @@ bool vulkan_pipeline_create(vulkan_context* context)
    pipeline_layout_info.setLayoutCount = 1;
    pipeline_layout_info.pSetLayouts = &context->shader.global_descriptor_set_layout;
 
-   if(!VK_VALID(vkCreatePipelineLayout(context->device.logical_device, &pipeline_layout_info, context->allocator, &context->pipeline.layout)))
+   if(!vk_valid(vkCreatePipelineLayout(context->device.logical_device, &pipeline_layout_info, context->allocator, &context->pipeline.layout)))
       return false;
 
    VkGraphicsPipelineCreateInfo pipeline_info = {VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
@@ -144,7 +144,7 @@ bool vulkan_pipeline_create(vulkan_context* context)
    pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
    pipeline_info.basePipelineIndex = -1;
 
-   if(!VK_VALID(vkCreateGraphicsPipelines(context->device.logical_device, VK_NULL_HANDLE, 1, &pipeline_info, context->allocator, &context->pipeline.handle)))
+   if(!vk_valid(vkCreateGraphicsPipelines(context->device.logical_device, VK_NULL_HANDLE, 1, &pipeline_info, context->allocator, &context->pipeline.handle)))
       return false;
 
    return true;

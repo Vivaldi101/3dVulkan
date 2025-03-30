@@ -21,7 +21,7 @@ static bool vulkan_framebuffer_create(vulkan_context* context)
       framebuffer_info.pAttachments = framebuffer->attachments;
       framebuffer_info.renderPass = context->main_renderpass.handle;
 
-      if(!VK_VALID(vkCreateFramebuffer(context->device.logical_device, &framebuffer_info, context->allocator, &framebuffer->handle)))
+      if(!vk_valid(vkCreateFramebuffer(context->device.logical_device, &framebuffer_info, context->allocator, &framebuffer->handle)))
          return false;
    }
 

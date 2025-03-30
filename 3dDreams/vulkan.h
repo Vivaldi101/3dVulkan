@@ -16,7 +16,7 @@
 
 enum { VULKAN_MAX_FRAME_BUFFER_COUNT = 3, OBJECT_SHADER_COUNT = 2 };
 
-#define VK_VALID(v) ((v) == VK_SUCCESS)
+#define vk_valid(v) ((v) == VK_SUCCESS)
 
 bool vulkan_initialize(hw* hw);
 bool vulkan_deinitialize(hw* hw);

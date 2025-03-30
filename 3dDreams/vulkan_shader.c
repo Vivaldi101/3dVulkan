@@ -74,7 +74,7 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
       context->shader.stages[i].module_create_info.codeSize = shader_file.file_size;
       context->shader.stages[i].module_create_info.pCode = (u32*)shader_file.data;
 
-      if(!VK_VALID(vkCreateShaderModule(context->device.logical_device, 
+      if(!vk_valid(vkCreateShaderModule(context->device.logical_device, 
                            &context->shader.stages[i].module_create_info, 
                            context->allocator,
                            &context->shader.stages[i].handle)))
@@ -98,7 +98,7 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
    global_ubo_layout_info.bindingCount = 1;
    global_ubo_layout_info.pBindings = &global_ubo_binding;
 
-   if(!VK_VALID(vkCreateDescriptorSetLayout(context->device.logical_device, &global_ubo_layout_info, context->allocator, &context->shader.global_descriptor_set_layout)))
+   if(!vk_valid(vkCreateDescriptorSetLayout(context->device.logical_device, &global_ubo_layout_info, context->allocator, &context->shader.global_descriptor_set_layout)))
       return false;
 
    VkDescriptorPoolSize global_pool_size;
@@ -111,7 +111,7 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
       global_pool_info.poolSizeCount = 1;
       global_pool_info.pPoolSizes = &global_pool_size;
       global_pool_info.maxSets = 1;
-      if(!VK_VALID(vkCreateDescriptorPool(context->device.logical_device, &global_pool_info, context->allocator, context->shader.global_descriptor_pools + i)))
+      if(!vk_valid(vkCreateDescriptorPool(context->device.logical_device, &global_pool_info, context->allocator, context->shader.global_descriptor_pools + i)))
          return false;
    }
 
@@ -133,7 +133,7 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
       set_allocate_info.descriptorSetCount = 1;
       set_allocate_info.pSetLayouts = &context->shader.global_descriptor_set_layout;
 
-      if(!VK_VALID(vkAllocateDescriptorSets(context->device.logical_device, &set_allocate_info, context->shader.global_descriptor_set + i)))
+      if(!vk_valid(vkAllocateDescriptorSets(context->device.logical_device, &set_allocate_info, context->shader.global_descriptor_set + i)))
          return false;
    }
 

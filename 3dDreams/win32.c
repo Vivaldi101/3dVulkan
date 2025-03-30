@@ -293,6 +293,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
    hw.renderer.window.open = win32_window_open;
    hw.renderer.window.close = win32_window_close;
+   hw.renderer.window_surface_create = window_surface_create;
 
    hw.timer.sleep = win32_sleep;
    hw.timer.time = win32_time;

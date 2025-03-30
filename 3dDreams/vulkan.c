@@ -118,11 +118,11 @@ static bool vulkan_upload_data_to_buffer(vulkan_context* context, vulkan_buffer*
 static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
 {
    u32 ext_count = 0;
-   if(!VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
+   if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
 
    VkExtensionProperties* ext = new(&scratch, VkExtensionProperties, ext_count);
-   if(scratch_end(scratch, ext) || !VK_VALID(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext)))
+   if(scratch_end(scratch, ext) || !vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext)))
       return false;
 
    VkApplicationInfo app_info = {VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -150,7 +150,7 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
    instance_info.enabledExtensionCount = ext_count;
    instance_info.ppEnabledExtensionNames = ext_names;
 
-   if(scratch_end(scratch, ext_names) || !VK_VALID(vkCreateInstance(&instance_info, 0, &context->instance)))
+   if(scratch_end(scratch, ext_names) || !vk_valid(vkCreateInstance(&instance_info, 0, &context->instance)))
       return false;
 
 #ifdef _DEBUG 
@@ -165,7 +165,7 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
 
       VkDebugUtilsMessengerEXT messenger;
 
-      if(!VK_VALID(vulkan_create_debugutils_messenger_ext(context->instance, &debugCreateInfo, 0, &messenger)))
+      if(!vk_valid(vulkan_create_debugutils_messenger_ext(context->instance, &debugCreateInfo, 0, &messenger)))
          return false;
    }
 #endif
@@ -343,7 +343,7 @@ static bool vulkan_frame_end(vulkan_context* context)
    VkPipelineStageFlags flags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
    submit_info.pWaitDstStageMask = flags;
 
-   if(!VK_VALID(vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->in_flight_fences[context->current_frame_index].handle)))
+   if(!vk_valid(vkQueueSubmit(context->device.graphics_queue, 1, &submit_info, context->in_flight_fences[context->current_frame_index].handle)))
       return false;
 
    context->command_buffer_state[context->current_frame_index] = COMMAND_BUFFER_SUBMITTED;
@@ -403,7 +403,7 @@ bool vulkan_uninitialize(hw* hw)
 {
    vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
 
-   if(!VK_VALID(vkDeviceWaitIdle(context->device.logical_device)))
+   if(!vk_valid(vkDeviceWaitIdle(context->device.logical_device)))
       return false;
 
    // TODO...

@@ -38,7 +38,7 @@ static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* cont
    // TODO: requery swapchain support if devices etc. change here
 
    VkSurfaceCapabilitiesKHR surface_caps;
-   if(!VK_VALID(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &surface_caps)))
+   if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &surface_caps)))
       return false;
 
    if(surface_caps.currentExtent.width != UINT32_MAX)
@@ -105,13 +105,13 @@ static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* cont
    swapchain_info.presentMode = swapchain->present_mode;
    swapchain_info.oldSwapchain = swapchain->handle;
 
-   if(!VK_VALID(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_info, 0, &swapchain->handle)))
+   if(!vk_valid(vkCreateSwapchainKHR(context->device.logical_device, &swapchain_info, 0, &swapchain->handle)))
       return false;
 
    context->current_frame_index = 0;
    context->current_image_index = 0;
 
-   if(!VK_VALID(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->handle, &swapchain->image_count, 0)))
+   if(!vk_valid(vkGetSwapchainImagesKHR(context->device.logical_device, swapchain->handle, &swapchain->image_count, 0)))
       return false;
    if(!swapchain->images)
       swapchain->images = new(storage, VkImage, swapchain->image_count);
@@ -120,7 +120,7 @@ static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* cont
 
    if(arena_end(storage, swapchain->images) || 
       arena_end(storage, swapchain->views) ||
-      !VK_VALID(vkGetSwapchainImagesKHR(
+      !vk_valid(vkGetSwapchainImagesKHR(
       context->device.logical_device, swapchain->handle, 
       &swapchain->image_count, swapchain->images)))
       return false;
@@ -137,7 +137,7 @@ static bool vulkan_swapchain_surface_create(arena* storage, vulkan_context* cont
       view_info.subresourceRange.baseArrayLayer = 0;
       view_info.subresourceRange.layerCount = 1;
 
-      if(!VK_VALID(vkCreateImageView(context->device.logical_device, &view_info, 0, swapchain->views + i)))
+      if(!vk_valid(vkCreateImageView(context->device.logical_device, &view_info, 0, swapchain->views + i)))
          return false;
    }
 

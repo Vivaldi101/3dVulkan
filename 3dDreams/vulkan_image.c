@@ -23,7 +23,7 @@ static vulkan_image vulkan_image_create(arena* storage, vulkan_context* context,
    image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
    image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-   if(!VK_VALID(vkCreateImage(context->device.logical_device, &image_create_info, 0, &result.handle)))
+   if(!vk_valid(vkCreateImage(context->device.logical_device, &image_create_info, 0, &result.handle)))
       return (vulkan_image){0};
 
    VkMemoryRequirements memory_reqs = {};
@@ -37,10 +37,10 @@ static vulkan_image vulkan_image_create(arena* storage, vulkan_context* context,
    memory_info.allocationSize = memory_reqs.size;
    memory_info.memoryTypeIndex = memory_index;
 
-   if(!VK_VALID(vkAllocateMemory(context->device.logical_device, &memory_info, context->allocator, &result.memory)))
+   if(!vk_valid(vkAllocateMemory(context->device.logical_device, &memory_info, context->allocator, &result.memory)))
       return (vulkan_image){0};
 
-   if(!VK_VALID(vkBindImageMemory(context->device.logical_device, result.handle, result.memory, 0)))
+   if(!vk_valid(vkBindImageMemory(context->device.logical_device, result.handle, result.memory, 0)))
       return (vulkan_image){0};
 
    if(image_info->is_view)
@@ -66,7 +66,7 @@ static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* imag
    image_view_info.subresourceRange.baseArrayLayer = 0;
    image_view_info.subresourceRange.layerCount = 1;
 
-   if(!VK_VALID(vkCreateImageView(context->device.logical_device, &image_view_info, context->allocator, &image->view)))
+   if(!vk_valid(vkCreateImageView(context->device.logical_device, &image_view_info, context->allocator, &image->view)))
       return false;
 
    return true;
