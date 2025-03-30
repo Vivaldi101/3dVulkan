@@ -31,11 +31,10 @@ static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
-    VkDebugUtilsMessageTypeFlagsEXT type,
-    const VkDebugUtilsMessengerCallbackDataEXT* data,
-    void* pUserData) {
+static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+                                                            VkDebugUtilsMessageTypeFlagsEXT type,
+                                                            const VkDebugUtilsMessengerCallbackDataEXT* data,
+                                                            void* pUserData) {
 
    debug_message("Validation layer: %s\n", data->pMessage);
 
@@ -155,17 +154,17 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
 
 #ifdef _DEBUG 
    {
-      VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-      debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+      VkDebugUtilsMessengerCreateInfoEXT debug_messenger = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+      debug_messenger.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-      debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+      debug_messenger.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-      debugCreateInfo.pfnUserCallback = vulkan_debug_callback;
+      debug_messenger.pfnUserCallback = vulkan_debug_callback;
 
       VkDebugUtilsMessengerEXT messenger;
 
-      if(!vk_valid(vulkan_create_debugutils_messenger_ext(context->instance, &debugCreateInfo, 0, &messenger)))
+      if(!vk_valid(vulkan_create_debugutils_messenger_ext(context->instance, &debug_messenger, 0, &messenger)))
          return false;
    }
 #endif

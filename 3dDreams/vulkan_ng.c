@@ -1,5 +1,6 @@
 #include "arena.h"
 #include "common.h"
+#include "vulkan_ng.h"
 
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
@@ -11,7 +12,7 @@
 
 enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 
-// TODO: Why release wont build
+//#define vk_break_on_validation
 
 #define vk_valid_handle(v) ((v) != VK_NULL_HANDLE)
 #define vk_valid_format(v) ((v) != VK_FORMAT_UNDEFINED)
@@ -23,6 +24,7 @@ enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 #define vk_info(i) VK_STRUCTURE_TYPE_##i##_CREATE_INFO
 #define vk_info_allocate(i) VK_STRUCTURE_TYPE_##i##_ALLOCATE_INFO
 #define vk_info_khr(i) VK_STRUCTURE_TYPE_##i##_CREATE_INFO_KHR
+#define vk_info_ext(i) VK_STRUCTURE_TYPE_##i##_CREATE_INFO_EXT
 
 #define vk_info_begin(i) VK_STRUCTURE_TYPE_##i##_BEGIN_INFO
 #define vk_info_end(i) VK_STRUCTURE_TYPE_##i##_END_INFO
@@ -57,7 +59,6 @@ align_struct
 {
    arena* storage;
 
-   VkInstance instance;
    VkPhysicalDevice physical_dev;
    VkDevice logical_dev;
    VkSurfaceKHR surface;
@@ -76,6 +77,31 @@ align_struct
 
    swapchain_surface_info swapchain_info;
 } vulkan_context;
+
+static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
+                                      const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                      const VkAllocationCallbacks* pAllocator,
+                                      VkDebugUtilsMessengerEXT* pDebugMessenger)
+{
+   PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+   if(!func)
+      return VK_ERROR_EXTENSION_NOT_PRESENT;
+   return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+}
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT severity_flags,
+    VkDebugUtilsMessageTypeFlagsEXT type,
+    const VkDebugUtilsMessengerCallbackDataEXT* data,
+    void* pUserData)
+{
+   debug_message("Validation layer message: %s\n", data->pMessage);
+#ifdef vk_break_on_validation
+   assert((type & VK_DEBUG_REPORT_ERROR_BIT_EXT) != 0);
+#endif
+
+   return VK_FALSE;
+}
 
 static VkFormat vulkan_swapchain_format(VkPhysicalDevice physical_dev, VkSurfaceKHR surface)
 {
@@ -363,9 +389,9 @@ void vulkan_present(vulkan_context* context)
    renderpass_info.renderArea.extent = (VkExtent2D)
    { context->swapchain_info.image_width, context->swapchain_info.image_height };
 
-   VkCommandBuffer buffer = context->command_buffer;
+   VkCommandBuffer command_buffer = context->command_buffer;
    {
-      vk_assert(vkBeginCommandBuffer(buffer, &buffer_begin_info));
+      vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
       const f32 c = 255.0f, r = 48, g = 10, b = 36;
       VkClearValue clear = {r / c, g / c, b / c, 1.0f};
@@ -373,7 +399,7 @@ void vulkan_present(vulkan_context* context)
       renderpass_info.clearValueCount = 1;
       renderpass_info.pClearValues = &clear;
 
-      vkCmdBeginRenderPass(buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 
       VkViewport viewport = {};
       viewport.x = 0.0f;
@@ -383,21 +409,21 @@ void vulkan_present(vulkan_context* context)
       viewport.minDepth = 0;
       viewport.maxDepth = 1;
 
-      vkCmdSetViewport(buffer, 0, 1, &viewport);
+      vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
       VkRect2D scissor = {};
       scissor.offset.x = 0;
       scissor.offset.y = 0;
       scissor.extent.width = (u32)context->swapchain_info.image_width;
       scissor.extent.height = (u32)context->swapchain_info.image_height;
-      vkCmdSetScissor(buffer, 0, 1, &scissor);
+      vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-      vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline);
-      vkCmdDraw(buffer, 3, 1, 0, 0);
+      vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline);
+      vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
-      vkCmdEndRenderPass(buffer);
+      vkCmdEndRenderPass(command_buffer);
 
-      vk_assert(vkEndCommandBuffer(buffer));
+      vk_assert(vkEndCommandBuffer(command_buffer));
    }
 
    VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -407,7 +433,7 @@ void vulkan_present(vulkan_context* context)
    submit_info.pWaitDstStageMask = &(VkPipelineStageFlags) { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
    submit_info.commandBufferCount = 1;
-   submit_info.pCommandBuffers = &buffer;
+   submit_info.pCommandBuffers = &command_buffer;
 
    submit_info.signalSemaphoreCount = 1;
    submit_info.pSignalSemaphores = &context->image_done_semaphore;
@@ -576,14 +602,34 @@ bool vulkan_initialize(hw* hw)
 
 #ifdef _DEBUG
    {
-      const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
-      instance_info.enabledLayerCount = array_count(validationLayers);
-      instance_info.ppEnabledLayerNames = validationLayers;
+      const char* validation_layers[] = {"VK_LAYER_KHRONOS_validation"};
+      instance_info.enabledLayerCount = array_count(validation_layers);
+      instance_info.ppEnabledLayerNames = validation_layers;
    }
 #endif
 
    VkInstance instance = 0;
    vk_test_return(vkCreateInstance(&instance_info, 0, &instance));
+
+#ifdef _DEBUG
+   {
+      VkDebugUtilsMessengerCreateInfoEXT messenger_info = {vk_info_ext(DEBUG_UTILS_MESSENGER)};
+      messenger_info.messageSeverity = 
+         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
+         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+      messenger_info.messageType = 
+         VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+      messenger_info.pfnUserCallback = vulkan_debug_callback;
+
+      VkDebugUtilsMessengerEXT messenger;
+
+      if(!vk_valid(vulkan_create_debugutils_messenger_ext(instance, &messenger_info, 0, &messenger)))
+         return false;
+
+   }
+#endif
 
    u32 queue_family_index = vulkan_ldevice_select_index();
 
