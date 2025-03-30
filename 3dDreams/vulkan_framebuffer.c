@@ -3,12 +3,12 @@
 
 #include "arena.h"
 
-static bool vulkan_framebuffer_create(vulkan_context* context)
+static bool vk_framebuffer_create(vk_context* context)
 {
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
       VkImageView attachments[] = {context->swapchain.views[i], context->swapchain.depth_attachment.view};
-      vulkan_framebuffer* framebuffer = &context->swapchain.framebuffers[i];
+      vk_framebuffer* framebuffer = &context->swapchain.framebuffers[i];
 
       framebuffer->attachments = attachments;
       framebuffer->attachment_count = array_count(attachments);

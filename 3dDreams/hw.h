@@ -16,7 +16,7 @@
 // TODO: Move this to general renderer.h
 enum
 {
-   vulkan_renderer_index, 
+   vk_renderer_index, 
 	d3d12_renderer_index, 
    soft_renderer_index,
    renderer_count

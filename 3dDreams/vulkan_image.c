@@ -3,11 +3,11 @@
 
 #include "arena.h"
 
-static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* image, vulkan_image_info* image_info);
+static bool vk_image_view_create(vk_context* context, vk_image* image, vk_image_info* image_info);
 
-static vulkan_image vulkan_image_create(arena* storage, vulkan_context* context, vulkan_image_info* image_info, u32 w, u32 h)
+static vk_image vk_image_create(arena* storage, vk_context* context, vk_image_info* image_info, u32 w, u32 h)
 {
-   vulkan_image result = {};
+   vk_image result = {};
 
    VkImageCreateInfo image_create_info = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
    image_create_info.imageType = VK_IMAGE_TYPE_2D;
@@ -24,28 +24,28 @@ static vulkan_image vulkan_image_create(arena* storage, vulkan_context* context,
    image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
    if(!vk_valid(vkCreateImage(context->device.logical_device, &image_create_info, 0, &result.handle)))
-      return (vulkan_image){0};
+      return (vk_image){0};
 
    VkMemoryRequirements memory_reqs = {};
    vkGetImageMemoryRequirements(context->device.logical_device, result.handle, &memory_reqs);
 
-   i32 memory_index = vulkan_find_memory_index(context, memory_reqs.memoryTypeBits, image_info->memory_flags);
+   i32 memory_index = vk_find_memory_index(context, memory_reqs.memoryTypeBits, image_info->memory_flags);
    if(memory_index == -1)
-      return (vulkan_image){0};
+      return (vk_image){0};
 
    VkMemoryAllocateInfo memory_info = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
    memory_info.allocationSize = memory_reqs.size;
    memory_info.memoryTypeIndex = memory_index;
 
    if(!vk_valid(vkAllocateMemory(context->device.logical_device, &memory_info, context->allocator, &result.memory)))
-      return (vulkan_image){0};
+      return (vk_image){0};
 
    if(!vk_valid(vkBindImageMemory(context->device.logical_device, result.handle, result.memory, 0)))
-      return (vulkan_image){0};
+      return (vk_image){0};
 
    if(image_info->is_view)
-      if(!vulkan_image_view_create(context, &result, image_info))
-         return (vulkan_image){0};
+      if(!vk_image_view_create(context, &result, image_info))
+         return (vk_image){0};
 
    result.width = w;
    result.height = h;
@@ -53,7 +53,7 @@ static vulkan_image vulkan_image_create(arena* storage, vulkan_context* context,
    return result;
 }
 
-static bool vulkan_image_view_create(vulkan_context* context, vulkan_image* image, vulkan_image_info* image_info)
+static bool vk_image_view_create(vk_context* context, vk_image* image, vk_image_info* image_info)
 {
    VkImageViewCreateInfo image_view_info = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
    image_view_info.image = image->handle;

@@ -24,8 +24,8 @@ align_struct hw_timer
 align_struct hw
 {
    hw_renderer renderer;
-   arena vulkan_storage;
-   arena vulkan_scratch;
+   arena vk_storage;
+   arena vk_scratch;
    arena misc_storage;
    hw_timer timer;
    bool(*platform_loop)();
@@ -169,8 +169,8 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void
          break;
 
       app_input_function(&input);
-      app_frame_function(hw->vulkan_scratch);
-      scratch_clear(hw->vulkan_scratch);
+      app_frame_function(hw->vk_scratch);
+      scratch_clear(hw->vk_scratch);
 
       // TODO: Use perf counters for better granularity
       hw_frame_sync(hw);

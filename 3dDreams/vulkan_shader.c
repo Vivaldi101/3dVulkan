@@ -5,7 +5,7 @@
 #define BUILTIN_SHADER_NAME "Builtin.ObjectShader"
 
 // Reads the spv files
-static file_result vulkan_shader_spv_read(vulkan_context* context, const char* shader_dir, VkShaderStageFlagBits type)
+static file_result vk_shader_spv_read(vk_context* context, const char* shader_dir, VkShaderStageFlagBits type)
 {
    char* type_name;
    char shader_name[MAX_PATH];
@@ -28,7 +28,7 @@ static file_result vulkan_shader_spv_read(vulkan_context* context, const char* s
    return win32_file_read(context->storage, shader_name);
 }
 
-static file_result vulkan_shader_directory(arena* storage)
+static file_result vk_shader_directory(arena* storage)
 {
    file_result result = {};
 
@@ -58,15 +58,15 @@ static file_result vulkan_shader_directory(arena* storage)
    return result;
 }
 
-static bool vulkan_shader_create(arena scratch, vulkan_context* context)
+static bool vk_shader_create(arena scratch, vk_context* context)
 {
    VkShaderStageFlagBits shader_type_bits[OBJECT_SHADER_COUNT] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
 
-   file_result shader_dir = vulkan_shader_directory(&scratch);
+   file_result shader_dir = vk_shader_directory(&scratch);
 
    for(u32 i = 0; i < OBJECT_SHADER_COUNT; ++i)
    {
-      file_result shader_file = vulkan_shader_spv_read(context, shader_dir.data, shader_type_bits[i]);
+      file_result shader_file = vk_shader_spv_read(context, shader_dir.data, shader_type_bits[i]);
       if(shader_file.file_size == 0)
          return false;
 
@@ -115,7 +115,7 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
          return false;
    }
 
-   if(!vulkan_pipeline_create(context))
+   if(!vk_pipeline_create(context))
       return false;
 
    context->shader.global_uniform_buffer.total_size = sizeof(global_uniform_object);
@@ -123,7 +123,7 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
    context->shader.global_uniform_buffer.memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
    context->shader.global_uniform_buffer.bind_on_create = true;
 
-   if(!vulkan_buffer_create(context, &context->shader.global_uniform_buffer))
+   if(!vk_buffer_create(context, &context->shader.global_uniform_buffer))
       return false;
 
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
@@ -140,13 +140,13 @@ static bool vulkan_shader_create(arena scratch, vulkan_context* context)
    return true;
 }
 
-static void vulkan_shader_pipeline_bind(vulkan_context* context)
+static void vk_shader_pipeline_bind(vk_context* context)
 {
    u32 index = context->current_image_index;
-   vulkan_pipeline_bind(context->graphics_command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline.handle);
+   vk_pipeline_bind(context->graphics_command_buffers[index], VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline.handle);
 }
 
-static bool vulkan_shader_update_state(vulkan_context* context, u32 global_descriptor_set_index)
+static bool vk_shader_update_state(vk_context* context, u32 global_descriptor_set_index)
 {
    u32 image_index = context->current_image_index;
    VkCommandBuffer buffer = context->graphics_command_buffers[image_index];
@@ -155,7 +155,7 @@ static bool vulkan_shader_update_state(vulkan_context* context, u32 global_descr
    u32 range = sizeof(global_uniform_object);
    u64 offset = 0;
 
-   if(!vulkan_buffer_load(context, &context->shader.global_uniform_buffer, 0, range, &context->shader.global_ubo))
+   if(!vk_buffer_load(context, &context->shader.global_uniform_buffer, 0, range, &context->shader.global_ubo))
       return false;
 
    VkDescriptorBufferInfo buffer_info;

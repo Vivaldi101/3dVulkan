@@ -2,7 +2,7 @@
 #include "common.h"
 #include "graphics.h"
 
-bool vulkan_pipeline_create(vulkan_context* context)
+bool vk_pipeline_create(vk_context* context)
 {
 #define ATTRIBUTE_COUNT 1
    u32 attribute_offset = 0;
@@ -150,7 +150,7 @@ bool vulkan_pipeline_create(vulkan_context* context)
    return true;
 }
 
-void vulkan_pipeline_bind(VkCommandBuffer buffer, VkPipelineBindPoint bind_point, VkPipeline pipeline)
+void vk_pipeline_bind(VkCommandBuffer buffer, VkPipelineBindPoint bind_point, VkPipeline pipeline)
 {
    vkCmdBindPipeline(buffer, bind_point, pipeline);
 }

@@ -3,7 +3,7 @@
 // This must match what is in the shader_build.bat file
 #define BUILTIN_SHADER_NAME "Builtin.ObjectShader"
 
-static file_result vulkan_shader_spv_read(arena* storage, const char* shader_dir, VkShaderStageFlagBits type)
+static file_result vk_shader_spv_read(arena* storage, const char* shader_dir, VkShaderStageFlagBits type)
 {
    char* type_name;
    char shader_name[MAX_PATH];
@@ -26,7 +26,7 @@ static file_result vulkan_shader_spv_read(arena* storage, const char* shader_dir
    return win32_file_read(storage, shader_name);
 }
 
-static file_result vulkan_shader_directory(arena* storage)
+static file_result vk_shader_directory(arena* storage)
 {
    file_result result = {};
 

@@ -9,7 +9,7 @@
 
 #include "common.h"
 
-bool vulkan_uninitialize(struct hw* hw);
-bool vulkan_initialize(struct hw* hw);
+bool vk_uninitialize(struct hw* hw);
+bool vk_initialize(struct hw* hw);
 
 #endif

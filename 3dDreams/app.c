@@ -67,7 +67,7 @@ void app_start(int argc, const char** argv, hw* hw)
 	int w = 800, h = 600;
    hw_window_open(hw, "App window", 0, 0, w, h);
 
-   if(!vulkan_initialize(hw))
+   if(!vk_initialize(hw))
       hw_message("Could not open Vulkan");
 
    g_frustum_create(&frustum, (f32)w, (f32)h, 90.0f);
@@ -75,6 +75,6 @@ void app_start(int argc, const char** argv, hw* hw)
    hw_event_loop_start(hw, app_frame, app_input_handle);
    hw_window_close(hw);
 
-   if(!vulkan_uninitialize(hw))
+   if(!vk_uninitialize(hw))
       hw_message("Could not close Vulkan");
 }

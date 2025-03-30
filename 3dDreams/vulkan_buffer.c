@@ -1,12 +1,12 @@
 #include "vulkan.h"
 #include "common.h"
 
-static bool vulkan_buffer_bind(vulkan_context* context, vulkan_buffer* buffer)
+static bool vk_buffer_bind(vk_context* context, vk_buffer* buffer)
 {
    return vkBindBufferMemory(context->device.logical_device, buffer->handle, buffer->memory, buffer->offset);
 }
 
-static bool vulkan_buffer_create(vulkan_context* context, vulkan_buffer* buffer)
+static bool vk_buffer_create(vk_context* context, vk_buffer* buffer)
 {
    VkBufferCreateInfo buffer_info = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
    buffer_info.size = buffer->total_size;        // cannot be zero
@@ -19,7 +19,7 @@ static bool vulkan_buffer_create(vulkan_context* context, vulkan_buffer* buffer)
    VkMemoryRequirements requirements = {};
    vkGetBufferMemoryRequirements(context->device.logical_device, buffer->handle, &requirements);
 
-   buffer->memory_index = vulkan_find_memory_index(context, requirements.memoryTypeBits, buffer->memory_flags);
+   buffer->memory_index = vk_find_memory_index(context, requirements.memoryTypeBits, buffer->memory_flags);
    if(buffer->memory_index == -1)
       return false;
 
@@ -31,12 +31,12 @@ static bool vulkan_buffer_create(vulkan_context* context, vulkan_buffer* buffer)
       return false;
 
    if(buffer->bind_on_create)
-      return vk_valid(vulkan_buffer_bind(context, buffer));
+      return vk_valid(vk_buffer_bind(context, buffer));
 
    return true;
 }
 
-static void* vulkan_buffer_lock_memory(vulkan_context* context, vulkan_buffer* buffer, VkMemoryMapFlags flags)
+static void* vk_buffer_lock_memory(vk_context* context, vk_buffer* buffer, VkMemoryMapFlags flags)
 {
    void* memory = 0;
    if(!vk_valid(vkMapMemory(context->device.logical_device, buffer->memory, buffer->offset, buffer->total_size, flags, &memory)))
@@ -45,38 +45,38 @@ static void* vulkan_buffer_lock_memory(vulkan_context* context, vulkan_buffer* b
    return memory;
 }
 
-static void vulkan_buffer_unlock_memory(vulkan_context* context, vulkan_buffer* buffer)
+static void vk_buffer_unlock_memory(vk_context* context, vk_buffer* buffer)
 {
    vkUnmapMemory(context->device.logical_device, buffer->memory);
 }
 
-static bool vulkan_buffer_copy(vulkan_context* context, VkBuffer dest, VkBuffer source, VkBufferCopy copy_region)
+static bool vk_buffer_copy(vk_context* context, VkBuffer dest, VkBuffer source, VkBufferCopy copy_region)
 {
    if(!vk_valid(vkQueueWaitIdle(context->device.graphics_queue)))
       return false;
 
    VkCommandBuffer temp = 0;
-   vulkan_command_buffer_allocate_and_begin_single_use(context, &temp, context->device.graphics_command_pool);
+   vk_command_buffer_allocate_and_begin_single_use(context, &temp, context->device.graphics_command_pool);
 
    vkCmdCopyBuffer(temp, source, dest, 1, &copy_region);
 
-   if(!vulkan_command_buffer_allocate_end_single_use(context, temp, context->device.graphics_command_pool, context->device.graphics_queue))
+   if(!vk_command_buffer_allocate_end_single_use(context, temp, context->device.graphics_command_pool, context->device.graphics_queue))
       return false;
 
    return true;
 }
 
-static bool vulkan_buffer_load(vulkan_context* context, vulkan_buffer* buffer, VkMemoryMapFlags flags, u64 size, const void* data)
+static bool vk_buffer_load(vk_context* context, vk_buffer* buffer, VkMemoryMapFlags flags, u64 size, const void* data)
 {
    if(size > buffer->total_size)
       return false;
 
-   void* memory = vulkan_buffer_lock_memory(context, buffer, flags);
+   void* memory = vk_buffer_lock_memory(context, buffer, flags);
    if(!memory)
       return false;
 
    memcpy(memory, data, size);
-   vulkan_buffer_unlock_memory(context, buffer);
+   vk_buffer_unlock_memory(context, buffer);
 
    return true;
 }

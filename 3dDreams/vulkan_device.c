@@ -3,25 +3,25 @@
 
 enum { INVALID_QUEUE_INDEX = -1 };
 
-typedef struct vulkan_physical_device_requirements
+typedef struct vk_physical_device_requirements
 { 
 	bool is_graphics, is_present, is_compute, is_transfer;	// queue type predicates
    bool is_anisotropy, is_discrete_gpu;
    const char** device_extension_names;
-} vulkan_physical_device_requirements;
+} vk_physical_device_requirements;
 
-typedef struct vulkan_queue_family
+typedef struct vk_queue_family
 {
 	u32 graphics_index, present_index, compute_index, transfer_index;
-} vulkan_queue_family;
+} vk_queue_family;
 
-static bool vulkan_device_meets_requirements(arena* storage,
-															vulkan_context* context,
-                                             const vulkan_physical_device_requirements* requirements,
+static bool vk_device_meets_requirements(arena* storage,
+															vk_context* context,
+                                             const vk_physical_device_requirements* requirements,
                                              const VkPhysicalDeviceProperties* properties,
-															vulkan_queue_family* queue_family);
+															vk_queue_family* queue_family);
 
-static bool vulkan_device_select_physical(arena* storage, vulkan_context* context)
+static bool vk_device_select_physical(arena* storage, vk_context* context)
 {
    u32 device_count = 0;
    if(!vk_valid(vkEnumeratePhysicalDevices(context->instance, &device_count, 0)))
@@ -43,15 +43,15 @@ static bool vulkan_device_select_physical(arena* storage, vulkan_context* contex
       VkPhysicalDeviceMemoryProperties memory;
 		vkGetPhysicalDeviceMemoryProperties(devices[i], &memory);
 
-      vulkan_physical_device_requirements reqs = {0};
+      vk_physical_device_requirements reqs = {0};
       reqs.is_graphics = reqs.is_present = reqs.is_transfer = true;
       reqs.is_anisotropy = reqs.is_discrete_gpu = true;
 
       context->device.physical_device = devices[i];
 
-      vulkan_queue_family queue_family = {0};
+      vk_queue_family queue_family = {0};
 
-      if(!vulkan_device_meets_requirements(storage, context, &reqs, &properties, &queue_family))
+      if(!vk_device_meets_requirements(storage, context, &reqs, &properties, &queue_family))
 			continue;	// no device yet met the requirements
 
       context->device.queue_indexes[QUEUE_GRAPHICS_INDEX] = queue_family.graphics_index;
@@ -69,7 +69,7 @@ static bool vulkan_device_select_physical(arena* storage, vulkan_context* contex
    return false;
 }
 
-static bool vulkan_device_swapchain_support(arena* storage, vulkan_context* context, vulkan_swapchain_info* swapchain)
+static bool vk_device_swapchain_support(arena* storage, vk_context* context, vk_swapchain_info* swapchain)
 {
 	if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->device.physical_device, context->surface, &swapchain->surface_capabilities)))
 		return false;
@@ -99,7 +99,7 @@ static bool vulkan_device_swapchain_support(arena* storage, vulkan_context* cont
    return true;
 }
 
-static u32 vulkan_find_unique_family_count(u32 g, u32 c, u32 p, u32 t)
+static u32 vk_find_unique_family_count(u32 g, u32 c, u32 p, u32 t)
 {
    u32 result = 1;
 
@@ -115,11 +115,11 @@ static u32 vulkan_find_unique_family_count(u32 g, u32 c, u32 p, u32 t)
    return result;
 }
 
-static bool vulkan_device_meets_requirements(arena* storage,
-															vulkan_context* context,
-                                             const vulkan_physical_device_requirements* requirements,
+static bool vk_device_meets_requirements(arena* storage,
+															vk_context* context,
+                                             const vk_physical_device_requirements* requirements,
                                              const VkPhysicalDeviceProperties* properties,
-															vulkan_queue_family* queue_family)
+															vk_queue_family* queue_family)
 {
    queue_family->compute_index = (u32)INVALID_QUEUE_INDEX;
    queue_family->graphics_index = (u32)INVALID_QUEUE_INDEX;
@@ -199,9 +199,9 @@ static bool vulkan_device_meets_requirements(arena* storage,
             queue_family->present_index = i;
             queue_family->transfer_index = i;
 
-            context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index,
+            context->device.queue_family_count = vk_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index,
                                                                                  queue_family->present_index, queue_family->transfer_index);
-            vulkan_device_swapchain_support(storage, context, &context->swapchain.info);
+            vk_device_swapchain_support(storage, context, &context->swapchain.info);
 
             return true;
          }
@@ -210,18 +210,18 @@ static bool vulkan_device_meets_requirements(arena* storage,
       return false;
    }
 
-   context->device.queue_family_count = vulkan_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index, 
+   context->device.queue_family_count = vk_find_unique_family_count(queue_family->graphics_index, queue_family->compute_index, 
                                                                         queue_family->present_index, queue_family->transfer_index);
-   vulkan_device_swapchain_support(storage, context, &context->swapchain.info);
+   vk_device_swapchain_support(storage, context, &context->swapchain.info);
 
    return true;
 }
 
-static bool vulkan_device_create(arena scratch, vulkan_context* context)
+static bool vk_device_create(arena scratch, vk_context* context)
 {
    pre((array_count(context->device.queue_indexes) >= context->device.queue_family_count));
 
-	if(!vulkan_device_select_physical(context->storage, context))
+	if(!vk_device_select_physical(context->storage, context))
 		return false;
 
    VkDeviceQueueCreateInfo* device_queue_infos = new(&scratch, VkDeviceQueueCreateInfo, context->device.queue_family_count);
@@ -291,7 +291,7 @@ static bool vulkan_device_create(arena scratch, vulkan_context* context)
 	return true;
 }
 
-static bool vulkan_device_depth_format(vulkan_context* context)
+static bool vk_device_depth_format(vk_context* context)
 {
    const VkFormat depth_formats[] =
    {
@@ -322,7 +322,7 @@ static bool vulkan_device_depth_format(vulkan_context* context)
    return false;
 }
 
-static void vulkan_device_destroy(vulkan_context* context)
+static void vk_device_destroy(vk_context* context)
 {
 	// TODO: platform memset
 	memset(context, 0, sizeof(*context));

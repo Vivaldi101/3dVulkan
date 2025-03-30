@@ -1,7 +1,7 @@
 #include "vulkan.h"
 #include "common.h"
 
-static bool vulkan_window_surface_create(vulkan_context* context, const hw_window* window, const char** extension_names, usize extension_count)
+static bool vk_window_surface_create(vk_context* context, const hw_window* window, const char** extension_names, usize extension_count)
 {
    bool isWin32Surface = false;
 

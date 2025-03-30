@@ -286,8 +286,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
    hw_virtual_memory_init();
 
-   arena base_storage = hw.vulkan_storage = arena_new(virtual_memory_amount);
-   hw.vulkan_scratch = arena_new(virtual_memory_amount);
+   arena base_storage = hw.vk_storage = arena_new(virtual_memory_amount);
+   hw.vk_scratch = arena_new(virtual_memory_amount);
    hw.misc_storage = arena_new(virtual_memory_amount);
    argv = cmd_parse(&hw.misc_storage, lpszCmdLine, &argc);
 
@@ -305,7 +305,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
    timeEndPeriod(1);
 
    arena_free(&base_storage);
-   arena_free(&hw.vulkan_scratch);
+   arena_free(&hw.vk_scratch);
 
    return 0;
 }

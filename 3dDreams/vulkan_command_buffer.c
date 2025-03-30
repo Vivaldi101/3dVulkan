@@ -1,7 +1,7 @@
 #include "common.h"
 #include "vulkan.h"
 
-static bool vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCommandBuffer* buffers, VkCommandPool pool, u32 count)
+static bool vk_command_buffer_allocate_primary(vk_context* context, VkCommandBuffer* buffers, VkCommandPool pool, u32 count)
 {
    VkCommandBufferAllocateInfo buffer_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
    buffer_info.commandPool = pool;
@@ -14,7 +14,7 @@ static bool vulkan_command_buffer_allocate_primary(vulkan_context* context, VkCo
    return true;
 }
 
-static bool vulkan_command_buffer_allocate_secondary(vulkan_context* context, VkCommandPool pool, u32 count)
+static bool vk_command_buffer_allocate_secondary(vk_context* context, VkCommandPool pool, u32 count)
 {
    VkCommandBufferAllocateInfo buffer_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
    buffer_info.commandPool = pool;
@@ -22,7 +22,7 @@ static bool vulkan_command_buffer_allocate_secondary(vulkan_context* context, Vk
    buffer_info.commandBufferCount = count;
 }
 
-static bool vulkan_command_buffer_begin(VkCommandBuffer command_buffer, bool single_use, bool renderpass_continue, bool parallel_use)
+static bool vk_command_buffer_begin(VkCommandBuffer command_buffer, bool single_use, bool renderpass_continue, bool parallel_use)
 {
    VkCommandBufferBeginInfo begin_info = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 
@@ -39,7 +39,7 @@ static bool vulkan_command_buffer_begin(VkCommandBuffer command_buffer, bool sin
    return true;
 }
 
-static bool vulkan_command_buffer_end(VkCommandBuffer buffer)
+static bool vk_command_buffer_end(VkCommandBuffer buffer)
 {
    if(!vk_valid(vkEndCommandBuffer(buffer)))
       return false;
@@ -47,22 +47,22 @@ static bool vulkan_command_buffer_end(VkCommandBuffer buffer)
    return true;
 }
 
-static void vulkan_command_buffer_allocate_and_begin_single_use(vulkan_context* context, VkCommandBuffer* buffer, VkCommandPool pool)
+static void vk_command_buffer_allocate_and_begin_single_use(vk_context* context, VkCommandBuffer* buffer, VkCommandPool pool)
 {
-   vulkan_command_buffer_allocate_primary(context, buffer, pool, 1);
-   vulkan_command_buffer_begin(*buffer, true, false, false);
+   vk_command_buffer_allocate_primary(context, buffer, pool, 1);
+   vk_command_buffer_begin(*buffer, true, false, false);
 }
 
-static void vulkan_command_buffer_free(vulkan_context* context, VkCommandBuffer* buffers, VkCommandPool pool, u32 count)
+static void vk_command_buffer_free(vk_context* context, VkCommandBuffer* buffers, VkCommandPool pool, u32 count)
 {
    vkFreeCommandBuffers(context->device.logical_device, pool, count, buffers);
    for(u32 i = 0; i < count; ++i)
       context->command_buffer_state[i] = COMMAND_BUFFER_NOT_ALLOCATED;
 }
 
-static bool vulkan_command_buffer_allocate_end_single_use(vulkan_context* context, VkCommandBuffer buffer, VkCommandPool pool, VkQueue queue)
+static bool vk_command_buffer_allocate_end_single_use(vk_context* context, VkCommandBuffer buffer, VkCommandPool pool, VkQueue queue)
 {
-   vulkan_command_buffer_end(buffer);
+   vk_command_buffer_end(buffer);
 
    VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
    submit_info.commandBufferCount = 1;
@@ -74,7 +74,7 @@ static bool vulkan_command_buffer_allocate_end_single_use(vulkan_context* contex
    if(!vk_valid(vkQueueWaitIdle(queue)))
       return false;
 
-   vulkan_command_buffer_free(context, &buffer, pool, 1);
+   vk_command_buffer_free(context, &buffer, pool, 1);
 
    return true;
 }

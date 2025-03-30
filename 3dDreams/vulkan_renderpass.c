@@ -1,7 +1,7 @@
 #include "common.h"
 #include "vulkan.h"
 
-static VkAttachmentDescription vulkan_default_attachment(vulkan_context* context)
+static VkAttachmentDescription vk_default_attachment(vk_context* context)
 {
    VkAttachmentDescription attachment = {};
    attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -14,7 +14,7 @@ static VkAttachmentDescription vulkan_default_attachment(vulkan_context* context
    return attachment;
 }
 
-static bool vulkan_renderpass_create(vulkan_context* context)
+static bool vk_renderpass_create(vk_context* context)
 {
    VkSubpassDescription subpass = {};
    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -22,7 +22,7 @@ static bool vulkan_renderpass_create(vulkan_context* context)
    VkAttachmentDescription attachements[2];
 
    // TODO: Compress into default attachement
-   VkAttachmentDescription color_attachment = vulkan_default_attachment(context);
+   VkAttachmentDescription color_attachment = vk_default_attachment(context);
    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
    color_attachment.format = context->swapchain.image_format.format;
 
@@ -35,7 +35,7 @@ static bool vulkan_renderpass_create(vulkan_context* context)
    subpass.colorAttachmentCount = 1;
    subpass.pColorAttachments = &color_reference;
 
-   VkAttachmentDescription depth_attachment = vulkan_default_attachment(context);
+   VkAttachmentDescription depth_attachment = vk_default_attachment(context);
    depth_attachment.format = context->device.depth_format;
    depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -71,7 +71,7 @@ static bool vulkan_renderpass_create(vulkan_context* context)
    return true;
 }
 
-static void vulkan_renderpass_begin(vulkan_renderpass* renderpass, VkCommandBuffer command_buffer, vulkan_framebuffer* framebuffer)
+static void vk_renderpass_begin(vk_renderpass* renderpass, VkCommandBuffer command_buffer, vk_framebuffer* framebuffer)
 {
    VkRenderPassBeginInfo begin_info = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
    begin_info.renderPass = renderpass->handle;
@@ -94,7 +94,7 @@ static void vulkan_renderpass_begin(vulkan_renderpass* renderpass, VkCommandBuff
    vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void vulkan_renderpass_end(vulkan_renderpass* renderpass, VkCommandBuffer command_buffer)
+static void vk_renderpass_end(vk_renderpass* renderpass, VkCommandBuffer command_buffer)
 {
    vkCmdEndRenderPass(command_buffer);
 }

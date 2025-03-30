@@ -6,22 +6,22 @@
 #include "win32_file_io.c"
 
 // unity build
-#include "vulkan_common.c"
-#include "vulkan_device.c"
-#include "vulkan_surface.c"
-#include "vulkan_image.c"
-#include "vulkan_renderpass.c"
-#include "vulkan_framebuffer.c"
-#include "vulkan_command_buffer.c"
-#include "vulkan_swapchain.c"
-#include "vulkan_fence.c"
-#include "vulkan_pipeline.c"
-#include "vulkan_buffer.c"
-#include "vulkan_shader.c"
+#include "vk_common.c"
+#include "vk_device.c"
+#include "vk_surface.c"
+#include "vk_image.c"
+#include "vk_renderpass.c"
+#include "vk_framebuffer.c"
+#include "vk_command_buffer.c"
+#include "vk_swapchain.c"
+#include "vk_fence.c"
+#include "vk_pipeline.c"
+#include "vk_buffer.c"
+#include "vk_shader.c"
 
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
-static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
+static VkResult vk_create_debugutils_messenger_ext(VkInstance instance,
                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                       const VkAllocationCallbacks* pAllocator,
                                       VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -31,7 +31,7 @@ static VkResult vulkan_create_debugutils_messenger_ext(VkInstance instance,
    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+static VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
                                                             VkDebugUtilsMessageTypeFlagsEXT type,
                                                             const VkDebugUtilsMessengerCallbackDataEXT* data,
                                                             void* pUserData) {
@@ -41,12 +41,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_callback(VkDebugUtilsMessageS
    return VK_FALSE;
 }
 
-static bool vulkan_command_buffers_create(vulkan_context* context)
+static bool vk_command_buffers_create(vk_context* context)
 {
    pre(context->swapchain.image_count <= VULKAN_MAX_FRAME_BUFFER_COUNT);
 
    VkCommandBuffer buffers[VULKAN_MAX_FRAME_BUFFER_COUNT];
-   if(!vulkan_command_buffer_allocate_primary(context, buffers, context->device.graphics_command_pool, context->swapchain.image_count))
+   if(!vk_command_buffer_allocate_primary(context, buffers, context->device.graphics_command_pool, context->swapchain.image_count))
       return false;
 
    memcpy(context->graphics_command_buffers, buffers, context->swapchain.image_count*sizeof(VkCommandBuffer));
@@ -57,14 +57,14 @@ static bool vulkan_command_buffers_create(vulkan_context* context)
    return true;
 }
 
-static void vulkan_resize(vulkan_context* context, u32 width, u32 height)
+static void vk_resize(vk_context* context, u32 width, u32 height)
 {
    context->framebuffer_width = width;
    context->framebuffer_height = height;
    context->framebuffer_size_generation++;
 }
 
-static bool vulkan_buffers_create(vulkan_context* context)
+static bool vk_buffers_create(vk_context* context)
 {
    VkMemoryPropertyFlags memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
    u64 vertex_buffer_size = MB(64);
@@ -74,7 +74,7 @@ static bool vulkan_buffers_create(vulkan_context* context)
    context->vertex_buffer.usage_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
    context->vertex_buffer.bind_on_create = true;
 
-   if(!vulkan_buffer_create(context, &context->vertex_buffer))
+   if(!vk_buffer_create(context, &context->vertex_buffer))
       return false;
 
    u64 index_buffer_size = MB(64);
@@ -83,38 +83,38 @@ static bool vulkan_buffers_create(vulkan_context* context)
    context->index_buffer.usage_flags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
    context->index_buffer.bind_on_create = true;
 
-   if(!vulkan_buffer_create(context, &context->index_buffer))
+   if(!vk_buffer_create(context, &context->index_buffer))
       return false;
 
    return true;
 }
 
 // TODO: Atm just uses offset of zero
-static bool vulkan_upload_data_to_buffer(vulkan_context* context, vulkan_buffer* buffer, u64 data_size, const void* data)
+static bool vk_upload_data_to_buffer(vk_context* context, vk_buffer* buffer, u64 data_size, const void* data)
 {
-   vulkan_buffer staging_buffer = {};
+   vk_buffer staging_buffer = {};
 
    staging_buffer.usage_flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
    staging_buffer.memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
    staging_buffer.total_size = data_size;
    staging_buffer.bind_on_create = true;
-   if(!vulkan_buffer_create(context, &staging_buffer))
+   if(!vk_buffer_create(context, &staging_buffer))
       return false;
 
-   vulkan_buffer_load(context, &staging_buffer, 0, data_size, data);
+   vk_buffer_load(context, &staging_buffer, 0, data_size, data);
 
    VkBufferCopy copy_region = {};
    copy_region.srcOffset = 0;
    copy_region.dstOffset = 0;
    copy_region.size = data_size;
 
-   if(!vulkan_buffer_copy(context, buffer->handle, staging_buffer.handle, copy_region))
+   if(!vk_buffer_copy(context, buffer->handle, staging_buffer.handle, copy_region))
       return false;
 
    return true;
 }
 
-static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const hw_window* window)
+static bool vk_create_renderer(arena scratch, vk_context* context, const hw_window* window)
 {
    u32 ext_count = 0;
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
@@ -160,40 +160,40 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
       debug_messenger.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-      debug_messenger.pfnUserCallback = vulkan_debug_callback;
+      debug_messenger.pfnUserCallback = vk_debug_callback;
 
       VkDebugUtilsMessengerEXT messenger;
 
-      if(!vk_valid(vulkan_create_debugutils_messenger_ext(context->instance, &debug_messenger, 0, &messenger)))
+      if(!vk_valid(vk_create_debugutils_messenger_ext(context->instance, &debug_messenger, 0, &messenger)))
          return false;
    }
 #endif
 
-   if(!vulkan_window_surface_create(context, window, ext_names, ext_count))
+   if(!vk_window_surface_create(context, window, ext_names, ext_count))
       return false;
 
-   if(!vulkan_device_create(scratch, context))
+   if(!vk_device_create(scratch, context))
       return false;
 
-   if(!vulkan_swapchain_create(context))
+   if(!vk_swapchain_create(context))
       return false;
 
-   if(!vulkan_renderpass_create(context))
+   if(!vk_renderpass_create(context))
       return false;
 
-   if(!vulkan_command_buffers_create(context))
+   if(!vk_command_buffers_create(context))
       return false;
 
-   if(!vulkan_framebuffer_create(context))
+   if(!vk_framebuffer_create(context))
       return false;
 
-   if(!vulkan_fence_create(context))
+   if(!vk_fence_create(context))
       return false;
 
-   if(!vulkan_shader_create(scratch, context))
+   if(!vk_shader_create(scratch, context))
       return false;
 
-   if(!vulkan_buffers_create(context))
+   if(!vk_buffers_create(context))
       return false;
 
    scratch_clear(scratch);
@@ -218,10 +218,10 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
 
       u32 indexes[6] = {0,1,2, 2,3,0};
 
-      if(!vulkan_upload_data_to_buffer(context, &context->vertex_buffer, sizeof(verts), verts))
+      if(!vk_upload_data_to_buffer(context, &context->vertex_buffer, sizeof(verts), verts))
          return false;
 
-      if(!vulkan_upload_data_to_buffer(context, &context->index_buffer, sizeof(indexes), indexes))
+      if(!vk_upload_data_to_buffer(context, &context->index_buffer, sizeof(indexes), indexes))
          return false;
    }
 
@@ -229,34 +229,34 @@ static bool vulkan_create_renderer(arena scratch, vulkan_context* context, const
 }
 
 // TODO: This
-static bool vulkan_result(VkResult result)
+static bool vk_result(VkResult result)
 {
    return result == VK_SUCCESS;
 }
 
-static bool vulkan_frame_begin(vulkan_context* context)
+static bool vk_frame_begin(vk_context* context)
 {
    if(context->do_recreate_swapchain)
-      if(!vulkan_result(vkDeviceWaitIdle(context->device.logical_device)))
+      if(!vk_result(vkDeviceWaitIdle(context->device.logical_device)))
          return false;
 
    if(context->framebuffer_size_generation != context->framebuffer_size_prev_generation)
    {
-      if(!vulkan_result(vkDeviceWaitIdle(context->device.logical_device)))
+      if(!vk_result(vkDeviceWaitIdle(context->device.logical_device)))
          return false;  // TODO: Diagnostics
-      if(!vulkan_swapchain_recreate(context))
+      if(!vk_swapchain_recreate(context))
          return false;  // TODO: Diagnostics
       return false;
    }
 
-   if(!vulkan_fence_wait(context, &context->in_flight_fences[context->current_frame_index], UINT64_MAX))
+   if(!vk_fence_wait(context, &context->in_flight_fences[context->current_frame_index], UINT64_MAX))
       return false;
 
-   if(!vulkan_swapchain_next_image_index(context->storage, context, UINT64_MAX, context->image_available_semaphores[context->current_frame_index], 0))
+   if(!vk_swapchain_next_image_index(context->storage, context, UINT64_MAX, context->image_available_semaphores[context->current_frame_index], 0))
       return false;
 
    VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
-   vulkan_command_buffer_begin(cmd_buffer, false, false, false);
+   vk_command_buffer_begin(cmd_buffer, false, false, false);
 
    VkViewport viewport = {};
    viewport.x = 0.0f;
@@ -279,8 +279,8 @@ static bool vulkan_frame_begin(vulkan_context* context)
    context->main_renderpass.b = 0.3333f;
    context->main_renderpass.a = 1.0f;
 
-   vulkan_renderpass_begin(&context->main_renderpass, cmd_buffer, &context->swapchain.framebuffers[context->current_image_index]);
-   vulkan_shader_pipeline_bind(context);
+   vk_renderpass_begin(&context->main_renderpass, cmd_buffer, &context->swapchain.framebuffers[context->current_image_index]);
+   vk_shader_pipeline_bind(context);
 
    context->command_buffer_state[context->current_image_index] = COMMAND_BUFFER_BEGIN_RECORDING;
 
@@ -290,14 +290,14 @@ static bool vulkan_frame_begin(vulkan_context* context)
    return true;
 }
 
-static bool vulkan_frame_update_state(vulkan_context* context, mat4 proj, mat4 view)
+static bool vk_frame_update_state(vk_context* context, mat4 proj, mat4 view)
 {
-   vulkan_shader_pipeline_bind(context);
+   vk_shader_pipeline_bind(context);
 
    context->shader.global_ubo.proj = proj;
    context->shader.global_ubo.view = view;
 
-   if(!vulkan_shader_update_state(context, 0))
+   if(!vk_shader_update_state(context, 0))
       return false;
 
    // TODO: test code
@@ -312,24 +312,24 @@ static bool vulkan_frame_update_state(vulkan_context* context, mat4 proj, mat4 v
    return true;
 }
 
-static bool vulkan_frame_end(vulkan_context* context)
+static bool vk_frame_end(vk_context* context)
 {
    const VkCommandBuffer cmd_buffer = context->graphics_command_buffers[context->current_image_index];
 
-   vulkan_renderpass_end(&context->main_renderpass, cmd_buffer);
+   vk_renderpass_end(&context->main_renderpass, cmd_buffer);
 
-   vulkan_command_buffer_end(cmd_buffer);
+   vk_command_buffer_end(cmd_buffer);
 
    if(context->images_in_flight[context->current_image_index] != VK_NULL_HANDLE)
       // current image index is already used by previous frame so wait on the fence
-      if(!vulkan_fence_wait(context, context->images_in_flight[context->current_image_index], UINT64_MAX))
+      if(!vk_fence_wait(context, context->images_in_flight[context->current_image_index], UINT64_MAX))
          return false;
 
    // current image index was not used so mark it as fenced
    context->images_in_flight[context->current_image_index] = &context->in_flight_fences[context->current_frame_index];
 
    // unsignal the current fence so that it can signaled again
-   vulkan_fence_reset(context, &context->in_flight_fences[context->current_frame_index]);
+   vk_fence_reset(context, &context->in_flight_fences[context->current_frame_index]);
 
    VkSubmitInfo submit_info = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
    submit_info.commandBufferCount = 1;
@@ -347,15 +347,15 @@ static bool vulkan_frame_end(vulkan_context* context)
 
    context->command_buffer_state[context->current_frame_index] = COMMAND_BUFFER_SUBMITTED;
 
-   if(!vulkan_swapchain_present(context, context->current_image_index, &context->queue_complete_semaphores[context->current_frame_index]))
+   if(!vk_swapchain_present(context, context->current_image_index, &context->queue_complete_semaphores[context->current_frame_index]))
       return false;
 
    return true;
 }
 
-bool vulkan_present(vulkan_context* context)
+bool vk_present(vk_context* context)
 {
-   if(!vulkan_frame_begin(context))
+   if(!vk_frame_begin(context))
       return false;
 
    // Test projection
@@ -363,44 +363,44 @@ bool vulkan_present(vulkan_context* context)
    //static f32 z = -1.0f;
    //z -= 0.01f;
    //mat4 view = mat4_translate((vec3){0.0f, 0.0f, z});
-   if(!vulkan_frame_update_state(context, mat4_identity(), mat4_identity()))
+   if(!vk_frame_update_state(context, mat4_identity(), mat4_identity()))
       return false;
 
-   if(!vulkan_frame_end(context))
+   if(!vk_frame_end(context))
       return false;
 
    return true;
 }
 
-bool vulkan_initialize(hw* hw)
+bool vk_initialize(hw* hw)
 {
    bool result = true;
    pre(hw->renderer.window.handle);
 
-   vulkan_context* context = new(&hw->vulkan_storage, vulkan_context);
-   if(arena_end(&hw->vulkan_storage, context))
+   vk_context* context = new(&hw->vk_storage, vk_context);
+   if(arena_end(&hw->vk_storage, context))
 		return false;
-   context->storage = &hw->vulkan_storage;
+   context->storage = &hw->vk_storage;
 
    //context->device.use_single_family_queue = true;
-   result = vulkan_create_renderer(hw->vulkan_scratch, context, &hw->renderer.window);
+   result = vk_create_renderer(hw->vk_scratch, context, &hw->renderer.window);
 
-   hw->renderer.backends[vulkan_renderer_index] = context;
-   hw->renderer.frame_present = vulkan_present;
-   hw->renderer.renderer_index = vulkan_renderer_index;
-   hw->renderer.frame_resize = vulkan_resize;
+   hw->renderer.backends[vk_renderer_index] = context;
+   hw->renderer.frame_present = vk_present;
+   hw->renderer.renderer_index = vk_renderer_index;
+   hw->renderer.frame_resize = vk_resize;
 
-   post(hw->renderer.backends[vulkan_renderer_index]);
+   post(hw->renderer.backends[vk_renderer_index]);
    post(hw->renderer.frame_present);
-   post(hw->renderer.renderer_index == vulkan_renderer_index);
-   post(hw->renderer.frame_resize == vulkan_resize);
+   post(hw->renderer.renderer_index == vk_renderer_index);
+   post(hw->renderer.frame_resize == vk_resize);
 
    return result;
 }
 
-bool vulkan_uninitialize(hw* hw)
+bool vk_uninitialize(hw* hw)
 {
-   vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
+   vk_context* context = hw->renderer.backends[vk_renderer_index];
 
    if(!vk_valid(vkDeviceWaitIdle(context->device.logical_device)))
       return false;
