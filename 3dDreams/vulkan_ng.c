@@ -30,8 +30,8 @@ enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 #ifdef _DEBUG
 #define vk_assert(v) \
         do { \
-          VkResult r = (v); \
-          assert(vk_valid(r)); \
+          VkResult _r = (v); \
+          assert(vk_valid(_r)); \
         } while(0)
 #else
 #define vk_assert(v) (v)
