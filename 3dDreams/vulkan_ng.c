@@ -58,8 +58,8 @@ align_struct
    arena* storage;
 
    VkInstance instance;
-   VkPhysicalDevice pdev;
-   VkDevice ldev;
+   VkPhysicalDevice physical_dev;
+   VkDevice logical_dev;
    VkSurfaceKHR surface;
    VkSwapchainKHR swapchain;
    VkAllocationCallbacks* allocator;
@@ -77,14 +77,14 @@ align_struct
    swapchain_surface_info swapchain_info;
 } vulkan_context;
 
-static VkFormat vulkan_swapchain_format(VkPhysicalDevice pdev, VkSurfaceKHR surface)
+static VkFormat vulkan_swapchain_format(VkPhysicalDevice physical_dev, VkSurfaceKHR surface)
 {
-   assert(vk_valid_handle(pdev));
+   assert(vk_valid_handle(physical_dev));
    assert(vk_valid_handle(surface));
 
    VkSurfaceFormatKHR formats[MAX_VULKAN_OBJECT_COUNT] = {};
    u32 format_count = array_count(formats);
-   if(!vk_valid(vkGetPhysicalDeviceSurfaceFormatsKHR(pdev, surface, &format_count, formats)))
+   if(!vk_valid(vkGetPhysicalDeviceSurfaceFormatsKHR(physical_dev, surface, &format_count, formats)))
       return VK_FORMAT_UNDEFINED;
 
    // for now expect rgba unorm
@@ -92,15 +92,15 @@ static VkFormat vulkan_swapchain_format(VkPhysicalDevice pdev, VkSurfaceKHR surf
    return formats[0].format;
 }
 
-static swapchain_surface_info vulkan_window_swapchain_surface_info(VkPhysicalDevice pdev, u32 width, u32 height, VkSurfaceKHR surface)
+static swapchain_surface_info vulkan_window_swapchain_surface_info(VkPhysicalDevice physical_dev, u32 width, u32 height, VkSurfaceKHR surface)
 {
-   assert(vk_valid_handle(pdev));
+   assert(vk_valid_handle(physical_dev));
    assert(vk_valid_handle(surface));
 
    swapchain_surface_info result = {};
 
    VkSurfaceCapabilitiesKHR surface_caps;
-   if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pdev, surface, &surface_caps)))
+   if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_dev, surface, &surface_caps)))
       return (swapchain_surface_info){0};
 
    // triple buffering
@@ -116,7 +116,7 @@ static swapchain_surface_info vulkan_window_swapchain_surface_info(VkPhysicalDev
    result.image_height = height;
    result.image_count = image_count;
    result.transform = surface_caps.currentTransform;
-   result.format = vulkan_swapchain_format(pdev, surface);
+   result.format = vulkan_swapchain_format(physical_dev, surface);
    result.surface = surface;
 
    // wp(imgcount = min + 1, imgcount >= 3)
@@ -159,9 +159,9 @@ static u32 vulkan_ldevice_select_index()
    return 0;
 }
 
-static VkDevice vulkan_ldevice_create(VkPhysicalDevice pdev, u32 queue_family_index)
+static VkDevice vulkan_ldevice_create(VkPhysicalDevice physical_dev, u32 queue_family_index)
 {
-   assert(vk_valid_handle(pdev));
+   assert(vk_valid_handle(physical_dev));
    f32 queue_prio = 1.0f;
 
    VkDeviceQueueCreateInfo queue_info = {vk_info(DEVICE_QUEUE)};
@@ -176,39 +176,39 @@ static VkDevice vulkan_ldevice_create(VkPhysicalDevice pdev, u32 queue_family_in
    ldev_info.enabledExtensionCount = array_count(dev_ext_names);
    ldev_info.ppEnabledExtensionNames = dev_ext_names;
 
-   VkDevice ldev;
-   vk_test_return_handle(vkCreateDevice(pdev, &ldev_info, 0, &ldev));
+   VkDevice logical_dev;
+   vk_test_return_handle(vkCreateDevice(physical_dev, &ldev_info, 0, &logical_dev));
 
-   return ldev;
+   return logical_dev;
 }
 
-static VkQueue vulkan_graphics_queue_create(VkDevice ldev, u32 queue_family_index)
+static VkQueue vulkan_graphics_queue_create(VkDevice logical_dev, u32 queue_family_index)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
 
    VkQueue graphics_queue = 0;
 
    // TODO: Get the queue index
-   vkGetDeviceQueue(ldev, queue_family_index, 0, &graphics_queue);
+   vkGetDeviceQueue(logical_dev, queue_family_index, 0, &graphics_queue);
 
    return graphics_queue;
 }
 
-static VkSemaphore vulkan_semaphore_create(VkDevice ldev)
+static VkSemaphore vulkan_semaphore_create(VkDevice logical_dev)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
 
    VkSemaphore sema = 0;
 
    VkSemaphoreCreateInfo sema_info = {vk_info(SEMAPHORE)};
-   vk_test_return_handle(vkCreateSemaphore(ldev, &sema_info, 0, &sema));
+   vk_test_return_handle(vkCreateSemaphore(logical_dev, &sema_info, 0, &sema));
 
    return sema;
 }
 
-static VkSwapchainKHR vulkan_swapchain_create(VkDevice ldev, swapchain_surface_info* surface_info, u32 queue_family_index)
+static VkSwapchainKHR vulkan_swapchain_create(VkDevice logical_dev, swapchain_surface_info* surface_info, u32 queue_family_index)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
    assert(vk_valid_handle(surface_info->surface));
    assert(vk_valid_format(surface_info->format));
 
@@ -231,14 +231,14 @@ static VkSwapchainKHR vulkan_swapchain_create(VkDevice ldev, swapchain_surface_i
    swapchain_info.clipped = VK_TRUE;
    swapchain_info.oldSwapchain = swapchain;
 
-   vk_test_return_handle(vkCreateSwapchainKHR(ldev, &swapchain_info, 0, &swapchain));
+   vk_test_return_handle(vkCreateSwapchainKHR(logical_dev, &swapchain_info, 0, &swapchain));
 
    return swapchain;
 }
 
-static VkCommandBuffer vulkan_command_buffer_create(VkDevice ldev, VkCommandPool pool)
+static VkCommandBuffer vulkan_command_buffer_create(VkDevice logical_dev, VkCommandPool pool)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
    assert(vk_valid_handle(pool));
 
    VkCommandBuffer buffer = 0;
@@ -248,28 +248,28 @@ static VkCommandBuffer vulkan_command_buffer_create(VkDevice ldev, VkCommandPool
    buffer_allocate_info.commandPool = pool;
    buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-   vk_assert(vkAllocateCommandBuffers(ldev, &buffer_allocate_info, &buffer));
+   vk_assert(vkAllocateCommandBuffers(logical_dev, &buffer_allocate_info, &buffer));
 
    return buffer;
 }
 
-static VkCommandPool vulkan_command_pool_create(VkDevice ldev, u32 queue_family_index)
+static VkCommandPool vulkan_command_pool_create(VkDevice logical_dev, u32 queue_family_index)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
 
    VkCommandPool pool = 0;
 
    VkCommandPoolCreateInfo pool_info = {vk_info(COMMAND_POOL)};
    pool_info.queueFamilyIndex = queue_family_index;
 
-   vk_test_return_handle(vkCreateCommandPool(ldev, &pool_info, 0, &pool));
+   vk_test_return_handle(vkCreateCommandPool(logical_dev, &pool_info, 0, &pool));
 
    return pool;
 }
 
-static VkRenderPass vulkan_renderpass_create(VkDevice ldev, swapchain_surface_info* surface_info)
+static VkRenderPass vulkan_renderpass_create(VkDevice logical_dev, swapchain_surface_info* surface_info)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
    assert(vk_valid_format(surface_info->format));
 
    VkRenderPass renderpass = 0;
@@ -299,12 +299,12 @@ static VkRenderPass vulkan_renderpass_create(VkDevice ldev, swapchain_surface_in
    renderpass_info.attachmentCount = array_count(attachments);
    renderpass_info.pAttachments = attachments;
 
-   vk_test_return_handle(vkCreateRenderPass(ldev, &renderpass_info, 0, &renderpass));
+   vk_test_return_handle(vkCreateRenderPass(logical_dev, &renderpass_info, 0, &renderpass));
 
    return renderpass;
 }
 
-static VkFramebuffer vulkan_framebuffer_create(VkDevice ldev, VkRenderPass renderpass, swapchain_surface_info* surface_info, VkImageView image_view)
+static VkFramebuffer vulkan_framebuffer_create(VkDevice logical_dev, VkRenderPass renderpass, swapchain_surface_info* surface_info, VkImageView image_view)
 {
    VkFramebuffer framebuffer = 0;
 
@@ -316,14 +316,14 @@ static VkFramebuffer vulkan_framebuffer_create(VkDevice ldev, VkRenderPass rende
    framebuffer_info.height = surface_info->image_height;
    framebuffer_info.layers = 1;
 
-   vk_test_return_handle(vkCreateFramebuffer(ldev, &framebuffer_info, 0, &framebuffer));
+   vk_test_return_handle(vkCreateFramebuffer(logical_dev, &framebuffer_info, 0, &framebuffer));
 
    return framebuffer;
 }
 
-static VkImageView vulkan_image_view_create(VkDevice ldev, VkFormat format, VkImage image)
+static VkImageView vulkan_image_view_create(VkDevice logical_dev, VkFormat format, VkImage image)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
    assert(vk_valid_format(format));
    assert(vk_valid_handle(image));
 
@@ -337,7 +337,7 @@ static VkImageView vulkan_image_view_create(VkDevice ldev, VkFormat format, VkIm
    view_info.subresourceRange.layerCount = 1;
    view_info.subresourceRange.levelCount = 1;
 
-   vk_test_return_handle(vkCreateImageView(ldev, &view_info, 0, &image_view));
+   vk_test_return_handle(vkCreateImageView(logical_dev, &view_info, 0, &image_view));
 
    return image_view;
 }
@@ -351,8 +351,8 @@ void vulkan_present(vulkan_context* context)
 {
    u32 image_index = 0;
 
-   vk_assert(vkAcquireNextImageKHR(context->ldev, context->swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
-   vk_assert(vkResetCommandPool(context->ldev, context->command_pool, 0));
+   vk_assert(vkAcquireNextImageKHR(context->logical_dev, context->swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
+   vk_assert(vkResetCommandPool(context->logical_dev, context->command_pool, 0));
 
    VkCommandBufferBeginInfo buffer_begin_info = {vk_info_begin(COMMAND_BUFFER)};
    buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -426,12 +426,12 @@ void vulkan_present(vulkan_context* context)
    vk_assert(vkQueuePresentKHR(context->graphics_queue, &present_info));
 
    // wait until all queue ops are done
-   vk_assert(vkDeviceWaitIdle(context->ldev));
+   vk_assert(vkDeviceWaitIdle(context->logical_dev));
 }
 
-static vulkan_shader_modules vulkan_shaders_load(VkDevice ldev, arena scratch)
+static vulkan_shader_modules vulkan_shaders_load(VkDevice logical_dev, arena scratch)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
 
    vulkan_shader_modules shader_modules = {};
    VkShaderStageFlagBits shader_type_bits[OBJECT_SHADER_COUNT] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
@@ -449,7 +449,7 @@ static vulkan_shader_modules vulkan_shaders_load(VkDevice ldev, arena scratch)
       module_info.pCode = (u32*)shader_file.data;
       module_info.codeSize = shader_file.file_size;
 
-      if(!vk_valid(vkCreateShaderModule(ldev, 
+      if(!vk_valid(vkCreateShaderModule(logical_dev, 
                            &module_info, 
                            0,
                            shader_type_bits[i] == VK_SHADER_STAGE_VERTEX_BIT ? &shader_modules.vs : &shader_modules.fs)))
@@ -459,19 +459,19 @@ static vulkan_shader_modules vulkan_shaders_load(VkDevice ldev, arena scratch)
    return shader_modules;
 }
 
-static VkPipelineLayout vulkan_pipeline_layout_create(VkDevice ldev)
+static VkPipelineLayout vulkan_pipeline_layout_create(VkDevice logical_dev)
 {
    VkPipelineLayout layout = 0;
 
    VkPipelineLayoutCreateInfo info = {vk_info(PIPELINE_LAYOUT)};
-   vk_test_return(vkCreatePipelineLayout(ldev, &info, 0, &layout));
+   vk_test_return(vkCreatePipelineLayout(logical_dev, &info, 0, &layout));
 
    return layout;
 }
 
-static VkPipeline vulkan_pipeline_create(VkDevice ldev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vulkan_shader_modules* shaders)
+static VkPipeline vulkan_pipeline_create(VkDevice logical_dev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vulkan_shader_modules* shaders)
 {
-   assert(vk_valid_handle(ldev));
+   assert(vk_valid_handle(logical_dev));
    assert(vk_valid_handle(shaders->fs));
    assert(vk_valid_handle(shaders->fs));
    assert(!vk_valid_handle(cache));
@@ -539,7 +539,7 @@ static VkPipeline vulkan_pipeline_create(VkDevice ldev, VkRenderPass renderpass,
    pipeline_info.renderPass = renderpass;
    pipeline_info.layout = layout;
 
-   vk_test_return(vkCreateGraphicsPipelines(ldev, cache, 1, &pipeline_info, 0, &pipeline));
+   vk_test_return(vkCreateGraphicsPipelines(logical_dev, cache, 1, &pipeline_info, 0, &pipeline));
 
    return pipeline;
 }
@@ -587,30 +587,30 @@ bool vulkan_initialize(hw* hw)
 
    u32 queue_family_index = vulkan_ldevice_select_index();
 
-   context->pdev = vulkan_pdevice_select(instance);
-   context->ldev = vulkan_ldevice_create(context->pdev, queue_family_index);
+   context->physical_dev = vulkan_pdevice_select(instance);
+   context->logical_dev = vulkan_ldevice_create(context->physical_dev, queue_family_index);
    context->surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
-   context->swapchain_info = vulkan_window_swapchain_surface_info(context->pdev, hw->renderer.window.width, hw->renderer.window.height, context->surface);
-   context->swapchain = vulkan_swapchain_create(context->ldev, &context->swapchain_info, queue_family_index);
-   context->image_ready_semaphore = vulkan_semaphore_create(context->ldev);
-   context->image_done_semaphore = vulkan_semaphore_create(context->ldev);
-   context->graphics_queue = vulkan_graphics_queue_create(context->ldev, queue_family_index);
-   context->command_pool = vulkan_command_pool_create(context->ldev, queue_family_index);
-   context->command_buffer = vulkan_command_buffer_create(context->ldev, context->command_pool);
-   context->renderpass = vulkan_renderpass_create(context->ldev, &context->swapchain_info);
+   context->swapchain_info = vulkan_window_swapchain_surface_info(context->physical_dev, hw->renderer.window.width, hw->renderer.window.height, context->surface);
+   context->swapchain = vulkan_swapchain_create(context->logical_dev, &context->swapchain_info, queue_family_index);
+   context->image_ready_semaphore = vulkan_semaphore_create(context->logical_dev);
+   context->image_done_semaphore = vulkan_semaphore_create(context->logical_dev);
+   context->graphics_queue = vulkan_graphics_queue_create(context->logical_dev, queue_family_index);
+   context->command_pool = vulkan_command_pool_create(context->logical_dev, queue_family_index);
+   context->command_buffer = vulkan_command_buffer_create(context->logical_dev, context->command_pool);
+   context->renderpass = vulkan_renderpass_create(context->logical_dev, &context->swapchain_info);
 
-   vk_test_return(vkGetSwapchainImagesKHR(context->ldev, context->swapchain, &context->swapchain_info.image_count, context->swapchain_images));
+   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain, &context->swapchain_info.image_count, context->swapchain_images));
 
    for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
    {
-      context->swapchain_image_views[i] = vulkan_image_view_create(context->ldev, context->swapchain_info.format, context->swapchain_images[i]);
-      context->framebuffers[i] = vulkan_framebuffer_create(context->ldev, context->renderpass, &context->swapchain_info, context->swapchain_image_views[i]);
+      context->swapchain_image_views[i] = vulkan_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_images[i]);
+      context->framebuffers[i] = vulkan_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_image_views[i]);
    }
 
-   vulkan_shader_modules shaders = vulkan_shaders_load(context->ldev, scratch);
+   vulkan_shader_modules shaders = vulkan_shaders_load(context->logical_dev, scratch);
    VkPipelineCache cache = 0; // TODO: enable
-   VkPipelineLayout layout = vulkan_pipeline_layout_create(context->ldev);
-   context->pipeline = vulkan_pipeline_create(context->ldev, context->renderpass, cache, layout, &shaders);
+   VkPipelineLayout layout = vulkan_pipeline_layout_create(context->logical_dev);
+   context->pipeline = vulkan_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders);
 
    // app callbacks
    hw->renderer.backends[vulkan_renderer_index] = context;
@@ -626,9 +626,9 @@ bool vulkan_uninitialize(hw* hw)
 #if 0
    vulkan_context* context = hw->renderer.backends[vulkan_renderer_index];
 
-   vkDestroySwapchainKHR(context->ldev, context->swapchain, 0);
+   vkDestroySwapchainKHR(context->logical_dev, context->swapchain, 0);
    vkDestroySurfaceKHR(context->instance, context->surface, 0);
-   vkDestroyDevice(context->ldev, 0);
+   vkDestroyDevice(context->logical_dev, 0);
    vkDestroyInstance(context->instance, 0);
 #endif
 
