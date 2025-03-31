@@ -363,11 +363,35 @@ void vk_resize(void* renderer, u32 width, u32 height)
    // ...
 }
 
+VkImageMemoryBarrier vk_pipeline_barrier(VkImage image, 
+                                         VkAccessFlags src_access, VkAccessFlags dst_access, 
+                                         VkImageLayout old_layout, VkImageLayout new_layout)
+{
+   VkImageMemoryBarrier result = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+
+   result.srcAccessMask = src_access;
+   result.dstAccessMask = dst_access;
+
+   result.oldLayout = old_layout;
+   result.newLayout = new_layout;
+
+   result.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+   result.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+   result.image = image;
+
+   result.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   result.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+   result.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+
+   return result;
+}
+
 void vk_present(vk_context* context)
 {
    u32 image_index = 0;
-
    vk_assert(vkAcquireNextImageKHR(context->logical_dev, context->swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
+
    vk_assert(vkResetCommandPool(context->logical_dev, context->command_pool, 0));
 
    VkCommandBufferBeginInfo buffer_begin_info = {vk_info_begin(COMMAND_BUFFER)};
@@ -388,6 +412,12 @@ void vk_present(vk_context* context)
 
       renderpass_info.clearValueCount = 1;
       renderpass_info.pClearValues = &clear;
+
+      VkImage image = context->swapchain_images[image_index];
+      VkImageMemoryBarrier render_begin_barrier = vk_pipeline_barrier(image, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                           VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &render_begin_barrier);
+                          
 
       vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -412,6 +442,10 @@ void vk_present(vk_context* context)
       vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(command_buffer);
+
+      VkImageMemoryBarrier render_end_barrier = vk_pipeline_barrier(image, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+      vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+                           VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &render_end_barrier);
 
       vk_assert(vkEndCommandBuffer(command_buffer));
    }
