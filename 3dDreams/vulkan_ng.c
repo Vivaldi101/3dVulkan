@@ -1,9 +1,12 @@
 #include "arena.h"
 #include "common.h"
+#include "graphics.h"
+
 #include "vulkan_ng.h"
 
 #define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan.h>
+//#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include "win32_file_io.c" // TODO: pass these as function pointers from the platform
 #include "vulkan_spirv_loader.c"
@@ -594,25 +597,14 @@ static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpa
    return pipeline;
 }
 
-bool vk_initialize(hw* hw)
+VkInstance vk_instance_create(arena scratch)
 {
-   if(!hw->renderer.window.handle)
-      return false;
-
-   vk_context* context = new(&hw->vk_storage, vk_context);
-   if(arena_end(&hw->vk_storage, context))
-      return false;
-
-   context->storage = &hw->vk_storage;
-
-   VkInstanceCreateInfo instance_info = {vk_info(INSTANCE)};
-   instance_info.pApplicationInfo = &(VkApplicationInfo) { .apiVersion = VK_API_VERSION_1_2 };
+   VkInstance instance = 0;
 
    u32 ext_count = 0;
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
 
-   arena scratch = hw->vk_scratch;
    VkExtensionProperties* ext = new(&scratch, VkExtensionProperties, ext_count);
    if(!implies(!scratch_end(scratch, ext), vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext))))
       return false;
@@ -620,6 +612,9 @@ bool vk_initialize(hw* hw)
 
    for(size_t i = 0; i < ext_count; ++i)
       ext_names[i] = ext[i].extensionName;
+
+   VkInstanceCreateInfo instance_info = {vk_info(INSTANCE)};
+   instance_info.pApplicationInfo = &(VkApplicationInfo) { .apiVersion = VK_API_VERSION_1_2 };
 
    instance_info.enabledExtensionCount = ext_count;
    instance_info.ppEnabledExtensionNames = ext_names;
@@ -631,9 +626,30 @@ bool vk_initialize(hw* hw)
       instance_info.ppEnabledLayerNames = validation_layers;
    }
 #endif
-
-   VkInstance instance = 0;
    vk_test_return(vkCreateInstance(&instance_info, 0, &instance));
+
+   return instance;
+}
+
+bool vk_initialize(hw* hw)
+{
+   if(!hw->renderer.window.handle)
+      return false;
+
+   if(!vk_valid(volkInitialize()))
+      return false;
+
+   vk_context* context = new(&hw->vk_storage, vk_context);
+   if(arena_end(&hw->vk_storage, context))
+      return false;
+
+   context->storage = &hw->vk_storage;
+
+   arena scratch = hw->vk_scratch;
+
+   VkInstance instance = vk_instance_create(scratch);
+
+   volkLoadInstance(instance);
 
 #ifdef _DEBUG
    {
