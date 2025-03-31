@@ -1,3 +1,6 @@
 [submodule "extern/volk"]
 	path = extern/volk
 	url = https://github.com/zeux/volk.git
+[submodule "extern/meshoptimizer"]
+	path = extern/meshoptimizer
+	url = https://github.com/zeux/meshoptimizer.git
