@@ -146,8 +146,8 @@ static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
    f32 by = (t+b) / (t-b);
 
    // [0, 1]
-   f32 z0 = f / (f - n);
-   f32 z1 = -(f * n) / (f - n);
+   f32 z0 = -f / (n - f);
+   f32 z1 = (f * n) / (n - f);
 
    result.data[0] = ax;
    result.data[5] = ay;
