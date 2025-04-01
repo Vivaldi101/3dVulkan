@@ -139,14 +139,15 @@ static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
 {
    mat4 result = mat4_identity();
 
-   f32 ax = 2*n / (r-l);
+   f32 ax = (2*n) / (r-l);
    f32 bx = (r+l) / (r-l);
 
-   f32 ay = 2*n / (t-b);
+   f32 ay = (2*n) / (t-b);
    f32 by = (t+b) / (t-b);
 
+   // [0, 1]
    f32 z0 = f / (f - n);
-   f32 z1 = -n * z0;
+   f32 z1 = -(f * n) / (f - n);
 
    result.data[0] = ax;
    result.data[5] = ay;
@@ -155,43 +156,11 @@ static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
    result.data[9] = by;
 
    result.data[10] = z0;
-   result.data[11] = -1.0f;
+   result.data[11] = 1.0f; // positive w
    result.data[14] = z1;
+   result.data[15] = 0.0f;
 
    return result;
-}
-
-static inline mat4 mat4_perspective_fov(f32 fovh, f32 aspect, f32 n, f32 f)
-{
-   f32 half_fovh_rad = DEG_TO_RAD(fovh)*0.5f;
-
-   f32 w = n*tanf(half_fovh_rad);
-
-   //return mat4_perspective(n, f, -w*aspect, w*aspect, -w, w);
-
-   mat4 result = mat4_identity();
-
-   //f32 ax = 2*n / (r-l);
-   //f32 bx = (r+l) / (r-l);
-
-   //f32 ay = 2*n / (t-b);
-   //f32 by = (t+b) / (t-b);
-
-   //f32 z0 = f / (f - n);
-   //f32 z1 = -n * z0;
-
-   result.data[0] = 1.0f / (aspect*half_fovh_rad);
-   result.data[5] = 1.0f / half_fovh_rad;
-
-   //result.data[8] = bx;
-   //result.data[9] = by;
-
-   result.data[10] = -((f + n) / (f - n));
-   result.data[11] = -1.0f;
-   result.data[14] = -((2.0f * f * n) / (f - n));
-
-   return result;
-
 }
 
 // TODO: Also maybe we should remove these defines and just do functions..

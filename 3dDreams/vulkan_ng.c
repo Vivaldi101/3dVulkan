@@ -61,6 +61,7 @@ align_struct
 align_struct
 {
    arena* storage;
+   mat4 projection;
 
    VkPhysicalDevice physical_dev;
    VkDevice logical_dev;
@@ -74,12 +75,73 @@ align_struct
    VkCommandBuffer command_buffer;
    VkRenderPass renderpass;
    VkPipeline pipeline;
+   VkPipelineLayout pipeline_layout;
    VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
    VkImage swapchain_images[MAX_VULKAN_OBJECT_COUNT];
    VkImageView swapchain_image_views[MAX_VULKAN_OBJECT_COUNT];
 
    swapchain_surface_info swapchain_info;
 } vk_context;
+
+align_struct
+{
+   VkBuffer handle;
+   VkDeviceMemory memory;
+   void* data;
+   size size;
+} vk_buffer;
+
+static vk_buffer vk_buffer_create(VkDevice device, size size, VkPhysicalDeviceMemoryProperties memory_properties, VkBufferUsageFlags usage)
+{
+   vk_buffer buffer = {};
+
+   VkBufferCreateInfo create_info = {vk_info(BUFFER)};
+   create_info.size = size;
+   create_info.usage = usage;
+
+   if(!vk_valid(vkCreateBuffer(device, &create_info, 0, &buffer.handle)))
+      return (vk_buffer){};
+
+   VkMemoryRequirements memory_reqs;
+   vkGetBufferMemoryRequirements(device, buffer.handle, &memory_reqs);
+
+   VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+   u32 memory_index = memory_properties.memoryTypeCount;
+   u32 i = 0;
+
+   while(i < memory_index)
+   {
+      if(((memory_reqs.memoryTypeBits & (1 << i)) && memory_properties.memoryTypes[i].propertyFlags == flags))
+         memory_index = i;
+
+      ++i;
+   }
+
+   VkMemoryAllocateInfo allocate_info = {vk_info_allocate(MEMORY)};
+   allocate_info.allocationSize = memory_reqs.size;
+   allocate_info.memoryTypeIndex = memory_index;
+
+   VkDeviceMemory memory = 0;
+   if(!vk_valid(vkAllocateMemory(device, &allocate_info, 0, &memory)))
+      return (vk_buffer){};
+
+   if(!vk_valid(vkBindBufferMemory(device, buffer.handle, memory, 0)))
+      return (vk_buffer){};
+
+   if(!vk_valid(vkMapMemory(device, memory, 0, allocate_info.allocationSize, 0, &buffer.data)))
+      return (vk_buffer){};
+
+   buffer.size = allocate_info.allocationSize;
+   buffer.memory = memory;
+
+   return buffer;
+}
+
+static void vk_buffer_destroy(VkDevice device, vk_buffer* buffer)
+{
+   vkFreeMemory(device, buffer->memory, 0);
+   vkDestroyBuffer(device, buffer->handle, 0);
+}
 
 static VkResult vk_create_debugutils_messenger_ext(VkInstance instance,
                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -410,6 +472,12 @@ void vk_present(vk_context* context)
    {
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
+      mat4 projection = context->projection;
+
+      vkCmdPushConstants(command_buffer, context->pipeline_layout,
+                   VK_SHADER_STAGE_VERTEX_BIT, 0,
+                   sizeof(mat4), &projection);
+
       const f32 c = 255.0f, r = 48, g = 10, b = 36;
       VkClearValue clear = {r / c, g / c, b / c, 1.0f};
 
@@ -429,8 +497,8 @@ void vk_present(vk_context* context)
       viewport.y = (f32)context->swapchain_info.image_height;
       viewport.width = (f32)context->swapchain_info.image_width;
       viewport.height = -(f32)context->swapchain_info.image_height;
-      viewport.minDepth = 0;
-      viewport.maxDepth = 1;
+      viewport.minDepth = 0.0f;
+      viewport.maxDepth = 1.0f;
 
       vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
@@ -517,6 +585,15 @@ static VkPipelineLayout vk_pipeline_layout_create(VkDevice logical_dev)
    VkPipelineLayout layout = 0;
 
    VkPipelineLayoutCreateInfo info = {vk_info(PIPELINE_LAYOUT)};
+
+   VkPushConstantRange push_constant = {};
+   push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+   push_constant.offset = 0;
+   push_constant.size = sizeof(mat4);
+
+   info.pushConstantRangeCount = 1;
+   info.pPushConstantRanges = &push_constant;
+
    vk_test_return(vkCreatePipelineLayout(logical_dev, &info, 0, &layout));
 
    return layout;
@@ -571,9 +648,9 @@ static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpa
    depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
    depth_stencil_info.depthTestEnable = VK_TRUE;
    depth_stencil_info.depthWriteEnable = VK_TRUE;
-   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;
-   depth_stencil_info.minDepthBounds = 0;
-   depth_stencil_info.maxDepthBounds = 0;
+   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
+   depth_stencil_info.minDepthBounds = 0.0f;
+   depth_stencil_info.maxDepthBounds = 1.0f;
    pipeline_info.pDepthStencilState = &depth_stencil_info;
 
    VkPipelineColorBlendAttachmentState color_blend_attachment = {};
@@ -697,6 +774,21 @@ bool vk_initialize(hw* hw)
    VkPipelineCache cache = 0; // TODO: enable
    VkPipelineLayout layout = vk_pipeline_layout_create(context->logical_dev);
    context->pipeline = vk_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders);
+   context->pipeline_layout = layout;
+   f32 t = 1.0f;
+   f32 r = 1.0f;
+   f32 l = -r;
+   f32 b = -t;
+   f32 aspect = (f32)context->swapchain_info.image_width / (f32)context->swapchain_info.image_height;
+   context->projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
+
+   size buffer_size = MB(10);
+
+   VkPhysicalDeviceMemoryProperties memory_props;
+   vkGetPhysicalDeviceMemoryProperties(context->physical_dev, &memory_props);
+
+   //vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+   //vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
    // app callbacks
    hw->renderer.backends[vk_renderer_index] = context;
@@ -709,6 +801,7 @@ bool vk_initialize(hw* hw)
 
 bool vk_uninitialize(hw* hw)
 {
+   // TODO:
 #if 0
    vk_context* context = hw->renderer.backends[vk_renderer_index];
 
