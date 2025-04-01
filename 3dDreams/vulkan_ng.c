@@ -682,13 +682,13 @@ VkInstance vk_instance_create(arena scratch)
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
 
-   VkExtensionProperties* ext = new(&scratch, VkExtensionProperties, ext_count);
-   if(!implies(!scratch_end(scratch, ext), vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, ext))))
+   VkExtensionProperties* extensions = new(&scratch, VkExtensionProperties, ext_count);
+   if(!implies(!scratch_end(scratch, extensions), vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, extensions))))
       return false;
    const char** ext_names = new(&scratch, const char*, ext_count);
 
    for(size_t i = 0; i < ext_count; ++i)
-      ext_names[i] = ext[i].extensionName;
+      ext_names[i] = extensions[i].extensionName;
 
    VkInstanceCreateInfo instance_info = {vk_info(INSTANCE)};
    instance_info.pApplicationInfo = &(VkApplicationInfo) { .apiVersion = VK_API_VERSION_1_2 };
@@ -775,11 +775,8 @@ bool vk_initialize(hw* hw)
    VkPipelineLayout layout = vk_pipeline_layout_create(context->logical_dev);
    context->pipeline = vk_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders);
    context->pipeline_layout = layout;
-   f32 t = 1.0f;
-   f32 r = 1.0f;
-   f32 l = -r;
-   f32 b = -t;
-   f32 aspect = (f32)context->swapchain_info.image_width / (f32)context->swapchain_info.image_height;
+
+   f32 t = 1.0f, r = 1.0f, l = -r, b = -t;
    context->projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
 
    size buffer_size = MB(10);
@@ -787,8 +784,8 @@ bool vk_initialize(hw* hw)
    VkPhysicalDeviceMemoryProperties memory_props;
    vkGetPhysicalDeviceMemoryProperties(context->physical_dev, &memory_props);
 
-   //vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-   //vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+   vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+   vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
    // app callbacks
    hw->renderer.backends[vk_renderer_index] = context;
