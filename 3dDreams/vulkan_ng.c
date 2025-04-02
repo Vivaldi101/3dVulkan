@@ -50,6 +50,8 @@ align_struct swapchain_surface_info
    VkSwapchainKHR swapchain;
 
    VkFormat format;
+   VkImage images[MAX_VULKAN_OBJECT_COUNT];
+   VkImageView image_views[MAX_VULKAN_OBJECT_COUNT];
 } swapchain_surface_info;
 
 align_struct
@@ -76,8 +78,6 @@ align_struct
    VkPipeline pipeline;
    VkPipelineLayout pipeline_layout;
    VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
-   VkImage swapchain_images[MAX_VULKAN_OBJECT_COUNT];
-   VkImageView swapchain_image_views[MAX_VULKAN_OBJECT_COUNT];
 
    swapchain_surface_info swapchain_info;
 } vk_context;
@@ -490,7 +490,7 @@ void vk_present(vk_context* context)
       renderpass_info.clearValueCount = 1;
       renderpass_info.pClearValues = &clear;
 
-      VkImage image = context->swapchain_images[image_index];
+      VkImage image = context->swapchain_info.images[image_index];
       VkImageMemoryBarrier render_begin_barrier = vk_pipeline_barrier(image, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                            VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &render_begin_barrier);
@@ -768,12 +768,12 @@ bool vk_initialize(hw* hw)
    context->command_buffer = vk_command_buffer_create(context->logical_dev, context->command_pool);
    context->renderpass = vk_renderpass_create(context->logical_dev, &context->swapchain_info);
 
-   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_images));
+   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_info.images));
 
    for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
    {
-      context->swapchain_image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_images[i]);
-      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_image_views[i]);
+      context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i]);
+      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_info.image_views[i]);
    }
 
    vk_shader_modules shaders = vk_shaders_load(context->logical_dev, scratch);
