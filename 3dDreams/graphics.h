@@ -163,6 +163,26 @@ static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
    return result;
 }
 
+static inline mat4 mat4_perspective_fov(f32 fovx, f32 w, f32 h, f32 n, f32 f)
+{
+   f32 A = 1 / tanf(fovx / 2);
+   f32 B = A * w / h;
+
+   f32 z0 = -f / (n - f);
+   f32 z1 = (f * n) / (n - f);
+
+   mat4 projection =
+   {{
+       A, 0,   0, 0,
+       0, B,   0, 0,
+       0, 0, z0, 1.0f,
+       0, 0, z1, 0,
+   }};
+   //return mat4_perspective(n, f, -w, w, h, -h);
+
+   return projection;
+}
+
 // TODO: Also maybe we should remove these defines and just do functions..
 // TODO: typedefs for vertexes as float arrays to keeep them conceptually separate from directed vectors
 #define vec3_cross(a, b, c) (c).x = (a).y*(b).z - (a).z*(b).y; (c).y = (a).z*(b).x - (a).x*(b).z; (c).z = (a).x*(b).y - (a).y*(b).x;

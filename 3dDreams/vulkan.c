@@ -6,18 +6,18 @@
 #include "win32_file_io.c"
 
 // unity build
-#include "vk_common.c"
-#include "vk_device.c"
-#include "vk_surface.c"
-#include "vk_image.c"
-#include "vk_renderpass.c"
-#include "vk_framebuffer.c"
-#include "vk_command_buffer.c"
-#include "vk_swapchain.c"
-#include "vk_fence.c"
-#include "vk_pipeline.c"
-#include "vk_buffer.c"
-#include "vk_shader.c"
+#include "vulkan_common.c"
+#include "vulkan_device.c"
+#include "vulkan_surface.c"
+#include "vulkan_image.c"
+#include "vulkan_renderpass.c"
+#include "vulkan_framebuffer.c"
+#include "vulkan_command_buffer.c"
+#include "vulkan_swapchain.c"
+#include "vulkan_fence.c"
+#include "vulkan_pipeline.c"
+#include "vulkan_buffer.c"
+#include "vulkan_shader.c"
 
 
 // Function to dynamically load vkCreateDebugUtilsMessengerEXT
@@ -116,6 +116,9 @@ static bool vk_upload_data_to_buffer(vk_context* context, vk_buffer* buffer, u64
 
 static bool vk_create_renderer(arena scratch, vk_context* context, const hw_window* window)
 {
+   if(!vk_valid(volkInitialize()))
+      return false;
+
    u32 ext_count = 0;
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return false;
@@ -151,6 +154,9 @@ static bool vk_create_renderer(arena scratch, vk_context* context, const hw_wind
 
    if(scratch_end(scratch, ext_names) || !vk_valid(vkCreateInstance(&instance_info, 0, &context->instance)))
       return false;
+
+
+   volkLoadInstance(context->instance);
 
 #ifdef _DEBUG 
    {

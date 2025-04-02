@@ -33,6 +33,7 @@ align_struct hw
 } hw;
 
 #include "vulkan_ng.c"
+//#include "vulkan.c"
 
 static VkSurfaceKHR window_surface_create(void* instance, void* window_handle)
 {
@@ -46,8 +47,8 @@ static VkSurfaceKHR window_surface_create(void* instance, void* window_handle)
    surface_info.hinstance = GetModuleHandleA(0);
    surface_info.hwnd = window_handle;
 
-   VkSurfaceKHR surface;
-   vk_test_return_handle(vk_surface_function(instance, &surface_info, 0, &surface));
+   VkSurfaceKHR surface = 0;
+   vk_surface_function(instance, &surface_info, 0, &surface);
 
    return surface;
 }
