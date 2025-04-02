@@ -429,11 +429,6 @@ static VkImageView vk_image_view_create(VkDevice logical_dev, VkFormat format, V
    return image_view;
 }
 
-void vk_resize(void* renderer, u32 width, u32 height)
-{
-   // ...
-}
-
 VkImageMemoryBarrier vk_pipeline_barrier(VkImage image, 
                                          VkAccessFlags src_access, VkAccessFlags dst_access, 
                                          VkImageLayout old_layout, VkImageLayout new_layout)
@@ -458,10 +453,47 @@ VkImageMemoryBarrier vk_pipeline_barrier(VkImage image,
    return result;
 }
 
+static void vk_swapchain_destroy(vk_context* context)
+{
+   for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
+   {
+      vkDestroyFramebuffer(context->logical_dev, context->framebuffers[i], 0);
+      vkDestroyImageView(context->logical_dev, context->swapchain_info.image_views[i], 0);
+   }
+}
+
+static bool vk_swapchain_update(vk_context* context)
+{
+   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_info.images));
+
+   for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
+   {
+      context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i]);
+      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_info.image_views[i]);
+   }
+
+   return true;
+}
+
+void vk_resize(void* renderer, u32 width, u32 height)
+{
+   vk_context* context = (vk_context*)renderer;
+
+   vkDeviceWaitIdle(context->logical_dev);
+   vk_swapchain_destroy(context);
+   vk_swapchain_update(context);
+}
+
 void vk_present(vk_context* context)
 {
    u32 image_index = 0;
-   vk_assert(vkAcquireNextImageKHR(context->logical_dev, context->swapchain_info.swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
+   VkResult next_image_result = vkAcquireNextImageKHR(context->logical_dev, context->swapchain_info.swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index);
+
+   if(next_image_result == VK_ERROR_OUT_OF_DATE_KHR)
+      vk_resize(context, context->swapchain_info.image_width, context->swapchain_info.image_height);
+
+   if(next_image_result != VK_SUBOPTIMAL_KHR && next_image_result != VK_SUCCESS)
+      return;
 
    vk_assert(vkResetCommandPool(context->logical_dev, context->command_pool, 0));
 
@@ -551,7 +583,13 @@ void vk_present(vk_context* context)
    present_info.waitSemaphoreCount = 1;
    present_info.pWaitSemaphores = &context->image_done_semaphore;
 
-   vk_assert(vkQueuePresentKHR(context->graphics_queue, &present_info));
+   VkResult present_result = vkQueuePresentKHR(context->graphics_queue, &present_info);
+
+   if(present_result == VK_SUBOPTIMAL_KHR || present_result == VK_ERROR_OUT_OF_DATE_KHR)
+      vk_resize(context, context->swapchain_info.image_width, context->swapchain_info.image_height);
+
+   if(present_result != VK_SUCCESS)
+      return;
 
    // wait until all queue ops are done
    vk_assert(vkDeviceWaitIdle(context->logical_dev));
@@ -713,19 +751,6 @@ VkInstance vk_instance_create(arena scratch)
    vk_test_return(vkCreateInstance(&instance_info, 0, &instance));
 
    return instance;
-}
-
-static bool vk_swapchain_update(vk_context* context)
-{
-   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_info.images));
-
-   for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
-   {
-      context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i]);
-      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_info.image_views[i]);
-   }
-
-   return true;
 }
 
 bool vk_initialize(hw* hw)
