@@ -45,9 +45,11 @@ align_struct swapchain_surface_info
    u32 image_width;
    u32 image_height;
    u32 image_count;
-   VkFormat format;
-   VkSurfaceTransformFlagBitsKHR transform;
+
    VkSurfaceKHR surface;
+   VkSwapchainKHR swapchain;
+
+   VkFormat format;
 } swapchain_surface_info;
 
 align_struct
@@ -64,7 +66,6 @@ align_struct
    VkPhysicalDevice physical_dev;
    VkDevice logical_dev;
    VkSurfaceKHR surface;
-   VkSwapchainKHR swapchain;
    VkAllocationCallbacks* allocator;
    VkSemaphore image_ready_semaphore;
    VkSemaphore image_done_semaphore;
@@ -204,7 +205,6 @@ static swapchain_surface_info vk_window_swapchain_surface_info(VkPhysicalDevice 
    result.image_width = width;
    result.image_height = height;
    result.image_count = image_count;
-   result.transform = surface_caps.currentTransform;
    result.format = vk_swapchain_format(physical_dev, surface);
    result.surface = surface;
 
@@ -305,7 +305,7 @@ static VkSwapchainKHR vk_swapchain_create(VkDevice logical_dev, swapchain_surfac
    swapchain_info.queueFamilyIndexCount = 1;
    swapchain_info.pQueueFamilyIndices = &queue_family_index;
    swapchain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-   swapchain_info.preTransform = surface_info->transform;
+   swapchain_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
    swapchain_info.clipped = VK_TRUE;
    swapchain_info.oldSwapchain = swapchain;
@@ -313,6 +313,14 @@ static VkSwapchainKHR vk_swapchain_create(VkDevice logical_dev, swapchain_surfac
    vk_test_return_handle(vkCreateSwapchainKHR(logical_dev, &swapchain_info, 0, &swapchain));
 
    return swapchain;
+}
+
+static swapchain_surface_info vk_swapchain_info_create(vk_context* context, u32 swapchain_width, u32 swapchain_height, u32 queue_family_index)
+{
+   swapchain_surface_info swapchain_info = vk_window_swapchain_surface_info(context->physical_dev, swapchain_width, swapchain_height, context->surface);
+   swapchain_info.swapchain = vk_swapchain_create(context->logical_dev, &swapchain_info, queue_family_index);
+
+   return swapchain_info;
 }
 
 static VkCommandBuffer vk_command_buffer_create(VkDevice logical_dev, VkCommandPool pool)
@@ -453,7 +461,7 @@ VkImageMemoryBarrier vk_pipeline_barrier(VkImage image,
 void vk_present(vk_context* context)
 {
    u32 image_index = 0;
-   vk_assert(vkAcquireNextImageKHR(context->logical_dev, context->swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
+   vk_assert(vkAcquireNextImageKHR(context->logical_dev, context->swapchain_info.swapchain, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index));
 
    vk_assert(vkResetCommandPool(context->logical_dev, context->command_pool, 0));
 
@@ -536,7 +544,7 @@ void vk_present(vk_context* context)
 
    VkPresentInfoKHR present_info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
    present_info.swapchainCount = 1;
-   present_info.pSwapchains = &context->swapchain;
+   present_info.pSwapchains = &context->swapchain_info.swapchain;
 
    present_info.pImageIndices = &image_index;
 
@@ -752,8 +760,7 @@ bool vk_initialize(hw* hw)
    context->physical_dev = vk_pdevice_select(instance);
    context->logical_dev = vk_ldevice_create(context->physical_dev, queue_family_index);
    context->surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
-   context->swapchain_info = vk_window_swapchain_surface_info(context->physical_dev, hw->renderer.window.width, hw->renderer.window.height, context->surface);
-   context->swapchain = vk_swapchain_create(context->logical_dev, &context->swapchain_info, queue_family_index);
+   context->swapchain_info = vk_swapchain_info_create(context, hw->renderer.window.width, hw->renderer.window.height, queue_family_index);
    context->image_ready_semaphore = vk_semaphore_create(context->logical_dev);
    context->image_done_semaphore = vk_semaphore_create(context->logical_dev);
    context->graphics_queue = vk_graphics_queue_create(context->logical_dev, queue_family_index);
@@ -761,7 +768,7 @@ bool vk_initialize(hw* hw)
    context->command_buffer = vk_command_buffer_create(context->logical_dev, context->command_pool);
    context->renderpass = vk_renderpass_create(context->logical_dev, &context->swapchain_info);
 
-   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain, &context->swapchain_info.image_count, context->swapchain_images));
+   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_images));
 
    for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
    {
