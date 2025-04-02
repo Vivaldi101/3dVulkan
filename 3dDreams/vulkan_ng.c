@@ -63,7 +63,6 @@ align_struct
 align_struct
 {
    arena* storage;
-   mat4 projection;
 
    VkPhysicalDevice physical_dev;
    VkDevice logical_dev;
@@ -518,14 +517,16 @@ void vk_present(vk_context* context)
    {
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
-      mat4 projection = context->projection;
+      f32 a = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
+      f32 r = a/1.0f, t = 1.0f, l = -r, b = -t;
+      mat4 projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
                    VK_SHADER_STAGE_VERTEX_BIT, 0,
                    sizeof(mat4), &projection);
 
-      const f32 c = 255.0f, r = 48, g = 10, b = 36;
-      VkClearValue clear = {r / c, g / c, b / c, 1.0f};
+      const f32 c = 255.0f;
+      VkClearValue clear = {48 / c, 10 / c, 36 / c, 1.0f};
 
       renderpass_info.clearValueCount = 1;
       renderpass_info.pClearValues = &clear;
@@ -824,11 +825,6 @@ bool vk_initialize(hw* hw)
    VkPipelineLayout layout = vk_pipeline_layout_create(context->logical_dev);
    context->pipeline = vk_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders);
    context->pipeline_layout = layout;
-
-   {
-      f32 r = 1.0f, t = 1.0f, l = -r, b = -t;
-      context->projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
-   }
 
    size buffer_size = MB(10);
 

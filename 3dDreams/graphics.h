@@ -13,7 +13,10 @@
 
 enum { G_PLANE_FRONT, G_PLANE_BACK, G_PLANE_ON, G_PLANE_SPLIT };
 
-#define DEG_TO_RAD(degrees) ((degrees) * (3.14159265358979323846f / 180.0f))
+#define M_PI       3.14159265358979323846f   // pi
+
+#define DEG2RAD(a) (((a) * M_PI) / 180.0F)
+#define RAD2DEG(a) (((a) * 180.0f) / M_PI)
 
 align_union
 { 
@@ -137,7 +140,7 @@ static inline mat4 mat4_mul(mat4 a, mat4 b)
 
 static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
 {
-   mat4 result = mat4_identity();
+   mat4 result = {};
 
    f32 ax = (2*n) / (r-l);
    f32 bx = (r+l) / (r-l);
@@ -163,24 +166,25 @@ static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
    return result;
 }
 
-static inline mat4 mat4_perspective_fov(f32 fovx, f32 w, f32 h, f32 n, f32 f)
+static inline mat4 mat4_perspective_fov(f32 fovx, f32 ar)
 {
-   f32 A = 1 / tanf(fovx / 2);
-   f32 B = A * w / h;
+   mat4 result = {};
 
-   f32 z0 = -f / (n - f);
-   f32 z1 = (f * n) / (n - f);
+   f32 tan_half_fov = tanf(DEG2RAD(fovx/2.0f));
+   f32 d = 1.0f/tan_half_fov;
 
-   mat4 projection =
-   {{
-       A, 0,   0, 0,
-       0, B,   0, 0,
-       0, 0, z0, 1.0f,
-       0, 0, z1, 0,
-   }};
-   //return mat4_perspective(n, f, -w, w, h, -h);
+   result.data[0] = d/ar;
+   result.data[5] = d;
 
-   return projection;
+   //result.data[8] = bx;
+   //result.data[9] = by;
+
+   //result.data[10] = z0;
+   result.data[11] = 1.0f; // positive w
+   //result.data[14] = z1;
+   result.data[15] = 0.0f;
+
+   return result;
 }
 
 // TODO: Also maybe we should remove these defines and just do functions..
@@ -270,7 +274,7 @@ static void g_plane_create(g_plane* plane, const vec3* a, const vec3* b, const v
 static void g_frustum_create(g_frustum* frustum, f32 w, f32 h, f32 hfov)
 {
    f32 xr, xl, yb, yt;
-   f32 z = w / (2.0f*tanf(DEG_TO_RAD(hfov/2.0f)));
+   f32 z = w / (2.0f*tanf(DEG2RAD(hfov/2.0f)));
    const vec3 origin = {0.0f, 0.0f, 0.0f};
    vec3 vlb, vlt, vrb, vrt, vtl, vtr, vbl, vbr;
 
