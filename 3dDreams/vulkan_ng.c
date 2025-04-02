@@ -494,7 +494,7 @@ void vk_present(vk_context* context)
 
       VkViewport viewport = {};
       viewport.x = 0.0f;
-      viewport.y = (f32)context->swapchain_info.image_height;
+      viewport.y = (f32)context->swapchain_info.image_height-1.0f;
       viewport.width = (f32)context->swapchain_info.image_width;
       viewport.height = -(f32)context->swapchain_info.image_height;
       viewport.minDepth = 0.0f;
