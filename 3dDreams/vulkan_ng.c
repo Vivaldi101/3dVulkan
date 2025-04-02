@@ -4,10 +4,8 @@
 
 #include "vulkan_ng.h"
 
-#define VK_USE_PLATFORM_WIN32_KHR
 //#include <vulkan/vulkan.h>
-#include <volk.h>
-
+#include <volk.c>
 #include "win32_file_io.c" // TODO: pass these as function pointers from the platform
 #include "vulkan_spirv_loader.c"
 

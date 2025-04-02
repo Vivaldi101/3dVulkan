@@ -32,8 +32,8 @@ align_struct hw
    bool finished;
 } hw;
 
+#define VK_USE_PLATFORM_WIN32_KHR
 #include "vulkan_ng.c"
-//#include "vulkan.c"
 
 static VkSurfaceKHR window_surface_create(void* instance, void* window_handle)
 {
