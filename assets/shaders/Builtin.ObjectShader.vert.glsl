@@ -15,5 +15,6 @@ const vec3 verts[] =
 
 void main()
 {
-   gl_Position = projection.matrix*vec4(verts[gl_VertexIndex], 1.0f);
+   vec3 pos = verts[gl_VertexIndex];
+   gl_Position = projection.matrix*vec4(pos, 1.0f);
 }

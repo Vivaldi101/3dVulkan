@@ -500,16 +500,17 @@ void vk_present(vk_context* context)
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
 
-      vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
       VkRect2D scissor = {};
       scissor.offset.x = 0;
       scissor.offset.y = 0;
       scissor.extent.width = (u32)context->swapchain_info.image_width;
       scissor.extent.height = (u32)context->swapchain_info.image_height;
-      vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
       vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline);
+
+      vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+      vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
       vkCmdDraw(command_buffer, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(command_buffer);
@@ -776,8 +777,10 @@ bool vk_initialize(hw* hw)
    context->pipeline = vk_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders);
    context->pipeline_layout = layout;
 
-   f32 t = 1.0f, r = 1.0f, l = -r, b = -t;
-   context->projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
+   {
+      f32 r = 1.0f, t = 1.0f, l = -r, b = -t;
+      context->projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
+   }
 
    size buffer_size = MB(10);
 
