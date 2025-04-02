@@ -354,10 +354,10 @@ static VkCommandPool vk_command_pool_create(VkDevice logical_dev, u32 queue_fami
    return pool;
 }
 
-static VkRenderPass vk_renderpass_create(VkDevice logical_dev, swapchain_surface_info* surface_info)
+static VkRenderPass vk_renderpass_create(VkDevice logical_dev, VkFormat format)
 {
    assert(vk_valid_handle(logical_dev));
-   assert(vk_valid_format(surface_info->format));
+   assert(vk_valid_format(format));
 
    VkRenderPass renderpass = 0;
 
@@ -371,7 +371,7 @@ static VkRenderPass vk_renderpass_create(VkDevice logical_dev, swapchain_surface
 
    VkAttachmentDescription attachments[1] = {};
 
-   attachments[attachment_index].format = surface_info->format;
+   attachments[attachment_index].format = format;
    attachments[attachment_index].samples = VK_SAMPLE_COUNT_1_BIT;
    attachments[attachment_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
    attachments[attachment_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -715,6 +715,19 @@ VkInstance vk_instance_create(arena scratch)
    return instance;
 }
 
+static bool vk_swapchain_update(vk_context* context)
+{
+   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_info.images));
+
+   for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
+   {
+      context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i]);
+      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_info.image_views[i]);
+   }
+
+   return true;
+}
+
 bool vk_initialize(hw* hw)
 {
    if(!hw->renderer.window.handle)
@@ -760,21 +773,16 @@ bool vk_initialize(hw* hw)
    context->physical_dev = vk_pdevice_select(instance);
    context->logical_dev = vk_ldevice_create(context->physical_dev, queue_family_index);
    context->surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
-   context->swapchain_info = vk_swapchain_info_create(context, hw->renderer.window.width, hw->renderer.window.height, queue_family_index);
    context->image_ready_semaphore = vk_semaphore_create(context->logical_dev);
    context->image_done_semaphore = vk_semaphore_create(context->logical_dev);
    context->graphics_queue = vk_graphics_queue_create(context->logical_dev, queue_family_index);
    context->command_pool = vk_command_pool_create(context->logical_dev, queue_family_index);
    context->command_buffer = vk_command_buffer_create(context->logical_dev, context->command_pool);
-   context->renderpass = vk_renderpass_create(context->logical_dev, &context->swapchain_info);
+   context->swapchain_info = vk_swapchain_info_create(context, hw->renderer.window.width, hw->renderer.window.height, queue_family_index);
+   context->renderpass = vk_renderpass_create(context->logical_dev, context->swapchain_info.format);
 
-   vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_info.images));
-
-   for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
-   {
-      context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i]);
-      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_info.image_views[i]);
-   }
+   if(!vk_swapchain_update(context))
+      return false;
 
    vk_shader_modules shaders = vk_shaders_load(context->logical_dev, scratch);
    VkPipelineCache cache = 0; // TODO: enable
