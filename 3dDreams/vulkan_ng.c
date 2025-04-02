@@ -79,6 +79,8 @@ align_struct
    VkPipelineLayout pipeline_layout;
    VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
 
+   u32 queue_family_index;
+
    swapchain_surface_info swapchain_info;
 } vk_context;
 
@@ -460,6 +462,8 @@ static void vk_swapchain_destroy(vk_context* context)
       vkDestroyFramebuffer(context->logical_dev, context->framebuffers[i], 0);
       vkDestroyImageView(context->logical_dev, context->swapchain_info.image_views[i], 0);
    }
+
+   vkDestroySwapchainKHR(context->logical_dev, context->swapchain_info.swapchain, 0);
 }
 
 static bool vk_swapchain_update(vk_context* context)
@@ -480,7 +484,11 @@ void vk_resize(void* renderer, u32 width, u32 height)
    vk_context* context = (vk_context*)renderer;
 
    vkDeviceWaitIdle(context->logical_dev);
+
    vk_swapchain_destroy(context);
+
+   context->swapchain_info = vk_swapchain_info_create(context, width, height, context->queue_family_index);
+
    vk_swapchain_update(context);
 }
 
@@ -537,6 +545,8 @@ void vk_present(vk_context* context)
       viewport.height = -(f32)context->swapchain_info.image_height;
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
+
+      debug_message("viewport: %d %d\n", (int)viewport.width, (int)viewport.height);
 
       VkRect2D scissor = {};
       scissor.offset.x = 0;
@@ -793,17 +803,17 @@ bool vk_initialize(hw* hw)
    }
 #endif
 
-   u32 queue_family_index = vk_ldevice_select_index();
+   context->queue_family_index = vk_ldevice_select_index();
 
    context->physical_dev = vk_pdevice_select(instance);
-   context->logical_dev = vk_ldevice_create(context->physical_dev, queue_family_index);
+   context->logical_dev = vk_ldevice_create(context->physical_dev, context->queue_family_index);
    context->surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
    context->image_ready_semaphore = vk_semaphore_create(context->logical_dev);
    context->image_done_semaphore = vk_semaphore_create(context->logical_dev);
-   context->graphics_queue = vk_graphics_queue_create(context->logical_dev, queue_family_index);
-   context->command_pool = vk_command_pool_create(context->logical_dev, queue_family_index);
+   context->graphics_queue = vk_graphics_queue_create(context->logical_dev, context->queue_family_index);
+   context->command_pool = vk_command_pool_create(context->logical_dev, context->queue_family_index);
    context->command_buffer = vk_command_buffer_create(context->logical_dev, context->command_pool);
-   context->swapchain_info = vk_swapchain_info_create(context, hw->renderer.window.width, hw->renderer.window.height, queue_family_index);
+   context->swapchain_info = vk_swapchain_info_create(context, hw->renderer.window.width, hw->renderer.window.height, context->queue_family_index);
    context->renderpass = vk_renderpass_create(context->logical_dev, context->swapchain_info.format);
 
    if(!vk_swapchain_update(context))
