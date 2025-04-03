@@ -538,11 +538,12 @@ void vk_present(vk_context* context)
       f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
       f32 t = 1.0f;
       f32 r = t*ar;
-      if(ar < 1.0f)
+      if(ar < 1.0f)  // taller viewport
       {
          r = t;
          t = r/ar; 
          assert(t > r);
+         assert(r == t*ar);
       }
 
       f32 l = -r;
