@@ -535,12 +535,20 @@ void vk_present(vk_context* context)
    {
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
-      // w/h = a
-      // w = a*h
-      // w/a = h
+      // a = w/h
+      // h = w/a
 
-      f32 a = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
-      f32 r = a * 1.0f, t = r / a, l = -r, b = -t;
+      f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
+      f32 r = 1.0f*ar;
+      f32 t = r/ar;
+      if(ar < 1.0f)
+      {
+         r = 1.0f;
+         t = 1.0f/ar;
+      }
+
+      f32 l = -r;
+      f32 b = -t;
 
       mat4 projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
 
@@ -733,7 +741,7 @@ static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpa
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   raster_info.polygonMode = VK_POLYGON_MODE_FILL; // or VK_POLYGON_MODE_LINE if you want wireframe
+   raster_info.polygonMode = VK_POLYGON_MODE_LINE; // or VK_POLYGON_MODE_LINE if you want wireframe
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // Set to clockwise if needed
    pipeline_info.pRasterizationState = &raster_info;
 
