@@ -97,7 +97,8 @@ static inline mat4 mat4_scale(f32 s)
    result.data[0] *= s;
    result.data[5] *= s;
    result.data[10] *= s;
-   result.data[15] *= s;
+
+   result.data[15] = 0.0f;
 
    return result;
 }
@@ -332,6 +333,34 @@ static bool g_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 
    vi[2] = v0[2] + t*(v1[2] - v0[2]);
 
    return true;
+}
+
+static mat4 mat4_rotation_z(f32 rotz)
+{
+   rotz = DEG2RAD(rotz);
+   mat4 result = 
+   {
+      cosf(rotz), -sinf(rotz), 0.0f, 0.0f,
+      sinf(rotz), cosf(rotz),  0.0f, 0.0f,
+      0.0f,       0.0f,        1.0f, 0.0f,
+      0.0f,       0.0f,        0.0f, 1.0f,
+   };
+
+   return result;
+}
+
+static mat4 mat4_rotation_y(f32 roty)
+{
+   roty = DEG2RAD(roty);
+   mat4 result = 
+   {
+      cosf(roty), 0.0f, sinf(roty), 0.0f,
+      0.0f,       1.0f, 0.0f,       0.0f,
+      -sinf(roty),0.0f, cosf(roty), 0.0f,
+      0.0f,       0.0f, 0.0f,       1.0f,
+   };
+
+   return result;
 }
 
 #endif
