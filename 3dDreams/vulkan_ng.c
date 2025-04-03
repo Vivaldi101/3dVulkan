@@ -536,12 +536,13 @@ void vk_present(vk_context* context)
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
       f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
-      f32 r = 1.0f*ar;
-      f32 t = r/ar;
+      f32 t = 1.0f;
+      f32 r = t*ar;
       if(ar < 1.0f)
       {
-         r = 1.0f;
-         t = 1.0f/ar;
+         r = t;
+         t = r/ar; 
+         assert(t > r);
       }
 
       f32 l = -r;
