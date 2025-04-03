@@ -8,9 +8,9 @@ layout(push_constant) uniform Projection
 
 const vec3 verts[] = 
 {
-   vec3(0.0, 1.0f, 1.0f),
-   vec3(-1.0f, -1.0f, 1.0f),
-   vec3(1.0f, -1.0f, 1.0f),
+   vec3(0.0, -1.0f, 1.0f),
+   vec3(1.0f, 1.0f, 1.0f),
+   vec3(-1.0f, 1.0f, 1.0f),
 };
 
 const vec3 small_verts[] = 

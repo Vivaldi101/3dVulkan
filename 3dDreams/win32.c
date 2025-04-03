@@ -144,16 +144,16 @@ static HWND win32_window_open(const char* title, int x, int y, int width, int he
    dwStyle = WS_OVERLAPPEDWINDOW;
    dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 
-   winrect.left = 0;
-   winrect.right = width;
-   winrect.top = 0;
-   winrect.bottom = height;
+   winrect.left = x;
+   winrect.right = x + width;
+   winrect.top = y;
+   winrect.bottom = y + height;
 
    AdjustWindowRectEx(&winrect, dwStyle, 0, dwExStyle);
 
    result = CreateWindowEx(dwExStyle,
       wc.lpszClassName, title, WS_CLIPSIBLINGS | WS_CLIPCHILDREN | dwStyle,
-      0, 0, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
+      winrect.left, winrect.top, winrect.right - winrect.left, winrect.bottom - winrect.top, NULL, NULL, wc.hInstance, NULL);
 
    if(!result)
       return 0;

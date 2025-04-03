@@ -65,7 +65,8 @@ void app_start(int argc, const char** argv, hw* hw)
    g_frustum frustum = {0};
 
 	int w = 800, h = 600;
-   hw_window_open(hw, "App window", 0, 0, w, h);
+	int x = 100, y = 100;
+   hw_window_open(hw, "App window1", x, y, w, h);
 
    if(!vk_initialize(hw))
       hw_message("Could not open Vulkan");

@@ -309,7 +309,7 @@ static VkSwapchainKHR vk_swapchain_create(VkDevice logical_dev, swapchain_surfac
    swapchain_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
    swapchain_info.clipped = VK_TRUE;
-   swapchain_info.oldSwapchain = swapchain;
+   swapchain_info.oldSwapchain = surface_info->swapchain;
 
    vk_test_return_handle(vkCreateSwapchainKHR(logical_dev, &swapchain_info, 0, &swapchain));
 
@@ -318,7 +318,26 @@ static VkSwapchainKHR vk_swapchain_create(VkDevice logical_dev, swapchain_surfac
 
 static swapchain_surface_info vk_swapchain_info_create(vk_context* context, u32 swapchain_width, u32 swapchain_height, u32 queue_family_index)
 {
+   VkSurfaceCapabilitiesKHR surface_caps;
+   if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->physical_dev, context->surface, &surface_caps)))
+      return (swapchain_surface_info){};
+
    swapchain_surface_info swapchain_info = vk_window_swapchain_surface_info(context->physical_dev, swapchain_width, swapchain_height, context->surface);
+
+   VkExtent2D swapchain_extent = {swapchain_width, swapchain_height};
+
+   if(surface_caps.currentExtent.width != UINT32_MAX)
+      // fixed size
+      swapchain_extent = surface_caps.currentExtent;
+   else
+   {
+      // surface allows to choose the size
+      VkExtent2D min_extent = surface_caps.minImageExtent;
+      VkExtent2D max_extent = surface_caps.maxImageExtent;
+      swapchain_extent.width = clamp(swapchain_extent.width, min_extent.width, max_extent.width);
+      swapchain_extent.height = clamp(swapchain_extent.height, min_extent.height, max_extent.height);
+   }
+
    swapchain_info.swapchain = vk_swapchain_create(context->logical_dev, &swapchain_info, queue_family_index);
 
    return swapchain_info;
@@ -520,6 +539,7 @@ void vk_present(vk_context* context)
       f32 a = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
       f32 r = a/1.0f, t = 1.0f, l = -r, b = -t;
       mat4 projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
+      //mat4 projection = mat4_perspective_fov(90.0f, a);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
                    VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -778,10 +798,9 @@ bool vk_initialize(hw* hw)
 
    context->storage = &hw->vk_storage;
 
-   arena scratch = hw->vk_scratch;
+   const arena scratch = hw->vk_scratch;
 
    VkInstance instance = vk_instance_create(scratch);
-
    volkLoadInstance(instance);
 
 #ifdef _DEBUG
@@ -805,7 +824,6 @@ bool vk_initialize(hw* hw)
 #endif
 
    context->queue_family_index = vk_ldevice_select_index();
-
    context->physical_dev = vk_pdevice_select(instance);
    context->logical_dev = vk_ldevice_create(context->physical_dev, context->queue_family_index);
    context->surface = hw->renderer.window_surface_create(instance, hw->renderer.window.handle);
