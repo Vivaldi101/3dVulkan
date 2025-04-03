@@ -223,7 +223,7 @@ static VkPhysicalDevice vk_pdevice_select(VkInstance instance)
    for(u32 i = 0; i < dev_count; ++i)
    {
       VkPhysicalDeviceProperties props;
-		vkGetPhysicalDeviceProperties(devs[i], &props);
+      vkGetPhysicalDeviceProperties(devs[i], &props);
 
       if(props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
          return devs[i];
@@ -320,14 +320,13 @@ static swapchain_surface_info vk_swapchain_info_create(vk_context* context, u32 
 {
    VkSurfaceCapabilitiesKHR surface_caps;
    if(!vk_valid(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->physical_dev, context->surface, &surface_caps)))
-      return (swapchain_surface_info){};
+      return (swapchain_surface_info) {};
 
    swapchain_surface_info swapchain_info = vk_window_swapchain_surface_info(context->physical_dev, swapchain_width, swapchain_height, context->surface);
 
    VkExtent2D swapchain_extent = {swapchain_width, swapchain_height};
 
    if(surface_caps.currentExtent.width != UINT32_MAX)
-      // fixed size
       swapchain_extent = surface_caps.currentExtent;
    else
    {
@@ -499,14 +498,14 @@ static bool vk_swapchain_update(vk_context* context)
 
 void vk_resize(void* renderer, u32 width, u32 height)
 {
+   if(width == 0 || height == 0)
+      return;
+
    vk_context* context = (vk_context*)renderer;
 
    vkDeviceWaitIdle(context->logical_dev);
-
    vk_swapchain_destroy(context);
-
    context->swapchain_info = vk_swapchain_info_create(context, width, height, context->queue_family_index);
-
    vk_swapchain_update(context);
 }
 
@@ -530,14 +529,18 @@ void vk_present(vk_context* context)
    renderpass_info.renderPass = context->renderpass;
    renderpass_info.framebuffer = context->framebuffers[image_index];
    renderpass_info.renderArea.extent = (VkExtent2D)
-   { context->swapchain_info.image_width, context->swapchain_info.image_height };
+   {context->swapchain_info.image_width, context->swapchain_info.image_height};
 
    VkCommandBuffer command_buffer = context->command_buffer;
    {
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
+      // w/h = a
+      // w = a*h
+      // w/a = h
+
       f32 a = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
-      f32 r = a/1.0f, t = 1.0f, l = -r, b = -t;
+      f32 r = a * 1.0f, t = r / a, l = -r, b = -t;
       mat4 projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
       //mat4 projection = mat4_perspective_fov(90.0f, a);
 
@@ -555,13 +558,13 @@ void vk_present(vk_context* context)
       VkImageMemoryBarrier render_begin_barrier = vk_pipeline_barrier(image, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                            VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &render_begin_barrier);
-                          
+
 
       vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 
       VkViewport viewport = {};
       viewport.x = 0.0f;
-      viewport.y = (f32)context->swapchain_info.image_height-1.0f;
+      viewport.y = (f32)context->swapchain_info.image_height - 1.0f;
       viewport.width = (f32)context->swapchain_info.image_width;
       viewport.height = -(f32)context->swapchain_info.image_height;
       viewport.minDepth = 0.0f;

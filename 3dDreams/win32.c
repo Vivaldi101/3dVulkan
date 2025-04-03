@@ -1,7 +1,3 @@
-#if !defined(_WIN32)
-#error "Cannot include the file on a non-Win32 platforms"
-#endif
-
 #include <Windows.h>
 
 #include "common.h"

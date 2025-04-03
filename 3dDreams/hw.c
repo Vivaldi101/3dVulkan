@@ -155,6 +155,9 @@ static void hw_frame_render(hw* hw)
    if(!hw->renderer.frame_present)
       return;
 
+   if(hw->renderer.window.width == 0 || hw->renderer.window.height == 0)
+      return;
+
    pre(renderer_index < (u32)renderer_count);
    hw->renderer.frame_present(renderers[renderer_index]);
 }
