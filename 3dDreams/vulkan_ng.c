@@ -535,16 +535,20 @@ void vk_present(vk_context* context)
    {
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
-      f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
+      const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
       f32 t = 1.0f;
       f32 r = t*ar;
       if(ar < 1.0f)  // taller viewport
       {
+         // re-establish the invariant
          r = t;
-         t = r/ar; 
+         t = r/ar;
+
          assert(t > r);
-         assert(r == t*ar);
+         assert(t == 1.0f/ar);
       }
+
+      assert(fabs(r - t*ar) < EPSILON);   // invariant
 
       f32 l = -r;
       f32 b = -t;

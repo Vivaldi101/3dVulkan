@@ -59,4 +59,6 @@ static const u64 default_arena_size = KB(64);
 
 #define clamp(t, min, max) ((t) <= (min) ? (min) : (t) >= (max) ? (max) : (t))
 
+#define EPSILON 1e-6  // Adjust this as needed
+
 #endif
