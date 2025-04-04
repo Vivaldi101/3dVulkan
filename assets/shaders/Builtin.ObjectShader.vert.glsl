@@ -4,7 +4,7 @@
 layout(push_constant) uniform Transform
 {
     mat4 projection;
-    mat4 scale;
+    mat4 model;
 } transform;
 
 const vec3 verts[] = 
@@ -149,6 +149,6 @@ layout(location = 0) out vec4 out_pos;
 void main()
 {
    vec3 pos = cube_strip[gl_VertexIndex];
-   gl_Position = transform.projection * transform.scale * vec4(pos, 1.0f);
+   gl_Position = transform.projection * transform.model * vec4(pos, 1.0f);
    out_pos = gl_Position;
 }
