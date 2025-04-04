@@ -536,24 +536,8 @@ void vk_present(vk_context* context)
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
       const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
-      const f32 s = 1.0f;
-      f32 t = s;
-      f32 r = t*ar;
-      if(ar < 1.0f)
-      {
-         r = t;      // flip the aspect
-         t = r/ar;   // re-establish invariant in new aspect
 
-         assert(r == s);
-         assert(t > r);
-      }
-
-      assert(fabs(r - t*ar) < EPSILON);   // invariant
-
-      f32 l = -r;
-      f32 b = -t;
-
-      mat4 projection = mat4_perspective(1.0f, 100.0f, l, r, t, b);
+      mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
                    VK_SHADER_STAGE_VERTEX_BIT, 0,

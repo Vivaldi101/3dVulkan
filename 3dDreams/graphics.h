@@ -3,7 +3,9 @@
 #define _GRAPHICS_H
 
 #include "common.h"
+
 #include <math.h>
+#include <assert.h>
 
 //#define USE_SIMD
 
@@ -139,15 +141,32 @@ static inline mat4 mat4_mul(mat4 a, mat4 b)
    return result;
 }
 
-static inline mat4 mat4_perspective(f32 n, f32 f, f32 l, f32 r, f32 t, f32 b)
+static inline mat4 mat4_perspective(f32 ar, f32 n, f32 f)
 {
    mat4 result = {};
 
-   f32 ax = (2*n) / (r-l);
-   f32 bx = (r+l) / (r-l);
+   const f32 s = 1.0f;
+   f32 t = s;
+   f32 r = t * ar;
+   if(ar < 1.0f)
+   {
+      r = t;      // flip the aspect
+      t = r / ar;   // re-establish invariant in new aspect
 
-   f32 ay = (2*n) / (t-b);
-   f32 by = (t+b) / (t-b);
+      assert(r == s);
+      assert(t > r);
+   }
+
+   assert(fabs(r - t * ar) < EPSILON);   // invariant
+
+   f32 l = -r;
+   f32 b = -t;
+
+   f32 ax = (2 * n) / (r - l);
+   f32 bx = (r + l) / (r - l);
+
+   f32 ay = (2 * n) / (t - b);
+   f32 by = (t + b) / (t - b);
 
    // [0, 1]
    f32 z0 = -f / (n - f);
