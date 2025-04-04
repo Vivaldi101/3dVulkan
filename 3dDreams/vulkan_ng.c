@@ -536,16 +536,16 @@ void vk_present(vk_context* context)
       vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
 
       const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
-      f32 t = 1.0f;
+      const f32 s = 1.0f;
+      f32 t = s;
       f32 r = t*ar;
-      if(ar < 1.0f)  // taller viewport
+      if(ar < 1.0f)
       {
-         // re-establish the invariant
-         r = t;
-         t = r/ar;
+         r = t;      // flip the aspect
+         t = r/ar;   // re-establish invariant in new aspect
 
+         assert(r == s);
          assert(t > r);
-         assert(t == 1.0f/ar);
       }
 
       assert(fabs(r - t*ar) < EPSILON);   // invariant
