@@ -537,23 +537,24 @@ void vk_present(vk_context* context)
 
       const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
 
-      f32 delta = 0.05f;
+      f32 delta = 0.5f;
       static f32 rotz = 0.0f;
       static f32 originz = -10.0f;
       rotz += delta;
       originz += delta;
 
       mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
-      mat4 view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, 1.0f});
+      mat4 view = mat4_view((vec3){0, 0, -2}, (vec3){0.0f, 0.0f, 1.0f});
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
                    VK_SHADER_STAGE_VERTEX_BIT, 0,
                    sizeof(mat4), &projection);
 
-      mat4 matrotz = mat4_rotation_x(rotz);
-      mat4 model = matrotz;
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 6.0f});
+      mat4 model = mat4_identity();
+      mat4 matrotz = mat4_rotation_z(rotz);
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 4.0f});
 
+      model = mat4_mul(model, matrotz);
       model = mat4_mul(model, translate);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
@@ -580,9 +581,9 @@ void vk_present(vk_context* context)
 
       VkViewport viewport = {};
       viewport.x = 0.0f;
-      viewport.y = (f32)context->swapchain_info.image_height-1;
+      viewport.y = 0.0f;
       viewport.width = (f32)context->swapchain_info.image_width;
-      viewport.height = -(f32)context->swapchain_info.image_height;
+      viewport.height = (f32)context->swapchain_info.image_height;
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
 
