@@ -538,9 +538,9 @@ void vk_present(vk_context* context)
       const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
 
       f32 delta = 0.5f;
-      static f32 rotz = 0.0f;
+      static f32 rot = 0.0f;
       static f32 originz = -10.0f;
-      rotz += delta;
+      rot += delta;
       originz += delta;
 
       mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
@@ -548,11 +548,16 @@ void vk_present(vk_context* context)
 
       mat4 model = mat4_identity();
 
-      mat4 matrotz = mat4_rotation_z(rotz);
+      mat4 matrotx = mat4_rotation_x(rot);
+      mat4 matroty = mat4_rotation_y(rot);
+      mat4 matrotz = mat4_rotation_z(rot);
 
       mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 3.0f});
 
+      model = mat4_mul(model, matrotx);
+      model = mat4_mul(model, matroty);
       model = mat4_mul(model, matrotz);
+
       model = mat4_mul(model, translate);
 
       const f32 c = 255.0f;
@@ -583,6 +588,7 @@ void vk_present(vk_context* context)
 
       VkViewport viewport = {};
 
+      // y-is-up
 #if 1
       viewport.x = 0.0f;
       viewport.y = (f32)context->swapchain_info.image_height;
