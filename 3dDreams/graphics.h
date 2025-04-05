@@ -64,6 +64,27 @@ align_union
 
 typedef vec4 quat;
 
+// Should move the vector math to common math file
+
+#define vec3_dot(a, b) ((a).x*(b).x + (a).y*(b).y + (a).z*(b).z)
+
+static vec3 vec3_sub(const vec3* a, const vec3* b) 
+{
+   vec3 v = {b->x - a->x, b->y - a->y, b->z - a->z};
+   return v;
+}
+
+static vec3 vec3_add(const vec3* a, const vec3* b) 
+{
+   vec3 v = {b->x + a->x, b->y + a->y, b->z + a->z};
+   return v;
+}
+
+#define vec3_len2(a) vec3_dot((a), (a))
+#define vec3_len(a) sqrtf(vec3_len2((a)))
+
+#define vec3_normalize(a) { f32 l = vec3_len((a)); (a).x /= l; (a).y /= l; (a).z /= l;}
+
 // Assumes row-major storage
 align_union
 { 
@@ -116,6 +137,7 @@ static inline mat4 mat4_translate(vec3 t)
    return result;
 }
 
+// TODO: This might be busted
 static inline mat4 mat4_mul(mat4 a, mat4 b)
 {
    mat4 result = mat4_identity();
@@ -141,9 +163,69 @@ static inline mat4 mat4_mul(mat4 a, mat4 b)
    return result;
 }
 
+static inline mat4 mat4_flip_yz()
+{
+   mat4 result = mat4_identity();
+
+   result.data[5] = -1.0f;
+   result.data[10] = -1.0f;
+
+   return result;
+}
+
+#define vec3_cross(a, b, c) (c).x = (a).y*(b).z - (a).z*(b).y; (c).y = (a).z*(b).x - (a).x*(b).z; (c).z = (a).x*(b).y - (a).y*(b).x;
+
+#if 0
+static vec3 vec3_cross(const vec3* a, const vec3* b)
+{
+   vec3 v = {(a)->y * (b)->z - (a)->z * (b)->y, (a)->z * (b)->x - (a)->x * (b)->z, (a)->x * (b)->y - (a)->y * (b)->x};
+   return v;
+}
+#endif
+
+static inline mat4 mat4_view(vec3 origin, vec3 dir)
+{
+   mat4 result = mat4_identity();
+
+   // compute the uvn vectors in view space
+   vec3 n = dir;
+   // up
+   vec3 v = {0.0f, 1.0f, 0.0f};
+   vec3 u;
+
+   vec3_cross(v, n, u);
+
+   // recompute v
+   vec3_cross(n, u, v);
+
+   vec3_normalize(u);
+   vec3_normalize(v);
+   vec3_normalize(n);
+
+   result.data[0] = u.data[0];
+   result.data[4] = u.data[1];
+   result.data[8] = u.data[2];
+
+   result.data[12] = -vec3_dot(u, origin);
+
+   result.data[1] = v.data[0];
+   result.data[5] = v.data[1];
+   result.data[9] = v.data[2];
+
+   result.data[13] = -vec3_dot(v, origin);
+
+   result.data[2] = n.data[0];
+   result.data[6] = n.data[1];
+   result.data[10] = n.data[2];
+
+   result.data[14] = -vec3_dot(n, origin);
+
+   return result;
+}
+
 static inline mat4 mat4_perspective(f32 ar, f32 n, f32 f)
 {
-   mat4 result = {};
+   mat4 result = mat4_identity();
 
    const f32 s = 1.0f;
    f32 t = s;
@@ -206,39 +288,6 @@ static inline mat4 mat4_perspective_fov(f32 fovx, f32 ar)
 
    return result;
 }
-
-// TODO: Also maybe we should remove these defines and just do functions..
-// TODO: typedefs for vertexes as float arrays to keeep them conceptually separate from directed vectors
-#define vec3_cross(a, b, c) (c).x = (a).y*(b).z - (a).z*(b).y; (c).y = (a).z*(b).x - (a).x*(b).z; (c).z = (a).x*(b).y - (a).y*(b).x;
-
-#if 0
-static vec3 vec3_cross(const vec3* a, const vec3* b) 
-{
- vec3 v = {(a)->y*(b)->z - (a)->z*(b)->y, (a)->z*(b)->x - (a)->x*(b)->z, (a)->x*(b)->y - (a)->y*(b)->x};
- return v;
-}
-#endif
-
-// Should move the vector math to common math file
-
-#define vec3_dot(a, b) (a).x*(b).x + (a).y*(b).y + (a).z*(b).z
-
-static vec3 vec3_sub(const vec3* a, const vec3* b) 
-{
-   vec3 v = {b->x - a->x, b->y - a->y, b->z - a->z};
-   return v;
-}
-
-static vec3 vec3_add(const vec3* a, const vec3* b) 
-{
-   vec3 v = {b->x + a->x, b->y + a->y, b->z + a->z};
-   return v;
-}
-
-#define vec3_len2(a) vec3_dot((a), (a))
-#define vec3_len(a) sqrtf(vec3_len2((a)))
-
-#define vec3_normalize(a) { f32 l = vec3_len((a)); (a).x /= l; (a).y /= l; (a).z /= l;}
 
 // normal and othogonal distance to the origin
 align_struct g_plane { vec3 n; f32 d; } g_plane;
@@ -377,6 +426,20 @@ static mat4 mat4_rotation_y(f32 roty)
       0.0f,       1.0f, 0.0f,       0.0f,
       -sinf(roty),0.0f, cosf(roty), 0.0f,
       0.0f,       0.0f, 0.0f,       1.0f,
+   };
+
+   return result;
+}
+
+static mat4 mat4_rotation_x(f32 rotx)
+{
+   rotx = DEG2RAD(rotx);
+   mat4 result = 
+   {
+      1.0f, 0.0f,       0.0f,       0.0f,
+      0.0f, cosf(rotx), -sinf(rotx), 0.0f,
+      0.0f, sinf(rotx), cosf(rotx), 0.0f,
+      0.0f, 0.0f,       0.0f,       1.0f,
    };
 
    return result;

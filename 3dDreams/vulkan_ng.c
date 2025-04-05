@@ -538,24 +538,28 @@ void vk_present(vk_context* context)
       const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
 
       mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
+      mat4 view = mat4_view((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 1.0f});
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
                    VK_SHADER_STAGE_VERTEX_BIT, 0,
                    sizeof(mat4), &projection);
 
-      f32 delta = 1.1f;
-      static f32 rotz = 45.0f;
+      f32 delta = 0.4f;
+      static f32 rotz = 0.0f;
       rotz += delta;
 
-      mat4 matrotz = mat4_rotation_z(rotz);
-      mat4 matroty = mat4_rotation_y(rotz);
-      mat4 model = mat4_mul(matroty, matrotz);
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 3.0f});
+      mat4 matrotz = mat4_rotation_x(rotz);
+      mat4 model = matrotz;
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 6.0f});
 
       model = mat4_mul(model, translate);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
                    VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4),
+                   sizeof(mat4), &view);
+
+      vkCmdPushConstants(command_buffer, context->pipeline_layout,
+                   VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4)*2,
                    sizeof(mat4), &model);
 
       const f32 c = 255.0f;
@@ -574,7 +578,7 @@ void vk_present(vk_context* context)
 
       VkViewport viewport = {};
       viewport.x = 0.0f;
-      viewport.y = (f32)context->swapchain_info.image_height - 1.0f;
+      viewport.y = (f32)context->swapchain_info.image_height-1;
       viewport.width = (f32)context->swapchain_info.image_width;
       viewport.height = -(f32)context->swapchain_info.image_height;
       viewport.minDepth = 0.0f;
@@ -678,7 +682,7 @@ static VkPipelineLayout vk_pipeline_layout_create(VkDevice logical_dev)
    VkPushConstantRange push_constant = {};
    push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
    push_constant.offset = 0;
-   push_constant.size = sizeof(mat4)*2;  // model + projection
+   push_constant.size = sizeof(mat4)*3;  // mvp
 
    info.pushConstantRangeCount = 1;
    info.pPushConstantRanges = &push_constant;
@@ -728,7 +732,7 @@ static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpa
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   raster_info.polygonMode = VK_POLYGON_MODE_LINE; // or VK_POLYGON_MODE_LINE if you want wireframe
+   raster_info.polygonMode = VK_POLYGON_MODE_FILL; // or VK_POLYGON_MODE_LINE if you want wireframe
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // Set to clockwise if needed
    pipeline_info.pRasterizationState = &raster_info;
 
@@ -737,12 +741,12 @@ static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpa
    pipeline_info.pMultisampleState = &sample_info;
 
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
-   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
-   depth_stencil_info.depthTestEnable = VK_TRUE;
-   depth_stencil_info.depthWriteEnable = VK_TRUE;
-   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;  // right handed NDC
-   depth_stencil_info.minDepthBounds = 0.0f;
-   depth_stencil_info.maxDepthBounds = 1.0f;
+   //depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
+   //depth_stencil_info.depthTestEnable = VK_TRUE;
+   //depth_stencil_info.depthWriteEnable = VK_TRUE;
+   //depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;  // right handed NDC
+   //depth_stencil_info.minDepthBounds = 0.0f;
+   //depth_stencil_info.maxDepthBounds = 1.0f;
    pipeline_info.pDepthStencilState = &depth_stencil_info;
 
    VkPipelineColorBlendAttachmentState color_blend_attachment = {};
