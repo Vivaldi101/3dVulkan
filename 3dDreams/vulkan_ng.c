@@ -544,26 +544,16 @@ void vk_present(vk_context* context)
       originz += delta;
 
       mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
-      mat4 view = mat4_view((vec3){0, 0, -2}, (vec3){0.0f, 0.0f, 1.0f});
-
-      vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, 0,
-                   sizeof(mat4), &projection);
+      mat4 view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, 1.0f});
 
       mat4 model = mat4_identity();
+
       mat4 matrotz = mat4_rotation_z(rotz);
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 4.0f});
+
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 3.0f});
 
       model = mat4_mul(model, matrotz);
       model = mat4_mul(model, translate);
-
-      vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4),
-                   sizeof(mat4), &view);
-
-      vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4)*2,
-                   sizeof(mat4), &model);
 
       const f32 c = 255.0f;
       VkClearValue clear = {48 / c, 10 / c, 36 / c, 1.0f};
@@ -579,11 +569,33 @@ void vk_present(vk_context* context)
 
       vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 
+      vkCmdPushConstants(command_buffer, context->pipeline_layout,
+                   VK_SHADER_STAGE_VERTEX_BIT, 0,
+                   sizeof(mat4), &projection);
+
+      vkCmdPushConstants(command_buffer, context->pipeline_layout,
+                   VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4),
+                   sizeof(mat4), &view);
+
+      vkCmdPushConstants(command_buffer, context->pipeline_layout,
+                   VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4)*2,
+                   sizeof(mat4), &model);
+
       VkViewport viewport = {};
+
+#if 1
+      viewport.x = 0.0f;
+      viewport.y = (f32)context->swapchain_info.image_height;
+      viewport.width = (f32)context->swapchain_info.image_width;
+      viewport.height = -(f32)context->swapchain_info.image_height;
+#else
+
       viewport.x = 0.0f;
       viewport.y = 0.0f;
       viewport.width = (f32)context->swapchain_info.image_width;
       viewport.height = (f32)context->swapchain_info.image_height;
+#endif
+
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
 
