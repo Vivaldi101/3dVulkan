@@ -187,7 +187,7 @@ static inline mat4 mat4_view(vec3 origin, vec3 dir)
 {
    mat4 result = mat4_identity();
 
-   // compute the uvn vectors in view space
+   // compute the uvn vectors in view space with z going into the screen
    vec3 n = dir;
    // up
    vec3 v = {0.0f, 1.0f, 0.0f};

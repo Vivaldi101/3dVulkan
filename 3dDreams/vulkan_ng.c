@@ -537,16 +537,18 @@ void vk_present(vk_context* context)
 
       const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
 
+      f32 delta = 0.05f;
+      static f32 rotz = 0.0f;
+      static f32 originz = -10.0f;
+      rotz += delta;
+      originz += delta;
+
       mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
-      mat4 view = mat4_view((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 1.0f});
+      mat4 view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, 1.0f});
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
                    VK_SHADER_STAGE_VERTEX_BIT, 0,
                    sizeof(mat4), &projection);
-
-      f32 delta = 0.4f;
-      static f32 rotz = 0.0f;
-      rotz += delta;
 
       mat4 matrotz = mat4_rotation_x(rotz);
       mat4 model = matrotz;
