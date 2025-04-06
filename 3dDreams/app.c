@@ -76,6 +76,8 @@ void app_start(int argc, const char** argv, hw* hw)
    hw_event_loop_start(hw, app_frame, app_input_handle);
    hw_window_close(hw);
 
+	app_some_type type = {};
+
    if(!vk_uninitialize(hw))
       hw_message("Could not close Vulkan");
 }

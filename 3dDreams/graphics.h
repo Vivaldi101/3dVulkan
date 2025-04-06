@@ -121,8 +121,6 @@ static inline mat4 mat4_scale(f32 s)
    result.data[5] *= s;
    result.data[10] *= s;
 
-   result.data[15] = 0.0f;
-
    return result;
 }
 
@@ -137,7 +135,7 @@ static inline mat4 mat4_translate(vec3 t)
    return result;
 }
 
-// TODO: This might be busted
+// post mult order: rows of a and columns of b
 static inline mat4 mat4_mul(mat4 a, mat4 b)
 {
    mat4 result = mat4_identity();
@@ -151,13 +149,13 @@ static inline mat4 mat4_mul(mat4 a, mat4 b)
    {
       for(i32 j = 0; j < 4; ++j)
       {
-         *dst = pa[0] * pb[0 + j]
+         *dst = pa[0] * pb[0 + j]      // columns of b
               + pa[1] * pb[4 + j]
               + pa[2] * pb[8 + j]
               + pa[3] * pb[12 + j];
          dst++;
       }
-      pa += 4; // advance to second row
+      pa += 4; // advance to second row of a
    }
 
    return result;
@@ -250,7 +248,7 @@ static inline mat4 mat4_perspective(f32 ar, f32 n, f32 f)
    f32 ay = (2 * n) / (t - b);
    f32 by = (t + b) / (t - b);
 
-   // [0, 1]
+   // LHS [0, 1]
    f32 z0 = -f / (n - f);
    f32 z1 = (f * n) / (n - f);
 

@@ -55,6 +55,6 @@ void main()
 {
    // TODO: View matrix
    vec3 pos = cube_strip[gl_VertexIndex];
-   gl_Position = transform.projection * transform.view * transform.model * vec4(pos, 1.0f);
+   gl_Position = (transform.projection * (transform.view * (transform.model * vec4(pos, 1.0f))));
    out_pos = gl_Position;
 }

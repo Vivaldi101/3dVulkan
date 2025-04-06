@@ -537,27 +537,28 @@ void vk_present(vk_context* context)
 
       const f32 ar = (f32)context->swapchain_info.image_width / context->swapchain_info.image_height;
 
-      f32 delta = 0.5f;
+      f32 delta = 1.5f;
       static f32 rot = 0.0f;
       static f32 originz = -10.0f;
+      static f32 scale = 0.0f;
+
+      if(originz > 1.0f)
+         originz = -10.0f;
+
+      if(scale > 2.0f)
+         scale = 0.1f;
+
       rot += delta;
-      originz += delta;
+      originz += delta/4;
+      scale += 0.01f;
 
       mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
       mat4 view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, 1.0f});
-
       mat4 model = mat4_identity();
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 6.0f});
 
-      mat4 matrotx = mat4_rotation_x(rot);
-      mat4 matroty = mat4_rotation_y(rot);
-      mat4 matrotz = mat4_rotation_z(rot);
-
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 3.0f});
-
-      model = mat4_mul(model, matrotx);
-      model = mat4_mul(model, matroty);
-      model = mat4_mul(model, matrotz);
-
+      model = mat4_scale(scale);
+      model = mat4_mul(model, mat4_mul(mat4_rotation_z(rot), mat4_mul(mat4_rotation_x(rot), mat4_rotation_y(rot))));
       model = mat4_mul(model, translate);
 
       const f32 c = 255.0f;
@@ -595,7 +596,7 @@ void vk_present(vk_context* context)
       viewport.width = (f32)context->swapchain_info.image_width;
       viewport.height = -(f32)context->swapchain_info.image_height;
 #else
-
+      // y-is-down
       viewport.x = 0.0f;
       viewport.y = 0.0f;
       viewport.width = (f32)context->swapchain_info.image_width;
