@@ -40,6 +40,13 @@ enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 #define vk_assert(v) (v)
 #endif
 
+align_struct mvp_transform
+{
+    mat4 projection;
+    mat4 view;
+    mat4 model;
+} mvp_transform;
+
 align_struct swapchain_surface_info
 {
    u32 image_width;
@@ -552,14 +559,16 @@ void vk_present(vk_context* context)
       originz += delta/4;
       scale += 0.01f;
 
-      mat4 projection = mat4_perspective(ar, 1.0f, 100.0f);
-      mat4 view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, 1.0f});
-      mat4 model = mat4_identity();
+      mvp_transform mvp = {};
+
+      mvp.projection = mat4_perspective(ar, 1.0f, 100.0f);
+      mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, 1.0f});
+      mvp.model = mat4_identity();
       mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 6.0f});
 
-      model = mat4_scale(scale);
-      model = mat4_mul(model, mat4_mul(mat4_rotation_z(rot), mat4_mul(mat4_rotation_x(rot), mat4_rotation_y(rot))));
-      model = mat4_mul(model, translate);
+      mvp.model = mat4_scale(scale);
+      mvp.model = mat4_mul(mvp.model, mat4_mul(mat4_rotation_z(rot), mat4_mul(mat4_rotation_x(rot), mat4_rotation_y(rot))));
+      mvp.model = mat4_mul(mvp.model, translate);
 
       const f32 c = 255.0f;
       VkClearValue clear = {48 / c, 10 / c, 36 / c, 1.0f};
@@ -576,16 +585,16 @@ void vk_present(vk_context* context)
       vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, 0,
-                   sizeof(mat4), &projection);
+                   VK_SHADER_STAGE_VERTEX_BIT, offsetof(mvp_transform, projection),
+                   sizeof(mat4), &mvp.projection);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4),
-                   sizeof(mat4), &view);
+                   VK_SHADER_STAGE_VERTEX_BIT, offsetof(mvp_transform, view),
+                   sizeof(mat4), &mvp.view);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, sizeof(mat4)*2,
-                   sizeof(mat4), &model);
+                   VK_SHADER_STAGE_VERTEX_BIT, offsetof(mvp_transform, model),
+                   sizeof(mat4), &mvp.model);
 
       VkViewport viewport = {};
 
@@ -704,7 +713,7 @@ static VkPipelineLayout vk_pipeline_layout_create(VkDevice logical_dev)
    VkPushConstantRange push_constant = {};
    push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
    push_constant.offset = 0;
-   push_constant.size = sizeof(mat4)*3;  // mvp
+   push_constant.size = sizeof(mvp_transform);
 
    info.pushConstantRangeCount = 1;
    info.pPushConstantRanges = &push_constant;
