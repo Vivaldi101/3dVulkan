@@ -552,7 +552,7 @@ void vk_present(vk_context* context)
       if(originz > 1.0f)
          originz = -10.0f;
 
-      if(scale > 2.0f)
+      if(scale > 1.0f)
          scale = 0.1f;
 
       rot += delta;
@@ -599,8 +599,8 @@ void vk_present(vk_context* context)
 
       VkViewport viewport = {};
 
-      // y-is-up
 #if 1
+      // y-is-up
       viewport.x = 0.0f;
       viewport.y = (f32)context->swapchain_info.image_height;
       viewport.width = (f32)context->swapchain_info.image_width;
@@ -773,12 +773,12 @@ static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpa
    pipeline_info.pMultisampleState = &sample_info;
 
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
-   //depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
-   //depth_stencil_info.depthTestEnable = VK_TRUE;
-   //depth_stencil_info.depthWriteEnable = VK_TRUE;
-   //depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;  // right handed NDC
-   //depth_stencil_info.minDepthBounds = 0.0f;
-   //depth_stencil_info.maxDepthBounds = 1.0f;
+   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
+   depth_stencil_info.depthTestEnable = VK_TRUE;
+   depth_stencil_info.depthWriteEnable = VK_TRUE;
+   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
+   depth_stencil_info.minDepthBounds = 0.0f;
+   depth_stencil_info.maxDepthBounds = 1.0f;
    pipeline_info.pDepthStencilState = &depth_stencil_info;
 
    VkPipelineColorBlendAttachmentState color_blend_attachment = {};
