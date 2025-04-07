@@ -562,13 +562,14 @@ void vk_present(vk_context* context)
       mvp_transform mvp = {};
 
       mvp.projection = mat4_perspective(ar, 1.0f, 100.0f);
-      mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, 1.0f});
-      mvp.model = mat4_identity();
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 6.0f});
+      mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, -1.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -3.0f});
 
-      mvp.model = mat4_scale(scale);
-      mvp.model = mat4_mul(mvp.model, mat4_mul(mat4_rotation_z(rot), mat4_mul(mat4_rotation_x(rot), mat4_rotation_y(rot))));
-      mvp.model = mat4_mul(mvp.model, translate);
+      mvp.model = mat4_identity();
+      //mvp.model = mat4_scale(mvp.model, scale);
+      mvp.model = mat4_mul(mat4_mul(mat4_rotation_z(rot), mat4_rotation_x(rot)), mvp.model);
+      //mvp.model = mat4_mul(mat4_rotation_x(rot), mvp.model);
+      mvp.model = mat4_mul(translate, mvp.model);
 
       const f32 c = 255.0f;
       VkClearValue clear = {48 / c, 10 / c, 36 / c, 1.0f};

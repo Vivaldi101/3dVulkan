@@ -191,10 +191,10 @@ static inline mat4 mat4_view(vec3 origin, vec3 dir)
    vec3 v = {0.0f, 1.0f, 0.0f};
    vec3 u;
 
-   vec3_cross(v, n, u);
+   vec3_cross(n, v, u);
 
    // recompute v
-   vec3_cross(n, u, v);
+   vec3_cross(u, n, v);
 
    vec3_normalize(u);
    vec3_normalize(v);
