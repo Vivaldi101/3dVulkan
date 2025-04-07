@@ -85,7 +85,6 @@ static vec3 vec3_add(const vec3* a, const vec3* b)
 
 #define vec3_normalize(a) { f32 l = vec3_len((a)); (a).x /= l; (a).y /= l; (a).z /= l;}
 
-// Assumes row-major storage
 align_union
 { 
 #if defined(USE_SIMD)
@@ -114,9 +113,10 @@ static inline mat4 mat4_identity()
    return result;
 }
 
-static inline mat4 mat4_scale(f32 s)
+static inline mat4 mat4_scale(mat4 m, f32 s)
 {
-   mat4 result = mat4_identity();
+   mat4 result = m;
+
    result.data[0] *= s;
    result.data[5] *= s;
    result.data[10] *= s;
@@ -135,8 +135,8 @@ static inline mat4 mat4_translate(vec3 t)
    return result;
 }
 
-// post mult order: rows of a and columns of b
-static inline mat4 mat4_mul(mat4 a, mat4 b)
+// transform a by b
+static inline mat4 mat4_mul(mat4 b, mat4 a)
 {
    mat4 result = mat4_identity();
 
@@ -149,13 +149,13 @@ static inline mat4 mat4_mul(mat4 a, mat4 b)
    {
       for(i32 j = 0; j < 4; ++j)
       {
-         *dst = pa[0] * pb[0 + j]      // columns of b
+         *dst = pa[0] * pb[0 + j]      // rows of b
               + pa[1] * pb[4 + j]
               + pa[2] * pb[8 + j]
               + pa[3] * pb[12 + j];
          dst++;
       }
-      pa += 4; // advance to second row of a
+      pa += 4; // advance to second column of a
    }
 
    return result;
@@ -403,13 +403,13 @@ static bool g_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 
 static mat4 mat4_rotation_x(f32 rotx)
 {
    rotx = DEG2RAD(rotx);
-   mat4 result = 
-   {
-      1.0f, 0.0f,       0.0f,       0.0f,
-      0.0f, cosf(rotx), sinf(rotx), 0.0f,
-      0.0f, -sinf(rotx), cosf(rotx), 0.0f,
-      0.0f, 0.0f,       0.0f,       1.0f,
-   };
+   mat4 result = mat4_identity();
+
+   result.data[5] = cosf(rotx);
+   result.data[6] = sinf(rotx);
+
+   result.data[9] = -result.data[6];
+   result.data[10] = result.data[5];
 
    return result;
 }
@@ -431,16 +431,15 @@ static mat4 mat4_rotation_y(f32 roty)
 static mat4 mat4_rotation_z(f32 rotz)
 {
    rotz = DEG2RAD(rotz);
-   mat4 result = 
-   {
-      cosf(rotz), sinf(rotz), 0.0f, 0.0f,
-      -sinf(rotz), cosf(rotz),  0.0f, 0.0f,
-      0.0f,       0.0f,        1.0f, 0.0f,
-      0.0f,       0.0f,        0.0f, 1.0f,
-   };
+   mat4 result = mat4_identity();
+
+   result.data[0] = cosf(rotz);
+   result.data[1] = sinf(rotz);
+
+   result.data[4] = -result.data[1];
+   result.data[5] = result.data[0];
 
    return result;
 }
-
 
 #endif
