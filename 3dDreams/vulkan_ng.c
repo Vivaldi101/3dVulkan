@@ -4,7 +4,6 @@
 
 #include "vulkan_ng.h"
 
-//#include <vulkan/vulkan.h>
 #include <volk.c>
 #include "win32_file_io.c" // TODO: pass these as function pointers from the platform
 #include "vulkan_spirv_loader.c"
@@ -46,7 +45,8 @@ typedef struct mvp_transform
     mat4 projection;
     mat4 view;
     mat4 model;
-    f32 n, f;
+    f32 n;
+    f32 f;
 } mvp_transform;
 #pragma pack(pop)
 
@@ -564,12 +564,12 @@ void vk_present(vk_context* context)
 
       mvp_transform mvp = {};
 
-      mvp.n = 0.1f;
-      mvp.f = 1000.0f;
+      mvp.n = 0.0001f;
+      mvp.f = 10.0f;
 
       mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
       mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, -1.0f});
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -6.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -3.5f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_scale(mvp.model, scale);

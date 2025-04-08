@@ -13,9 +13,26 @@ layout(push_constant) uniform Transform
    float far;
 } transform;
 
+float ndc_to_linear_z(float ndc_z, float near, float far)
+{
+   float u = far * near;
+   float l = ndc_z*(near - far) + far;
+
+   float linear_z = u / l;
+
+   return linear_z;
+}
+
+vec3 hsvToRgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 0.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
 void main() 
 {
-    float n = transform.near;
-    //out_color = vec4(0, n, 0, 1.0f);
-    out_color = vec4(0, 1.0f, 0, 1.0f);
+    float linear_z = ndc_to_linear_z(gl_FragCoord.z, transform.near, transform.far);
+
+    out_color = vec4(hsvToRgb(vec3(linear_z)), 1.0);
 }
