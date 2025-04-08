@@ -223,19 +223,21 @@ static inline mat4 mat4_view(vec3 origin, vec3 dir)
    return result;
 }
 
-static inline mat4 mat4_perspective(f32 ar, f32 n, f32 f)
+static inline mat4 mat4_perspective(f32 ar, f32 fov_y, f32 n, f32 f)
 {
    mat4 result = mat4_identity();
 
-   const f32 s = 1.0f;
-   f32 t = s;
+   f32 fov_half_y = fov_y/2.0f;
+   f32 tan = tanf(DEG2RAD(fov_half_y));
+
+   f32 t = n*tan;
    f32 r = t * ar;
    if(ar < 1.0f)
    {
       r = t;      // flip the aspect
       t = r / ar;   // re-establish invariant in new aspect
 
-      assert(r == s);
+      assert(r == n*tan);
       assert(t > r);
    }
 

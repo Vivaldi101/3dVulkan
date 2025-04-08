@@ -564,10 +564,10 @@ void vk_present(vk_context* context)
 
       mvp_transform mvp = {};
 
-      mvp.n = 1.0f;
+      mvp.n = 0.1f;
       mvp.f = 1000.0f;
 
-      mvp.projection = mat4_perspective(ar, mvp.n, mvp.f);
+      mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
       mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, -1.0f});
       mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -6.0f});
 
