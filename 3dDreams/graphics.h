@@ -243,10 +243,10 @@ static inline mat4 mat4_perspective(f32 ar, f32 n, f32 f)
    f32 b = -t;
 
    f32 ax = (2 * n) / (r - l);
-   f32 bx = (r + l) / (r - l);
+   f32 bx = -(r + l) / (r - l);
 
    f32 ay = (2 * n) / (t - b);
-   f32 by = (t + b) / (t - b);
+   f32 by = -(t + b) / (t - b);
 
    f32 z0 = -f / (n - f);
    f32 z1 = (f * n) / (n - f);

@@ -561,9 +561,9 @@ void vk_present(vk_context* context)
 
       mvp_transform mvp = {};
 
-      mvp.projection = mat4_perspective(ar, 1.0f, 100.0f);
-      mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, -1.0f});
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -6.0f});
+      mvp.projection = mat4_perspective(ar, 1.0f, 10.0f);
+      mvp.view = mat4_view((vec3){0, 0, -1}, (vec3){0.0f, 0.0f, -1.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -5.0f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_scale(mvp.model, scale);

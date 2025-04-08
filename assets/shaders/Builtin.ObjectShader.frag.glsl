@@ -6,6 +6,9 @@ layout(location = 0) in vec4 in_pos;
 
 void main() 
 {
-    //out_color = vec4(in_pos.x, in_pos.y, in_pos.z, 1.0);
-    out_color = vec4(1.0f, 1.0f, 0.0f, 1.0f);
+    float depth = gl_FragCoord.z; // This comes from NDC depth, mapped to [0,1]
+    if(depth > 0.5f)
+      out_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    else
+      out_color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }
