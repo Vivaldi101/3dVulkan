@@ -6,6 +6,8 @@ layout(push_constant) uniform Transform
     mat4 projection;
     mat4 view;
     mat4 model;
+   float near;
+   float far;
 } transform;
 
 const vec3 verts[] = 

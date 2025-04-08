@@ -40,12 +40,15 @@ enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 #define vk_assert(v) (v)
 #endif
 
-align_struct mvp_transform
+#pragma pack(push, 1)
+typedef struct mvp_transform
 {
     mat4 projection;
     mat4 view;
     mat4 model;
+    f32 n, f;
 } mvp_transform;
+#pragma pack(pop)
 
 align_struct swapchain_surface_info
 {
@@ -561,9 +564,12 @@ void vk_present(vk_context* context)
 
       mvp_transform mvp = {};
 
-      mvp.projection = mat4_perspective(ar, 1.0f, 10.0f);
-      mvp.view = mat4_view((vec3){0, 0, -1}, (vec3){0.0f, 0.0f, -1.0f});
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -5.0f});
+      mvp.n = 1.0f;
+      mvp.f = 1000.0f;
+
+      mvp.projection = mat4_perspective(ar, mvp.n, mvp.f);
+      mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, -1.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -6.0f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_scale(mvp.model, scale);
@@ -586,16 +592,8 @@ void vk_present(vk_context* context)
       vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, offsetof(mvp_transform, projection),
-                   sizeof(mat4), &mvp.projection);
-
-      vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, offsetof(mvp_transform, view),
-                   sizeof(mat4), &mvp.view);
-
-      vkCmdPushConstants(command_buffer, context->pipeline_layout,
-                   VK_SHADER_STAGE_VERTEX_BIT, offsetof(mvp_transform, model),
-                   sizeof(mat4), &mvp.model);
+                   VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                   sizeof(mvp), &mvp);
 
       VkViewport viewport = {};
 
@@ -711,13 +709,13 @@ static VkPipelineLayout vk_pipeline_layout_create(VkDevice logical_dev)
 
    VkPipelineLayoutCreateInfo info = {vk_info(PIPELINE_LAYOUT)};
 
-   VkPushConstantRange push_constant = {};
-   push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-   push_constant.offset = 0;
-   push_constant.size = sizeof(mvp_transform);
+   VkPushConstantRange push_constants = {};
+   push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+   push_constants.offset = 0;
+   push_constants.size = sizeof(mvp_transform) + sizeof(f32)*2;
 
    info.pushConstantRangeCount = 1;
-   info.pPushConstantRanges = &push_constant;
+   info.pPushConstantRanges = &push_constants;
 
    vk_test_return(vkCreatePipelineLayout(logical_dev, &info, 0, &layout));
 

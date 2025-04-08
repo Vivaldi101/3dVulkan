@@ -85,7 +85,8 @@ static vec3 vec3_add(const vec3* a, const vec3* b)
 
 #define vec3_normalize(a) { f32 l = vec3_len((a)); (a).x /= l; (a).y /= l; (a).z /= l;}
 
-align_union
+#pragma pack(push, 1)
+typedef union
 { 
 #if defined(USE_SIMD)
    __declspec(align(16)) vec4 rows[4];
@@ -93,6 +94,7 @@ align_union
    __declspec(align(16)) f32 data[16];
 #endif
 } mat4;
+#pragma pack(pop)
 
 static inline mat4 mat4_identity()
 {
