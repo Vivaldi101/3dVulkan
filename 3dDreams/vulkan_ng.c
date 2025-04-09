@@ -636,7 +636,7 @@ void vk_present(vk_context* context)
 
       vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->axes_pipeline);
 
-      vkCmdDraw(command_buffer, 6, 1, 0, 0);
+      vkCmdDraw(command_buffer, 18, 1, 0, 0);
 
       vkCmdEndRenderPass(command_buffer);
 

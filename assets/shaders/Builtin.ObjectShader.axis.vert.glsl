@@ -24,18 +24,39 @@ mat4 translate(vec3 t)
 
 void main() {
     float s = 1.0;
-    vec3 positions[6] = vec3[](
-        vec3(0.0, 0.0, 0.0), vec3(s, 0.0, 0.0), // X axis
-        vec3(0.0, 0.0, 0.0), vec3(0.0, s, 0.0), // Y axis
-        vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, s)  // Z axis
-    );
+vec3 positions[18] = vec3[](
+    // X axis
+    vec3(0, 0, 0), vec3(1, 0, 0),              // Main axis
+    vec3(1, 0, 0), vec3(0.9,  0.05, 0.0),      // Arrowhead part 1
+    vec3(1, 0, 0), vec3(0.9, -0.05, 0.0),      // Arrowhead part 2
 
-    vec3 colors[6] = vec3[](
-        vec3(1, 0, 0), vec3(1, 0, 0), // X = red
-        vec3(0, 1, 0), vec3(0, 1, 0), // Y = green
-        vec3(0, 0, 1), vec3(0, 0, 1)  // Z = blue
-    );
+    // Y axis
+    vec3(0, 0, 0), vec3(0, 1, 0),              // Main axis
+    vec3(0, 1, 0), vec3(0.05, 0.9, 0.0),       // Arrowhead part 1
+    vec3(0, 1, 0), vec3(-0.05, 0.9, 0.0),      // Arrowhead part 2
 
+    // Z axis
+    vec3(0, 0, 0), vec3(0, 0, 1),              // Main axis
+    vec3(0, 0, 1), vec3(0.05, 0.0, 0.9),       // Arrowhead part 1
+    vec3(0, 0, 1), vec3(-0.05, 0.0, 0.9)       // Arrowhead part 2
+);
+
+vec3 colors[18] = vec3[](
+    // X axis (red)
+    vec3(1, 0, 0), vec3(1, 0, 0),
+    vec3(1, 0, 0), vec3(1, 0, 0),
+    vec3(1, 0, 0), vec3(1, 0, 0),
+
+    // Y axis (green)
+    vec3(0, 1, 0), vec3(0, 1, 0),
+    vec3(0, 1, 0), vec3(0, 1, 0),
+    vec3(0, 1, 0), vec3(0, 1, 0),
+
+    // Z axis (blue)
+    vec3(0, 0, 1), vec3(0, 0, 1),
+    vec3(0, 0, 1), vec3(0, 0, 1),
+    vec3(0, 0, 1), vec3(0, 0, 1)
+);
     mat4 t = translate(vec3(0.0, 0.0, -1.0));
     gl_Position = transform.projection * transform.view * t * vec4(positions[gl_VertexIndex], 1.0);
 
