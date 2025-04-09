@@ -23,25 +23,29 @@ mat4 translate(vec3 t)
 }
 
 void main() {
-    float s = 1.0;
-vec3 positions[18] = vec3[](
+   
+    const int verts_count = 18;
+    const float arrow_head_scale = 0.10;
+    const float axis_scale = 1.0;
+    const float axis_down_scale = axis_scale - 0.2;
+vec3 positions[verts_count] = vec3[](
     // X axis
-    vec3(0, 0, 0), vec3(1, 0, 0),              // Main axis
-    vec3(1, 0, 0), vec3(0.9,  0.05, 0.0),      // Arrowhead part 1
-    vec3(1, 0, 0), vec3(0.9, -0.05, 0.0),      // Arrowhead part 2
+    vec3(0, 0, 0), vec3(axis_scale, 0, 0),              // Main axis
+    vec3(axis_scale, 0, 0), vec3(axis_down_scale,  arrow_head_scale, 0.0),      // Arrowhead part 1
+    vec3(axis_scale, 0, 0), vec3(axis_down_scale, -arrow_head_scale, 0.0),      // Arrowhead part 2
 
     // Y axis
-    vec3(0, 0, 0), vec3(0, 1, 0),              // Main axis
-    vec3(0, 1, 0), vec3(0.05, 0.9, 0.0),       // Arrowhead part 1
-    vec3(0, 1, 0), vec3(-0.05, 0.9, 0.0),      // Arrowhead part 2
+    vec3(0, 0, 0), vec3(0, axis_scale, 0),              // Main axis
+    vec3(0, axis_scale, 0), vec3(arrow_head_scale, axis_down_scale, 0.0),       // Arrowhead part 1
+    vec3(0, axis_scale, 0), vec3(-arrow_head_scale, axis_down_scale, 0.0),      // Arrowhead part 2
 
     // Z axis
-    vec3(0, 0, 0), vec3(0, 0, 1),              // Main axis
-    vec3(0, 0, 1), vec3(0.05, 0.0, 0.9),       // Arrowhead part 1
-    vec3(0, 0, 1), vec3(-0.05, 0.0, 0.9)       // Arrowhead part 2
+    vec3(0, 0, 0), vec3(0, 0, axis_scale),              // Main axis
+    vec3(0, 0, axis_scale), vec3(arrow_head_scale, 0.0, axis_down_scale),       // Arrowhead part 1
+    vec3(0, 0, axis_scale), vec3(-arrow_head_scale, 0.0, axis_down_scale)       // Arrowhead part 2
 );
 
-vec3 colors[18] = vec3[](
+vec3 colors[verts_count] = vec3[](
     // X axis (red)
     vec3(1, 0, 0), vec3(1, 0, 0),
     vec3(1, 0, 0), vec3(1, 0, 0),
