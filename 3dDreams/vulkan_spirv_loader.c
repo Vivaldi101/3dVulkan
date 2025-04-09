@@ -3,10 +3,10 @@
 // This must match what is in the shader_build.bat file
 #define BUILTIN_SHADER_NAME "Builtin.ObjectShader"
 
-static file_result vk_shader_spv_read(arena* storage, const char* shader_dir, VkShaderStageFlagBits type)
+static file_result vk_shader_spv_read(arena* storage, const char* shader_dir, const char* shader_name, VkShaderStageFlagBits type)
 {
    char* type_name;
-   char shader_name[MAX_PATH];
+   char shader_path[MAX_PATH];
 
    switch(type)
    {
@@ -20,10 +20,10 @@ static file_result vk_shader_spv_read(arena* storage, const char* shader_dir, Vk
          break;
    }
 
-   wsprintf(shader_name, shader_dir, array_count(shader_name));
-   wsprintf(shader_name, "%sbin\\assets\\shaders\\%s.%s.spv", shader_dir, BUILTIN_SHADER_NAME, type_name);
+   wsprintf(shader_path, shader_dir, array_count(shader_path));
+   wsprintf(shader_path, "%sbin\\assets\\shaders\\%s.%s.%s.spv", shader_dir, BUILTIN_SHADER_NAME, shader_name, type_name);
 
-   return win32_file_read(storage, shader_name);
+   return win32_file_read(storage, shader_path);
 }
 
 static file_result vk_shader_directory(arena* storage)

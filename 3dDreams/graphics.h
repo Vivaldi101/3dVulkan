@@ -407,13 +407,13 @@ static bool g_plane_intersect_segment(g_plane* plane, f32 v0[3], f32 v1[3], f32 
 static mat4 mat4_rotation_x(f32 rotx)
 {
    rotx = DEG2RAD(rotx);
-   mat4 result = mat4_identity();
-
-   result.data[5] = cosf(rotx);
-   result.data[6] = sinf(rotx);
-
-   result.data[9] = -result.data[6];
-   result.data[10] = result.data[5];
+   mat4 result = 
+   {
+      1.0f, 0.0f,       0.0f,       0.0f,
+      0.0f, cosf(rotx), sinf(rotx), 0.0f,
+      0.0f, -sinf(rotx), cosf(rotx), 0.0f,
+      0.0f, 0.0f,       0.0f,       1.0f,
+   };
 
    return result;
 }
@@ -435,13 +435,13 @@ static mat4 mat4_rotation_y(f32 roty)
 static mat4 mat4_rotation_z(f32 rotz)
 {
    rotz = DEG2RAD(rotz);
-   mat4 result = mat4_identity();
-
-   result.data[0] = cosf(rotz);
-   result.data[1] = sinf(rotz);
-
-   result.data[4] = -result.data[1];
-   result.data[5] = result.data[0];
+   mat4 result = 
+   {
+      cosf(rotz), sinf(rotz), 0.0f,      0.0f,
+      -sinf(rotz), cosf(rotz),  0.0f,      0.0f,
+      0.0f,       0.0f,        1.0f,       0.0f,
+      0.0f,       0.0f,        0.0f,       1.0f,
+   };
 
    return result;
 }

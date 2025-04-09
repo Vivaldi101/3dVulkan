@@ -84,7 +84,8 @@ align_struct
    VkCommandPool command_pool;
    VkCommandBuffer command_buffer;
    VkRenderPass renderpass;
-   VkPipeline pipeline;
+   VkPipeline cube_pipeline;
+   VkPipeline axes_pipeline;
    VkPipelineLayout pipeline_layout;
    VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
 
@@ -551,6 +552,7 @@ void vk_present(vk_context* context)
       static f32 rot = 0.0f;
       static f32 originz = -10.0f;
       static f32 scale = 0.0f;
+      static f32 cameraz = 0.0f;
 
       if(originz > 1.0f)
          originz = -10.0f;
@@ -558,23 +560,26 @@ void vk_present(vk_context* context)
       if(scale > 1.0f)
          scale = 0.1f;
 
+      cameraz = sinf(rot/30)*3;
+
       rot += delta;
       originz += delta/4;
       scale += 0.01f;
 
       mvp_transform mvp = {};
 
-      mvp.n = 0.0001f;
-      mvp.f = 10.0f;
+      mvp.n = 0.01f;
+      mvp.f = 100.0f;
 
       mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
-      mvp.view = mat4_view((vec3){0, 0, 0}, (vec3){0.0f, 0.0f, -1.0f});
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -3.5f});
+      //mvp.view = mat4_view((vec3){cameraz, cameraz, cameraz}, (vec3){0.0f, 0.0f, -1.0f});
+      mvp.view = mat4_view((vec3){cameraz, 0, 3}, (vec3){0.0f, 0.0f, -1.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -5.5f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_scale(mvp.model, scale);
       mvp.model = mat4_mul(mat4_mul(mat4_rotation_z(rot/2.0f), mat4_rotation_x(rot/4.0f)), mvp.model);
-      //mvp.model = mat4_mul(mat4_rotation_x(90.0f), mvp.model);
+      //mvp.model = mat4_mul(mat4_rotation_x(90), mvp.model);
       mvp.model = mat4_mul(translate, mvp.model);
 
       const f32 c = 255.0f;
@@ -622,12 +627,16 @@ void vk_present(vk_context* context)
       scissor.extent.width = (u32)context->swapchain_info.image_width;
       scissor.extent.height = (u32)context->swapchain_info.image_height;
 
-      vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->pipeline);
-
       vkCmdSetViewport(command_buffer, 0, 1, &viewport);
       vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
+      vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->cube_pipeline);
+
       vkCmdDraw(command_buffer, 24, 1, 0, 0);
+
+      vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->axes_pipeline);
+
+      vkCmdDraw(command_buffer, 6, 1, 0, 0);
 
       vkCmdEndRenderPass(command_buffer);
 
@@ -670,10 +679,11 @@ void vk_present(vk_context* context)
       return;
 
    // wait until all queue ops are done
+   // TODO: This is bad way to do sync but who cares for now
    vk_assert(vkDeviceWaitIdle(context->logical_dev));
 }
 
-static vk_shader_modules vk_shaders_load(VkDevice logical_dev, arena scratch)
+static vk_shader_modules vk_shaders_load(VkDevice logical_dev, arena scratch, const char* shader_name)
 {
    assert(vk_valid_handle(logical_dev));
 
@@ -684,20 +694,20 @@ static vk_shader_modules vk_shaders_load(VkDevice logical_dev, arena scratch)
 
    for(u32 i = 0; i < OBJECT_SHADER_COUNT; ++i)
    {
-      file_result shader_file = vk_shader_spv_read(&scratch, shader_dir.data, shader_type_bits[i]);
+      file_result shader_file = vk_shader_spv_read(&scratch, shader_dir.data, shader_name, shader_type_bits[i]);
       if(shader_file.file_size == 0)
-         return (vk_shader_modules){};
+         return (vk_shader_modules) {};
 
       VkShaderModuleCreateInfo module_info = {};
       module_info.sType = vk_info(SHADER_MODULE);
       module_info.pCode = (u32*)shader_file.data;
       module_info.codeSize = shader_file.file_size;
 
-      if(!vk_valid(vkCreateShaderModule(logical_dev, 
-                           &module_info, 
-                           0,
-                           shader_type_bits[i] == VK_SHADER_STAGE_VERTEX_BIT ? &shader_modules.vs : &shader_modules.fs)))
-         return (vk_shader_modules){};
+      if(!vk_valid(vkCreateShaderModule(logical_dev,
+         &module_info,
+         0,
+         shader_type_bits[i] == VK_SHADER_STAGE_VERTEX_BIT ? &shader_modules.vs : &shader_modules.fs)))
+         return (vk_shader_modules) {};
    }
 
    return shader_modules;
@@ -722,7 +732,7 @@ static VkPipelineLayout vk_pipeline_layout_create(VkDevice logical_dev)
    return layout;
 }
 
-static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vk_shader_modules* shaders)
+static VkPipeline vk_cube_pipeline_create(VkDevice logical_dev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vk_shader_modules* shaders)
 {
    assert(vk_valid_handle(logical_dev));
    assert(vk_valid_handle(shaders->fs));
@@ -762,8 +772,86 @@ static VkPipeline vk_pipeline_create(VkDevice logical_dev, VkRenderPass renderpa
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   raster_info.polygonMode = VK_POLYGON_MODE_FILL; // or VK_POLYGON_MODE_LINE if you want wireframe
-   raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // Set to clockwise if needed
+   raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+   raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   pipeline_info.pRasterizationState = &raster_info;
+
+   VkPipelineMultisampleStateCreateInfo sample_info = {vk_info(PIPELINE_MULTISAMPLE_STATE)};
+   sample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   pipeline_info.pMultisampleState = &sample_info;
+
+   VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
+   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
+   depth_stencil_info.depthTestEnable = VK_TRUE;
+   depth_stencil_info.depthWriteEnable = VK_TRUE;
+   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
+   depth_stencil_info.minDepthBounds = 0.0f;
+   depth_stencil_info.maxDepthBounds = 1.0f;
+   pipeline_info.pDepthStencilState = &depth_stencil_info;
+
+   VkPipelineColorBlendAttachmentState color_blend_attachment = {};
+   color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+   VkPipelineColorBlendStateCreateInfo color_blend_info = {vk_info(PIPELINE_COLOR_BLEND_STATE)};
+   color_blend_info.attachmentCount = 1;
+   color_blend_info.pAttachments = &color_blend_attachment;
+   pipeline_info.pColorBlendState = &color_blend_info;
+
+   VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
+   dynamic_info.pDynamicStates = (VkDynamicState[2]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+   dynamic_info.dynamicStateCount = 2;
+   pipeline_info.pDynamicState = &dynamic_info;
+
+   pipeline_info.renderPass = renderpass;
+   pipeline_info.layout = layout;
+
+   vk_test_return(vkCreateGraphicsPipelines(logical_dev, cache, 1, &pipeline_info, 0, &pipeline));
+
+   return pipeline;
+}
+
+static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vk_shader_modules* shaders)
+{
+   assert(vk_valid_handle(logical_dev));
+   assert(vk_valid_handle(shaders->fs));
+   assert(vk_valid_handle(shaders->fs));
+   assert(!vk_valid_handle(cache));
+
+   VkPipeline pipeline = 0;
+
+   VkPipelineShaderStageCreateInfo stages[OBJECT_SHADER_COUNT] = {};
+
+   stages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+   stages[0].module = shaders->vs;
+   stages[0].pName = "main";
+
+   stages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+   stages[1].module = shaders->fs;
+   stages[1].pName = "main";
+
+   VkGraphicsPipelineCreateInfo pipeline_info = {vk_info(GRAPHICS_PIPELINE)};
+   pipeline_info.stageCount = array_count(stages);
+   pipeline_info.pStages = stages;
+
+   VkPipelineVertexInputStateCreateInfo vertex_input_info = {vk_info(PIPELINE_VERTEX_INPUT_STATE)};
+   pipeline_info.pVertexInputState = &vertex_input_info;
+
+   VkPipelineInputAssemblyStateCreateInfo assembly_info = {vk_info(PIPELINE_INPUT_ASSEMBLY_STATE)};
+   assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+   pipeline_info.pInputAssemblyState = &assembly_info;
+
+   VkPipelineViewportStateCreateInfo viewport_info = {vk_info(PIPELINE_VIEWPORT_STATE)};
+   viewport_info.scissorCount = 1;
+   viewport_info.viewportCount = 1;
+   pipeline_info.pViewportState = &viewport_info;
+
+   VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
+   raster_info.lineWidth = 1.0f;
+   raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
+   raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+   raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    pipeline_info.pRasterizationState = &raster_info;
 
    VkPipelineMultisampleStateCreateInfo sample_info = {vk_info(PIPELINE_MULTISAMPLE_STATE)};
@@ -888,19 +976,25 @@ bool vk_initialize(hw* hw)
    if(!vk_swapchain_update(context))
       return false;
 
-   vk_shader_modules shaders = vk_shaders_load(context->logical_dev, scratch);
+   const char* shader_names[] = {"cube", "axis"};
+   vk_shader_modules shaders[array_count(shader_names)];
+
+   shaders[0] = vk_shaders_load(context->logical_dev, scratch, "cube");
+   shaders[1] = vk_shaders_load(context->logical_dev, scratch, "axis");
+
    VkPipelineCache cache = 0; // TODO: enable
    VkPipelineLayout layout = vk_pipeline_layout_create(context->logical_dev);
-   context->pipeline = vk_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders);
+   context->cube_pipeline = vk_cube_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders[0]);
+   context->axes_pipeline = vk_axis_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders[1]);
    context->pipeline_layout = layout;
 
-   size buffer_size = MB(10);
+   //size buffer_size = MB(10);
 
    VkPhysicalDeviceMemoryProperties memory_props;
    vkGetPhysicalDeviceMemoryProperties(context->physical_dev, &memory_props);
 
-   vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-   vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+   //vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+   //vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
    // app callbacks
    hw->renderer.backends[vk_renderer_index] = context;
