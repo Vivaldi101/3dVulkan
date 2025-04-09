@@ -722,7 +722,7 @@ static VkPipelineLayout vk_pipeline_layout_create(VkDevice logical_dev)
    VkPushConstantRange push_constants = {};
    push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
    push_constants.offset = 0;
-   push_constants.size = sizeof(mvp_transform) + sizeof(f32)*2;
+   push_constants.size = sizeof(mvp_transform);
 
    info.pushConstantRangeCount = 1;
    info.pPushConstantRanges = &push_constants;
