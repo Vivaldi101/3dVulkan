@@ -225,7 +225,7 @@ static inline mat4 mat4_view(vec3 origin, vec3 dir)
 
 static inline mat4 mat4_perspective(f32 ar, f32 fov_y, f32 n, f32 f)
 {
-   mat4 result = mat4_identity();
+   //mat4 result = mat4_identity();
 
    f32 fov_half_y = fov_y/2.0f;
    f32 tan = tanf(DEG2RAD(fov_half_y));
@@ -255,16 +255,13 @@ static inline mat4 mat4_perspective(f32 ar, f32 fov_y, f32 n, f32 f)
    f32 z0 = -f / (n - f);
    f32 z1 = (f * n) / (n - f);
 
-   result.data[0] = ax;
-   result.data[5] = ay;
-
-   result.data[8] = bx;
-   result.data[9] = by;
-
-   result.data[10] = z0;
-   result.data[11] = 1.0f;
-   result.data[14] = z1;
-   result.data[15] = 0.0f;
+   mat4 result = 
+   {
+      ax,   0,   0,    0,
+      0,    ay,  0,    0,
+      bx,   by,  z0,   1.0f,
+      0,    0,   z1,   0,
+   };
 
    return result;
 }
@@ -437,10 +434,10 @@ static mat4 mat4_rotation_z(f32 rotz)
    rotz = DEG2RAD(rotz);
    mat4 result = 
    {
-      cosf(rotz), sinf(rotz), 0.0f,      0.0f,
-      -sinf(rotz), cosf(rotz),  0.0f,      0.0f,
-      0.0f,       0.0f,        1.0f,       0.0f,
-      0.0f,       0.0f,        0.0f,       1.0f,
+      cosf(rotz), sinf(rotz), 0.0f,      0.0f,     // column 1
+      -sinf(rotz), cosf(rotz),  0.0f,      0.0f,   // column 2
+      0.0f,       0.0f,        1.0f,       0.0f,   // column 3
+      0.0f,       0.0f,        0.0f,       1.0f,   // column 4
    };
 
    return result;

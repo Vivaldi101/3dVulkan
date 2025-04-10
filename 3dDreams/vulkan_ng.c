@@ -573,8 +573,8 @@ void vk_present(vk_context* context)
 
       mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
       //mvp.view = mat4_view((vec3){cameraz, cameraz, cameraz}, (vec3){0.0f, 0.0f, -1.0f});
-      mvp.view = mat4_view((vec3){cameraz, 0, 3}, (vec3){0.0f, 0.0f, -1.0f});
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -5.5f});
+      mvp.view = mat4_view((vec3){cameraz, 0, 2}, (vec3){0.0f, 0.0f, -1.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -3.5f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_scale(mvp.model, scale);
@@ -979,8 +979,8 @@ bool vk_initialize(hw* hw)
    const char* shader_names[] = {"cube", "axis"};
    vk_shader_modules shaders[array_count(shader_names)];
 
-   shaders[0] = vk_shaders_load(context->logical_dev, scratch, "cube");
-   shaders[1] = vk_shaders_load(context->logical_dev, scratch, "axis");
+   for(u32 i = 0; i < array_count(shader_names); ++i)
+      shaders[i] = vk_shaders_load(context->logical_dev, scratch, shader_names[i]);
 
    VkPipelineCache cache = 0; // TODO: enable
    VkPipelineLayout layout = vk_pipeline_layout_create(context->logical_dev);
