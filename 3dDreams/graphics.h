@@ -185,8 +185,6 @@ static vec3 vec3_cross(const vec3* a, const vec3* b)
 
 static inline mat4 mat4_view(vec3 origin, vec3 dir)
 {
-   mat4 result = mat4_identity();
-
    // compute the uvn vectors in view space with z going into the screen
    vec3 n = dir;
    // up
@@ -202,23 +200,13 @@ static inline mat4 mat4_view(vec3 origin, vec3 dir)
    vec3_normalize(v);
    vec3_normalize(n);
 
-   result.data[0] = u.data[0];
-   result.data[4] = u.data[1];
-   result.data[8] = u.data[2];
-
-   result.data[12] = -vec3_dot(u, origin);
-
-   result.data[1] = v.data[0];
-   result.data[5] = v.data[1];
-   result.data[9] = v.data[2];
-
-   result.data[13] = -vec3_dot(v, origin);
-
-   result.data[2] = n.data[0];
-   result.data[6] = n.data[1];
-   result.data[10] = n.data[2];
-
-   result.data[14] = -vec3_dot(n, origin);
+   mat4 result = 
+   {
+      u.data[0],            v.data[0],             n.data[0],           0.0f,
+      u.data[1],            v.data[1],             n.data[1],           0.0f,
+      u.data[2],            v.data[2],             n.data[2],           0.0f,
+      -vec3_dot(u, origin), -vec3_dot(v, origin), -vec3_dot(n, origin), 1.0f,
+   };
 
    return result;
 }
