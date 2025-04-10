@@ -137,7 +137,7 @@ static inline mat4 mat4_translate(vec3 t)
    return result;
 }
 
-// transform a by b
+// transform a by b, post-multiplication
 static inline mat4 mat4_mul(mat4 b, mat4 a)
 {
    mat4 result = mat4_identity();
@@ -191,8 +191,8 @@ static inline mat4 mat4_view(vec3 origin, vec3 dir)
    vec3 n = dir;
    // up
    vec3 v = {0.0f, 1.0f, 0.0f};
-   vec3 u;
 
+   vec3 u;
    vec3_cross(n, v, u);
 
    // recompute v
@@ -262,27 +262,6 @@ static inline mat4 mat4_perspective(f32 ar, f32 fov_y, f32 n, f32 f)
       bx,   by,  z0,   1.0f,
       0,    0,   z1,   0,
    };
-
-   return result;
-}
-
-static inline mat4 mat4_perspective_fov(f32 fovx, f32 ar)
-{
-   mat4 result = {};
-
-   f32 tan_half_fov = tanf(DEG2RAD(fovx/2.0f));
-   f32 d = 1.0f/tan_half_fov;
-
-   result.data[0] = d/ar;
-   result.data[5] = d;
-
-   //result.data[8] = bx;
-   //result.data[9] = by;
-
-   //result.data[10] = z0;
-   result.data[11] = 1.0f; // positive w
-   //result.data[14] = z1;
-   result.data[15] = 0.0f;
 
    return result;
 }
