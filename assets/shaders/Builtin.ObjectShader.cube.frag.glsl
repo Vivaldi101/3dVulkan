@@ -16,7 +16,7 @@ layout(push_constant) uniform Transform
 float ndc_to_linear_z(float ndc_z, float near, float far)
 {
    float u = far * near;
-   float l = ndc_z*(near - far) + far;
+   float l = (near - far)*ndc_z + far;
 
    float linear_z = u / l;
 

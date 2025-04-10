@@ -70,9 +70,9 @@ void hw_window_close(hw* hw)
    hw->renderer.window.close(hw->renderer.window);
 }
 
-#define MSEC_PER_SIM (16)
+#define MSEC_PER_SIM ((1.0/120)*1000)
 
-static f32 global_game_time_residual;
+static f64 global_game_time_residual;
 static int global_game_frame;
 
 static LARGE_INTEGER GetWallClock()

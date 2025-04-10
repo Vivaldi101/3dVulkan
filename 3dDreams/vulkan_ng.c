@@ -551,20 +551,15 @@ void vk_present(vk_context* context)
       f32 delta = 1.5f;
       static f32 rot = 0.0f;
       static f32 originz = -10.0f;
-      static f32 scale = 0.0f;
       static f32 cameraz = 0.0f;
 
       if(originz > 1.0f)
          originz = -10.0f;
 
-      if(scale > 1.0f)
-         scale = 0.1f;
-
       cameraz = sinf(rot/30)*3;
 
       rot += delta;
       originz += delta/4;
-      scale += 0.01f;
 
       mvp_transform mvp = {};
 
@@ -574,7 +569,7 @@ void vk_present(vk_context* context)
       mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
       //mvp.view = mat4_view((vec3){cameraz, cameraz, cameraz}, (vec3){0.0f, 0.0f, -1.0f});
       mvp.view = mat4_view((vec3){cameraz, 0, 2}, (vec3){0.0f, 0.0f, -1.0f});
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -3.5f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -3.0f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_scale(mvp.model, scale);
