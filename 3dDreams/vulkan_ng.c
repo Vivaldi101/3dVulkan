@@ -189,8 +189,6 @@ static VkFormat vk_swapchain_format(VkPhysicalDevice physical_dev, VkSurfaceKHR 
    if(!vk_valid(vkGetPhysicalDeviceSurfaceFormatsKHR(physical_dev, surface, &format_count, formats)))
       return VK_FORMAT_UNDEFINED;
 
-   // for now expect rgba unorm
-   assert(formats[0].format == VK_FORMAT_R8G8B8A8_UNORM);
    return formats[0].format;
 }
 

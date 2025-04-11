@@ -70,7 +70,7 @@ void hw_window_close(hw* hw)
    hw->renderer.window.close(hw->renderer.window);
 }
 
-#define MSEC_PER_SIM ((1.0/120)*1000)
+#define MSEC_PER_SIM ((1.0/60)*1000)
 
 static f64 global_game_time_residual;
 static int global_game_frame;
@@ -164,7 +164,8 @@ static void hw_frame_render(hw* hw)
 
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void (*app_input_function)(struct app_input* input))
 {
-   hw->timer.time();
+   // start the timer
+   u32 t = hw->timer.time();
 
    for (;;)
    {
@@ -179,6 +180,10 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void
       // TODO: Use perf counters for better granularity
       hw_frame_sync(hw);
       hw_frame_render(hw);
+
+      f32 fps = 1.0f/(((f32)hw->timer.time() - t) / 1000.0f);
+      debug_message("FPS: %u\n", (u32)fps);
+      t = hw->timer.time();
    }
 }
 
