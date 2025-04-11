@@ -937,10 +937,10 @@ static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    pipeline_info.pViewportState = &viewport_info;
 
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
-   raster_info.lineWidth = 1.0f;
-   raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   raster_info.polygonMode = VK_POLYGON_MODE_FILL;
-   raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   raster_info.lineWidth = 5.0f;
+   //raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
+   //raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+   //raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    pipeline_info.pRasterizationState = &raster_info;
 
    VkPipelineMultisampleStateCreateInfo sample_info = {vk_info(PIPELINE_MULTISAMPLE_STATE)};
@@ -948,12 +948,12 @@ static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    pipeline_info.pMultisampleState = &sample_info;
 
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
-   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
-   depth_stencil_info.depthTestEnable = VK_TRUE;
-   depth_stencil_info.depthWriteEnable = VK_TRUE;
-   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
-   depth_stencil_info.minDepthBounds = 0.0f;
-   depth_stencil_info.maxDepthBounds = 1.0f;
+   depth_stencil_info.depthBoundsTestEnable = VK_FALSE;
+   depth_stencil_info.depthTestEnable = VK_FALSE;
+   depth_stencil_info.depthWriteEnable = VK_FALSE;
+   //depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
+   //depth_stencil_info.minDepthBounds = 0.0f;
+   //depth_stencil_info.maxDepthBounds = 1.0f;
    pipeline_info.pDepthStencilState = &depth_stencil_info;
 
    VkPipelineColorBlendAttachmentState color_blend_attachment = {};
