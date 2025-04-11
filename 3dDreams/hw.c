@@ -182,7 +182,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch), void
       hw_frame_render(hw);
 
       f32 fps = 1.0f/(((f32)hw->timer.time() - t) / 1000.0f);
-      debug_message("FPS: %u\n", (u32)fps);
+      //debug_message("FPS: %u\n", (u32)fps);
       t = hw->timer.time();
    }
 }

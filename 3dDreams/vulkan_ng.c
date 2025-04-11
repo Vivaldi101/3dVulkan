@@ -61,7 +61,9 @@ align_struct swapchain_surface_info
 
    VkFormat format;
    VkImage images[MAX_VULKAN_OBJECT_COUNT];
+   VkImage depths[MAX_VULKAN_OBJECT_COUNT];
    VkImageView image_views[MAX_VULKAN_OBJECT_COUNT];
+   VkImageView depth_views[MAX_VULKAN_OBJECT_COUNT];
 } swapchain_surface_info;
 
 align_struct
@@ -72,7 +74,7 @@ align_struct
 
 align_struct
 {
-   arena* storage;
+   VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
 
    VkPhysicalDevice physical_dev;
    VkDevice logical_dev;
@@ -87,11 +89,11 @@ align_struct
    VkPipeline cube_pipeline;
    VkPipeline axes_pipeline;
    VkPipelineLayout pipeline_layout;
-   VkFramebuffer framebuffers[MAX_VULKAN_OBJECT_COUNT];
-
-   u32 queue_family_index;
 
    swapchain_surface_info swapchain_info;
+
+   arena* storage;
+   u32 queue_family_index;
 } vk_context;
 
 align_struct
@@ -127,6 +129,9 @@ static vk_buffer vk_buffer_create(VkDevice device, size size, VkPhysicalDeviceMe
 
       ++i;
    }
+
+   if(i == memory_properties.memoryTypeCount)
+      return (vk_buffer){};
 
    VkMemoryAllocateInfo allocate_info = {vk_info_allocate(MEMORY)};
    allocate_info.allocationSize = memory_reqs.size;
@@ -260,10 +265,15 @@ static VkDevice vk_ldevice_create(VkPhysicalDevice physical_dev, u32 queue_famil
 
    VkDeviceCreateInfo ldev_info = {vk_info(DEVICE)};
    const char* dev_ext_names[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+   VkPhysicalDeviceFeatures enabled_features = {};
+   enabled_features.depthBounds = VK_TRUE;
+
    ldev_info.queueCreateInfoCount = 1;
    ldev_info.pQueueCreateInfos = &queue_info;
    ldev_info.enabledExtensionCount = array_count(dev_ext_names);
    ldev_info.ppEnabledExtensionNames = dev_ext_names;
+   ldev_info.pEnabledFeatures = &enabled_features;
 
    VkDevice logical_dev;
    vk_test_return_handle(vkCreateDevice(physical_dev, &ldev_info, 0, &logical_dev));
@@ -382,31 +392,109 @@ static VkCommandPool vk_command_pool_create(VkDevice logical_dev, u32 queue_fami
    return pool;
 }
 
-static VkRenderPass vk_renderpass_create(VkDevice logical_dev, VkFormat format)
+static VkImage vk_depth_image_create(VkDevice logical_dev, VkPhysicalDevice physical_dev, VkExtent3D extent)
+{
+   VkImage result = 0;
+
+   // Image creation info structure
+   VkImageCreateInfo image_info = {};
+   image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+   image_info.imageType = VK_IMAGE_TYPE_2D;  // 2D depth image
+   image_info.extent = extent;              // Width, height, depth
+   image_info.mipLevels = 1;
+   image_info.arrayLayers = 1;
+   image_info.format = VK_FORMAT_D32_SFLOAT; // Depth format (could be D24, etc.)
+   image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+   image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;  // Initial layout
+   image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;  // Depth usage
+   image_info.samples = VK_SAMPLE_COUNT_1_BIT;  // No multisampling
+   image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+   image_info.queueFamilyIndexCount = 0;
+   image_info.pQueueFamilyIndices = 0;
+
+   // Create the depth image
+   if(vkCreateImage(logical_dev, &image_info, 0, &result) != VK_SUCCESS)
+      return VK_NULL_HANDLE;
+
+   // Allocate memory for the image
+   VkMemoryRequirements memory_requirements;
+   vkGetImageMemoryRequirements(logical_dev, result, &memory_requirements);
+
+   // Allocate memory (find suitable memory type)
+   VkMemoryAllocateInfo alloc_info = {};
+   alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+   alloc_info.allocationSize = memory_requirements.size;
+
+   // Find a memory type that supports depth-stencil attachments
+   VkPhysicalDeviceMemoryProperties memory_properties;
+   vkGetPhysicalDeviceMemoryProperties(physical_dev, &memory_properties);
+
+   uint32_t memory_type_index = VK_MAX_MEMORY_TYPES;
+   for(uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i) {
+      if((memory_requirements.memoryTypeBits & (1 << i)) &&
+          (memory_properties.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
+         memory_type_index = i;
+         break;
+      }
+   }
+   if(memory_type_index == VK_MAX_MEMORY_TYPES)
+      return VK_NULL_HANDLE;
+
+   alloc_info.memoryTypeIndex = memory_type_index;
+
+   VkDeviceMemory memory;
+   if(vkAllocateMemory(logical_dev, &alloc_info, 0, &memory) != VK_SUCCESS)
+      return VK_NULL_HANDLE;
+
+   // Bind the memory to the image
+   if(vkBindImageMemory(logical_dev, result, memory, 0) != VK_SUCCESS)
+      return VK_NULL_HANDLE;
+
+   return result;
+}
+
+
+static VkRenderPass vk_renderpass_create(VkDevice logical_dev, VkFormat color_format)
 {
    assert(vk_valid_handle(logical_dev));
-   assert(vk_valid_format(format));
+   assert(vk_valid_format(color_format));
 
    VkRenderPass renderpass = 0;
 
-   u32 attachment_index = 0;
-   VkAttachmentReference attachment_ref = {attachment_index, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}; 
+   const u32 color_attachment_index = 0;
+   const u32 depth_attachment_index = 1;
+
+   VkAttachmentReference color_attachment_ref = {color_attachment_index, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}; 
+   VkAttachmentReference depth_attachment_ref = {depth_attachment_index, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}; 
 
    VkSubpassDescription subpass = {};
    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
    subpass.colorAttachmentCount = 1;
-   subpass.pColorAttachments = &attachment_ref;
+   subpass.pColorAttachments = &color_attachment_ref;
 
-   VkAttachmentDescription attachments[1] = {};
+   subpass.pDepthStencilAttachment = &depth_attachment_ref;
 
-   attachments[attachment_index].format = format;
-   attachments[attachment_index].samples = VK_SAMPLE_COUNT_1_BIT;
-   attachments[attachment_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-   attachments[attachment_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-   attachments[attachment_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-   attachments[attachment_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-   attachments[attachment_index].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-   attachments[attachment_index].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+   VkAttachmentDescription attachments[2] = {};
+
+   attachments[color_attachment_index].format = color_format;
+   attachments[color_attachment_index].samples = VK_SAMPLE_COUNT_1_BIT;
+   attachments[color_attachment_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+   attachments[color_attachment_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+   attachments[color_attachment_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+   attachments[color_attachment_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+   attachments[color_attachment_index].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+   attachments[color_attachment_index].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+   // TODO: pass the depth format too
+   attachments[depth_attachment_index].format = VK_FORMAT_D32_SFLOAT;
+   attachments[depth_attachment_index].samples = VK_SAMPLE_COUNT_1_BIT;
+   attachments[depth_attachment_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+   attachments[depth_attachment_index].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+   attachments[depth_attachment_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+   attachments[depth_attachment_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+   attachments[depth_attachment_index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+   attachments[depth_attachment_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 
    VkRenderPassCreateInfo renderpass_info = {vk_info(RENDER_PASS)}; 
    renderpass_info.subpassCount = 1;
@@ -419,14 +507,14 @@ static VkRenderPass vk_renderpass_create(VkDevice logical_dev, VkFormat format)
    return renderpass;
 }
 
-static VkFramebuffer vk_framebuffer_create(VkDevice logical_dev, VkRenderPass renderpass, swapchain_surface_info* surface_info, VkImageView image_view)
+static VkFramebuffer vk_framebuffer_create(VkDevice logical_dev, VkRenderPass renderpass, swapchain_surface_info* surface_info, VkImageView* attachments, u32 attachment_count)
 {
    VkFramebuffer framebuffer = 0;
 
    VkFramebufferCreateInfo framebuffer_info = {vk_info(FRAMEBUFFER)};
    framebuffer_info.renderPass = renderpass;
-   framebuffer_info.attachmentCount = 1;
-   framebuffer_info.pAttachments = &image_view;
+   framebuffer_info.attachmentCount = attachment_count;
+   framebuffer_info.pAttachments = attachments;
    framebuffer_info.width = surface_info->image_width;
    framebuffer_info.height = surface_info->image_height;
    framebuffer_info.layers = 1;
@@ -436,7 +524,7 @@ static VkFramebuffer vk_framebuffer_create(VkDevice logical_dev, VkRenderPass re
    return framebuffer;
 }
 
-static VkImageView vk_image_view_create(VkDevice logical_dev, VkFormat format, VkImage image)
+static VkImageView vk_image_view_create(VkDevice logical_dev, VkFormat format, VkImage image, VkImageAspectFlags aspect_mask)
 {
    assert(vk_valid_handle(logical_dev));
    assert(vk_valid_format(format));
@@ -448,7 +536,7 @@ static VkImageView vk_image_view_create(VkDevice logical_dev, VkFormat format, V
    view_info.image = image;
    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
    view_info.format = format;
-   view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   view_info.subresourceRange.aspectMask = aspect_mask;
    view_info.subresourceRange.layerCount = 1;
    view_info.subresourceRange.levelCount = 1;
 
@@ -487,6 +575,7 @@ static void vk_swapchain_destroy(vk_context* context)
    {
       vkDestroyFramebuffer(context->logical_dev, context->framebuffers[i], 0);
       vkDestroyImageView(context->logical_dev, context->swapchain_info.image_views[i], 0);
+      // TOOD destroy depth views
    }
 
    vkDestroySwapchainKHR(context->logical_dev, context->swapchain_info.swapchain, 0);
@@ -498,8 +587,12 @@ static bool vk_swapchain_update(vk_context* context)
 
    for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
    {
-      context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i]);
-      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, context->swapchain_info.image_views[i]);
+      context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i], VK_IMAGE_ASPECT_COLOR_BIT);
+      context->swapchain_info.depth_views[i] = vk_image_view_create(context->logical_dev, VK_FORMAT_D32_SFLOAT, context->swapchain_info.depths[i], VK_IMAGE_ASPECT_DEPTH_BIT);
+
+      VkImageView attachments[2] = {context->swapchain_info.image_views[i], context->swapchain_info.depth_views[i]};
+
+      context->framebuffers[i] = vk_framebuffer_create(context->logical_dev, context->renderpass, &context->swapchain_info, attachments, array_count(attachments));
    }
 
    return true;
@@ -567,7 +660,7 @@ void vk_present(vk_context* context)
       mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
       //mvp.view = mat4_view((vec3){cameraz, cameraz, cameraz}, (vec3){0.0f, 0.0f, -1.0f});
       mvp.view = mat4_view((vec3){cameraz, 0, 2}, (vec3){0.0f, 0.0f, -1.0f});
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -3.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 1.0f, -2.0f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_scale(mvp.model, scale);
@@ -576,10 +669,12 @@ void vk_present(vk_context* context)
       mvp.model = mat4_mul(translate, mvp.model);
 
       const f32 c = 255.0f;
-      VkClearValue clear = {48 / c, 10 / c, 36 / c, 1.0f};
+      VkClearValue clear[2] = {};
+      clear[0].color = (VkClearColorValue){48 / c, 10 / c, 36 / c, 1.0f};
+      clear[1].depthStencil = (VkClearDepthStencilValue){1.0f, 0};
 
-      renderpass_info.clearValueCount = 1;
-      renderpass_info.pClearValues = &clear;
+      renderpass_info.clearValueCount = 2;
+      renderpass_info.pClearValues = clear;
 
       VkImage image = context->swapchain_info.images[image_index];
       VkImageMemoryBarrier render_begin_barrier = vk_pipeline_barrier(image, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -774,9 +869,10 @@ static VkPipeline vk_cube_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    pipeline_info.pMultisampleState = &sample_info;
 
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
-   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
    depth_stencil_info.depthTestEnable = VK_TRUE;
    depth_stencil_info.depthWriteEnable = VK_TRUE;
+   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
+   depth_stencil_info.stencilTestEnable = VK_TRUE;
    depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
    depth_stencil_info.minDepthBounds = 0.0f;
    depth_stencil_info.maxDepthBounds = 1.0f;
@@ -965,6 +1061,10 @@ bool vk_initialize(hw* hw)
    context->command_buffer = vk_command_buffer_create(context->logical_dev, context->command_pool);
    context->swapchain_info = vk_swapchain_info_create(context, hw->renderer.window.width, hw->renderer.window.height, context->queue_family_index);
    context->renderpass = vk_renderpass_create(context->logical_dev, context->swapchain_info.format);
+
+   VkExtent3D depth_extent = {context->swapchain_info.image_width, context->swapchain_info.image_height, 1};
+   for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
+      context->swapchain_info.depths[i] = vk_depth_image_create(context->logical_dev, context->physical_dev, depth_extent);
 
    if(!vk_swapchain_update(context))
       return false;

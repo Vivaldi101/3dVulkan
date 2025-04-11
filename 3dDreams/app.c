@@ -4,6 +4,8 @@
 #include "vulkan_ng.h"
 #include "arena.h"
 
+//#define FULLSCREEN
+
 typedef struct app_some_type
 {
    bool isvalid;
@@ -64,8 +66,14 @@ void app_start(int argc, const char** argv, hw* hw)
 
    g_frustum frustum = {0};
 
+#ifdef FULLSCREEN
+	int w = 1920, h = 1080;
+	int x = 0, y = 0;
+#else
 	int w = 800, h = 600;
 	int x = 100, y = 100;
+#endif
+
    hw_window_open(hw, "App window1", x, y, w, h);
 
    if(!vk_initialize(hw))
