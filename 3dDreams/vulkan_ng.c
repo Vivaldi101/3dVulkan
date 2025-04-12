@@ -393,7 +393,7 @@ static VkCommandPool vk_command_pool_create(VkDevice logical_dev, u32 queue_fami
    return pool;
 }
 
-static VkImage vk_depth_image_create(VkDevice logical_dev, VkPhysicalDevice physical_dev, VkExtent3D extent)
+static VkImage vk_depth_image_create(VkDevice logical_dev, VkPhysicalDevice physical_dev, VkFormat format, VkExtent3D extent)
 {
    VkImage result = 0;
 
@@ -404,7 +404,7 @@ static VkImage vk_depth_image_create(VkDevice logical_dev, VkPhysicalDevice phys
    image_info.extent = extent;              // Width, height, depth
    image_info.mipLevels = 1;
    image_info.arrayLayers = 1;
-   image_info.format = VK_FORMAT_D32_SFLOAT; // Depth format (could be D24, etc.)
+   image_info.format = format;
    image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
    image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;  // Initial layout
    image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;  // Depth usage
@@ -455,7 +455,7 @@ static VkImage vk_depth_image_create(VkDevice logical_dev, VkPhysicalDevice phys
 }
 
 
-static VkRenderPass vk_renderpass_create(VkDevice logical_dev, VkFormat color_format)
+static VkRenderPass vk_renderpass_create(VkDevice logical_dev, VkFormat color_format, VkFormat depth_format)
 {
    assert(vk_valid_handle(logical_dev));
    assert(vk_valid_format(color_format));
@@ -572,11 +572,12 @@ VkImageMemoryBarrier vk_pipeline_barrier(VkImage image,
 
 static void vk_swapchain_destroy(vk_context* context)
 {
+   vkDeviceWaitIdle(context->logical_dev);
    for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
    {
       vkDestroyFramebuffer(context->logical_dev, context->framebuffers[i], 0);
       vkDestroyImageView(context->logical_dev, context->swapchain_info.image_views[i], 0);
-      // TOOD destroy depth views
+      vkDestroyImageView(context->logical_dev, context->swapchain_info.depth_views[i], 0);
    }
 
    vkDestroySwapchainKHR(context->logical_dev, context->swapchain_info.swapchain, 0);
@@ -586,8 +587,12 @@ static bool vk_swapchain_update(vk_context* context)
 {
    vk_test_return(vkGetSwapchainImagesKHR(context->logical_dev, context->swapchain_info.swapchain, &context->swapchain_info.image_count, context->swapchain_info.images));
 
+   VkExtent3D depth_extent = {context->swapchain_info.image_width, context->swapchain_info.image_height, 1};
+
    for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
    {
+      context->swapchain_info.depths[i] = vk_depth_image_create(context->logical_dev, context->physical_dev, VK_FORMAT_D32_SFLOAT, depth_extent);
+
       context->swapchain_info.image_views[i] = vk_image_view_create(context->logical_dev, context->swapchain_info.format, context->swapchain_info.images[i], VK_IMAGE_ASPECT_COLOR_BIT);
       context->swapchain_info.depth_views[i] = vk_image_view_create(context->logical_dev, VK_FORMAT_D32_SFLOAT, context->swapchain_info.depths[i], VK_IMAGE_ASPECT_DEPTH_BIT);
 
@@ -888,8 +893,8 @@ static VkPipeline vk_cube_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    pipeline_info.pColorBlendState = &color_blend_info;
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
-   dynamic_info.pDynamicStates = (VkDynamicState[2]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-   dynamic_info.dynamicStateCount = 2;
+   dynamic_info.pDynamicStates = (VkDynamicState[3]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
+   dynamic_info.dynamicStateCount = 3;
    pipeline_info.pDynamicState = &dynamic_info;
 
    pipeline_info.renderPass = renderpass;
@@ -1061,11 +1066,11 @@ bool vk_initialize(hw* hw)
    context->command_pool = vk_command_pool_create(context->logical_dev, context->queue_family_index);
    context->command_buffer = vk_command_buffer_create(context->logical_dev, context->command_pool);
    context->swapchain_info = vk_swapchain_info_create(context, hw->renderer.window.width, hw->renderer.window.height, context->queue_family_index);
-   context->renderpass = vk_renderpass_create(context->logical_dev, context->swapchain_info.format);
+   context->renderpass = vk_renderpass_create(context->logical_dev, context->swapchain_info.format, VK_FORMAT_D32_SFLOAT);
 
    VkExtent3D depth_extent = {context->swapchain_info.image_width, context->swapchain_info.image_height, 1};
    for(u32 i = 0; i < context->swapchain_info.image_count; ++i)
-      context->swapchain_info.depths[i] = vk_depth_image_create(context->logical_dev, context->physical_dev, depth_extent);
+      context->swapchain_info.depths[i] = vk_depth_image_create(context->logical_dev, context->physical_dev, VK_FORMAT_D32_SFLOAT, depth_extent);
 
    if(!vk_swapchain_update(context))
       return false;
