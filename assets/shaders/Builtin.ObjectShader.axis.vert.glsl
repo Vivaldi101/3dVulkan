@@ -31,18 +31,18 @@ void main() {
 vec3 positions[verts_count] = vec3[](
     // X axis
     vec3(0, 0, 0), vec3(axis_scale, 0, 0),              // Main axis
-    vec3(axis_scale, 0, 0), vec3(axis_down_scale,  arrow_head_scale, 0.0),      // Arrowhead part 1
-    vec3(axis_scale, 0, 0), vec3(axis_down_scale, -arrow_head_scale, 0.0),      // Arrowhead part 2
+    vec3(axis_scale, 0, 0), vec3(axis_down_scale,  arrow_head_scale, 0.0),
+    vec3(axis_scale, 0, 0), vec3(axis_down_scale, -arrow_head_scale, 0.0),
 
     // Y axis
     vec3(0, 0, 0), vec3(0, axis_scale, 0),              // Main axis
-    vec3(0, axis_scale, 0), vec3(arrow_head_scale, axis_down_scale, 0.0),       // Arrowhead part 1
-    vec3(0, axis_scale, 0), vec3(-arrow_head_scale, axis_down_scale, 0.0),      // Arrowhead part 2
+    vec3(0, axis_scale, 0), vec3(arrow_head_scale, axis_down_scale, 0.0),
+    vec3(0, axis_scale, 0), vec3(-arrow_head_scale, axis_down_scale, 0.0),
 
     // Z axis
     vec3(0, 0, 0), vec3(0, 0, axis_scale),              // Main axis
-    vec3(0, 0, axis_scale), vec3(arrow_head_scale, 0.0, axis_down_scale),       // Arrowhead part 1
-    vec3(0, 0, axis_scale), vec3(-arrow_head_scale, 0.0, axis_down_scale)       // Arrowhead part 2
+    vec3(0, 0, axis_scale), vec3(0.0, arrow_head_scale, axis_down_scale),
+    vec3(0, 0, axis_scale), vec3(0.0, -arrow_head_scale, axis_down_scale) 
 );
 
 vec3 colors[verts_count] = vec3[](
@@ -61,7 +61,7 @@ vec3 colors[verts_count] = vec3[](
     vec3(0, 0, 1), vec3(0, 0, 1),
     vec3(0, 0, 1), vec3(0, 0, 1)
 );
-    mat4 t = translate(vec3(0.0, -2.0, -1.5));
+    mat4 t = translate(vec3(0.0, 2.0, 0.0));
     gl_Position = transform.projection * transform.view * t * vec4(positions[gl_VertexIndex], 1.0);
 
     axis_color = colors[gl_VertexIndex];
