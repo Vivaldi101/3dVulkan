@@ -268,6 +268,7 @@ static VkDevice vk_ldevice_create(VkPhysicalDevice physical_dev, u32 queue_famil
 
    VkPhysicalDeviceFeatures enabled_features = {};
    enabled_features.depthBounds = VK_TRUE;
+   enabled_features.wideLines = VK_TRUE;
 
    ldev_info.queueCreateInfoCount = 1;
    ldev_info.pQueueCreateInfos = &queue_info;
