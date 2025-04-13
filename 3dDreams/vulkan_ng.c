@@ -668,7 +668,7 @@ void vk_present(vk_context* context)
 
       vec3 eye = {
           radius * cosf(theta),  // X
-          1.0f,                  // Y (height)
+          2.5f,                  // Y (height)
           radius * sinf(theta)   // Z
       };
 
