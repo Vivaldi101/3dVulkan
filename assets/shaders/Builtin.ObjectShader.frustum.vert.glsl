@@ -56,7 +56,7 @@ void main()
       // left
       origin, ftl, fbl,
       // top
-      origin, ftl, ftr,
+      origin, ftr, ftl,
       // bottom
       origin, fbl, fbr
    };
