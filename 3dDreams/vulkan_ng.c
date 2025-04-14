@@ -1,6 +1,7 @@
 #include "arena.h"
 #include "common.h"
 #include "graphics.h"
+#include "priority_queue.h"
 
 #include "vulkan_ng.h"
 
@@ -47,6 +48,7 @@ typedef struct mvp_transform
     mat4 model;
     f32 n;
     f32 f;
+    f32 ar;
 } mvp_transform;
 #pragma pack(pop)
 
@@ -86,8 +88,11 @@ align_struct
    VkCommandPool command_pool;
    VkCommandBuffer command_buffer;
    VkRenderPass renderpass;
+
+   // TODO: Pipelines into an array
    VkPipeline cube_pipeline;
    VkPipeline axes_pipeline;
+   VkPipeline frustum_pipeline;
    VkPipelineLayout pipeline_layout;
 
    swapchain_surface_info swapchain_info;
@@ -269,6 +274,7 @@ static VkDevice vk_ldevice_create(VkPhysicalDevice physical_dev, u32 queue_famil
    VkPhysicalDeviceFeatures enabled_features = {};
    enabled_features.depthBounds = VK_TRUE;
    enabled_features.wideLines = VK_TRUE;
+   enabled_features.fillModeNonSolid = VK_TRUE;
 
    ldev_info.queueCreateInfoCount = 1;
    ldev_info.pQueueCreateInfos = &queue_info;
@@ -661,23 +667,26 @@ void vk_present(vk_context* context)
       mvp_transform mvp = {};
 
       mvp.n = 0.01f;
-      mvp.f = 100.0f;
+      mvp.f = 1000.0f;
+      mvp.ar = ar;
 
       float radius = 5.0f;
       float theta = DEG2RAD(rot); // Radians, e.g. time-based or user-controlled
 
       vec3 eye = {
+          radius * cosf(theta),                  // Y (height)
           radius * cosf(theta),  // X
-          2.5f,                  // Y (height)
-          radius * sinf(theta)   // Z
+          //2.0f,
+          radius * sinf(theta),   // Z
       };
 
       vec3 center = {0.0f, 0.0f, 0.0f};
       vec3 dir = vec3_sub(&eye, &center);
 
       mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
+      //mvp.view = mat4_view((vec3){0.0f, 2.0f, 4.0f}, (vec3){0.0f, 0.0f, -1.0f});
       mvp.view = mat4_view(eye, dir);
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 0.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -1.0f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_mul(mat4_mul(mat4_rotation_z(rot/2.0f), mat4_rotation_x(rot/4.0f)), mvp.model);
@@ -705,19 +714,11 @@ void vk_present(vk_context* context)
 
       VkViewport viewport = {};
 
-#if 1
       // y-is-up
       viewport.x = 0.0f;
       viewport.y = (f32)context->swapchain_info.image_height;
       viewport.width = (f32)context->swapchain_info.image_width;
       viewport.height = -(f32)context->swapchain_info.image_height;
-#else
-      // y-is-down
-      viewport.x = 0.0f;
-      viewport.y = 0.0f;
-      viewport.width = (f32)context->swapchain_info.image_width;
-      viewport.height = (f32)context->swapchain_info.image_height;
-#endif
 
       viewport.minDepth = 0.0f;
       viewport.maxDepth = 1.0f;
@@ -740,6 +741,10 @@ void vk_present(vk_context* context)
       vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->axes_pipeline);
 
       vkCmdDraw(command_buffer, 18, 1, 0, 0);
+
+      vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->frustum_pipeline);
+
+      vkCmdDraw(command_buffer, 6, 1, 0, 0);
 
       vkCmdEndRenderPass(command_buffer);
 
@@ -835,6 +840,7 @@ static VkPipelineLayout vk_pipeline_layout_create(VkDevice logical_dev)
    return layout;
 }
 
+// TODO: Cleanup these pipelines
 static VkPipeline vk_cube_pipeline_create(VkDevice logical_dev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vk_shader_modules* shaders)
 {
    assert(vk_valid_handle(logical_dev));
@@ -914,6 +920,86 @@ static VkPipeline vk_cube_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    return pipeline;
 }
 
+static VkPipeline vk_frustum_pipeline_create(VkDevice logical_dev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vk_shader_modules* shaders)
+{
+   assert(vk_valid_handle(logical_dev));
+   assert(vk_valid_handle(shaders->fs));
+   assert(vk_valid_handle(shaders->fs));
+   assert(!vk_valid_handle(cache));
+
+   VkPipeline pipeline = 0;
+
+   VkPipelineShaderStageCreateInfo stages[OBJECT_SHADER_COUNT] = {};
+
+   stages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+   stages[0].module = shaders->vs;
+   stages[0].pName = "main";
+
+   stages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+   stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+   stages[1].module = shaders->fs;
+   stages[1].pName = "main";
+
+   VkGraphicsPipelineCreateInfo pipeline_info = {vk_info(GRAPHICS_PIPELINE)};
+   pipeline_info.stageCount = array_count(stages);
+   pipeline_info.pStages = stages;
+
+   VkPipelineVertexInputStateCreateInfo vertex_input_info = {vk_info(PIPELINE_VERTEX_INPUT_STATE)};
+   pipeline_info.pVertexInputState = &vertex_input_info;
+
+   VkPipelineInputAssemblyStateCreateInfo assembly_info = {vk_info(PIPELINE_INPUT_ASSEMBLY_STATE)};
+   assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+   pipeline_info.pInputAssemblyState = &assembly_info;
+
+   VkPipelineViewportStateCreateInfo viewport_info = {vk_info(PIPELINE_VIEWPORT_STATE)};
+   viewport_info.scissorCount = 1;
+   viewport_info.viewportCount = 1;
+   pipeline_info.pViewportState = &viewport_info;
+
+   VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
+   raster_info.lineWidth = 1.0f;
+   raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
+   raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+   raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   pipeline_info.pRasterizationState = &raster_info;
+
+   VkPipelineMultisampleStateCreateInfo sample_info = {vk_info(PIPELINE_MULTISAMPLE_STATE)};
+   sample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   pipeline_info.pMultisampleState = &sample_info;
+
+   VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
+   depth_stencil_info.depthTestEnable = VK_TRUE;
+   depth_stencil_info.depthWriteEnable = VK_TRUE;
+   depth_stencil_info.depthBoundsTestEnable = VK_TRUE;
+   depth_stencil_info.stencilTestEnable = VK_TRUE;
+   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
+   depth_stencil_info.minDepthBounds = 0.0f;
+   depth_stencil_info.maxDepthBounds = 1.0f;
+   pipeline_info.pDepthStencilState = &depth_stencil_info;
+
+   VkPipelineColorBlendAttachmentState color_blend_attachment = {};
+   color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+   VkPipelineColorBlendStateCreateInfo color_blend_info = {vk_info(PIPELINE_COLOR_BLEND_STATE)};
+   color_blend_info.attachmentCount = 1;
+   color_blend_info.pAttachments = &color_blend_attachment;
+   pipeline_info.pColorBlendState = &color_blend_info;
+
+   VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
+   dynamic_info.pDynamicStates = (VkDynamicState[3]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
+   dynamic_info.dynamicStateCount = 3;
+   pipeline_info.pDynamicState = &dynamic_info;
+
+   pipeline_info.renderPass = renderpass;
+   pipeline_info.layout = layout;
+
+   vk_test_return(vkCreateGraphicsPipelines(logical_dev, cache, 1, &pipeline_info, 0, &pipeline));
+
+   return pipeline;
+
+}
+
 static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass renderpass, VkPipelineCache cache, VkPipelineLayout layout, const vk_shader_modules* shaders)
 {
    assert(vk_valid_handle(logical_dev));
@@ -980,7 +1066,7 @@ static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    pipeline_info.pColorBlendState = &color_blend_info;
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
-   dynamic_info.pDynamicStates = (VkDynamicState[2]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+   dynamic_info.pDynamicStates = (VkDynamicState[3]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
    dynamic_info.dynamicStateCount = 2;
    pipeline_info.pDynamicState = &dynamic_info;
 
@@ -1084,7 +1170,7 @@ bool vk_initialize(hw* hw)
    if(!vk_swapchain_update(context))
       return false;
 
-   const char* shader_names[] = {"cube", "axis"};
+   const char* shader_names[] = {"cube", "axis", "frustum"};
    vk_shader_modules shaders[array_count(shader_names)];
 
    for(u32 i = 0; i < array_count(shader_names); ++i)
@@ -1092,8 +1178,10 @@ bool vk_initialize(hw* hw)
 
    VkPipelineCache cache = 0; // TODO: enable
    VkPipelineLayout layout = vk_pipeline_layout_create(context->logical_dev);
+   // TODO: Cleanup this
    context->cube_pipeline = vk_cube_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders[0]);
    context->axes_pipeline = vk_axis_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders[1]);
+   context->frustum_pipeline = vk_frustum_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders[2]);
    context->pipeline_layout = layout;
 
    //size buffer_size = MB(10);

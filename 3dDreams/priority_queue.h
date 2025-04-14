@@ -4,17 +4,14 @@
 #include "common.h"
 #include <assert.h>
 
-#if 0
 typedef struct priority_queue_node
 {
    usize index;
-   int element;
+   void* element;
 } priority_queue_node;
 
 #define priority_queue_type priority_queue_node
 #define priority_queue_max_count 4096
-#include "priority_queue.h"
-#endif
 
 #define priority_queue_lc(i) (2*(i))+1
 #define priority_queue_rc(i) (2*(i))+2

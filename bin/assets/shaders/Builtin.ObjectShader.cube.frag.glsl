@@ -11,6 +11,7 @@ layout(push_constant) uniform Transform
     mat4 model;
    float near;
    float far;
+   float ar;
 } transform;
 
 float ndc_to_linear_z(float ndc_z, float near, float far)

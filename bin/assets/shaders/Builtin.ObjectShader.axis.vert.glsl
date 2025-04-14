@@ -8,6 +8,7 @@ layout(push_constant) uniform Transform
     mat4 model;
    float near;
    float far;
+   float ar;
 } transform;
 
 layout(location = 0) out vec3 axis_color;
