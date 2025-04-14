@@ -671,13 +671,12 @@ void vk_present(vk_context* context)
       mvp.ar = ar;
 
       float radius = 5.0f;
-      float theta = DEG2RAD(rot); // Radians, e.g. time-based or user-controlled
+      float theta = DEG2RAD(rot);
 
       vec3 eye = {
-          radius * cosf(theta),                  // Y (height)
-          radius * cosf(theta),  // X
-          //2.0f,
-          radius * sinf(theta),   // Z
+          radius * cosf(theta),
+          radius * cosf(theta),
+          radius * sinf(theta),
       };
 
       vec3 center = {0.0f, 0.0f, 0.0f};
