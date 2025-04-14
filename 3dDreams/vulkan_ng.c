@@ -958,7 +958,7 @@ static VkPipeline vk_frustum_pipeline_create(VkDevice logical_dev, VkRenderPass 
 
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
-   raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
+   raster_info.cullMode = VK_CULL_MODE_NONE;
    raster_info.polygonMode = VK_POLYGON_MODE_FILL;
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    pipeline_info.pRasterizationState = &raster_info;

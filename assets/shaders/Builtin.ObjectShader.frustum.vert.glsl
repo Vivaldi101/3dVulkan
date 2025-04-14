@@ -45,13 +45,14 @@ void main()
    vec3 fbl = vec3(-fr, -ft, f);
    vec3 fbr = vec3(fr, -ft, f);
 
+   // fixed origin for now
+   // TODO: pass the camera origin
    vec3 origin = vec3(0.0);
 
    const vec3 positions[] = 
    {
       // right
       origin, fbr, ftr,
-
       // left
       origin, ftl, fbl
    };
