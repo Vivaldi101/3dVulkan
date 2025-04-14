@@ -670,7 +670,7 @@ void vk_present(vk_context* context)
       mvp.f = 1000.0f;
       mvp.ar = ar;
 
-      float radius = 5.0f;
+      float radius = 10.0f;
       float theta = DEG2RAD(rot);
 
       vec3 eye = {
@@ -685,7 +685,7 @@ void vk_present(vk_context* context)
       mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
       //mvp.view = mat4_view((vec3){0.0f, 2.0f, 4.0f}, (vec3){0.0f, 0.0f, -1.0f});
       mvp.view = mat4_view(eye, dir);
-      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, -1.0f});
+      mat4 translate = mat4_translate((vec3){0.0f, 0.0f, 0.0f});
 
       mvp.model = mat4_identity();
       //mvp.model = mat4_mul(mat4_mul(mat4_rotation_z(rot/2.0f), mat4_rotation_x(rot/4.0f)), mvp.model);
@@ -743,7 +743,7 @@ void vk_present(vk_context* context)
 
       vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->frustum_pipeline);
 
-      vkCmdDraw(command_buffer, 6, 1, 0, 0);
+      vkCmdDraw(command_buffer, 12, 1, 0, 0);
 
       vkCmdEndRenderPass(command_buffer);
 

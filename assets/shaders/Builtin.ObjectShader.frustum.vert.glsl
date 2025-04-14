@@ -54,7 +54,11 @@ void main()
       // right
       origin, fbr, ftr,
       // left
-      origin, ftl, fbl
+      origin, ftl, fbl,
+      // top
+      origin, ftl, ftr,
+      // bottom
+      origin, fbl, fbr
    };
 
    gl_Position = transform.projection * transform.view * vec4(positions[gl_VertexIndex], 1.0);
