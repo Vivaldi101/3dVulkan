@@ -674,9 +674,9 @@ void vk_present(vk_context* context)
       float theta = DEG2RAD(rot);
 
       vec3 eye = {
-          radius * cosf(theta),
-          radius * cosf(theta),
-          radius * sinf(theta),
+          radius * cosf(theta/2.0f),
+          radius * 0.5f * cosf(theta*2.0f),
+          radius * sinf(theta/2.0f),
       };
 
       vec3 center = {0.0f, 0.0f, 0.0f};
