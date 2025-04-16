@@ -26,7 +26,7 @@ static file_result vk_shader_spv_read(arena* storage, const char* shader_dir, co
    return win32_file_read(storage, shader_path);
 }
 
-static file_result vk_shader_directory(arena* storage)
+static file_result vk_project_directory(arena* storage)
 {
    file_result result = {};
 

@@ -269,8 +269,7 @@ static arena arena_new(size cap)
 
 static void arena_free(arena* a)
 {
-   if(VirtualUnlock(a->beg, arena_size(a)))
-      hw_virtual_memory_release(a->beg, arena_size(a));
+   hw_virtual_memory_release(a->beg, arena_size(a));
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow)
@@ -302,6 +301,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLi
 
    arena_free(&base_storage);
    arena_free(&hw.vk_scratch);
+   arena_free(&hw.misc_storage);
 
    return 0;
 }

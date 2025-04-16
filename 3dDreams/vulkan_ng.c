@@ -811,11 +811,11 @@ static vk_shader_modules vk_shaders_load(VkDevice logical_dev, arena scratch, co
    vk_shader_modules shader_modules = {};
    VkShaderStageFlagBits shader_type_bits[OBJECT_SHADER_COUNT] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
 
-   file_result shader_dir = vk_shader_directory(&scratch);
+   file_result project_dir = vk_project_directory(&scratch);
 
    for(u32 i = 0; i < OBJECT_SHADER_COUNT; ++i)
    {
-      file_result shader_file = vk_shader_spv_read(&scratch, shader_dir.data, shader_name, shader_type_bits[i]);
+      file_result shader_file = vk_shader_spv_read(&scratch, project_dir.data, shader_name, shader_type_bits[i]);
       if(shader_file.file_size == 0)
          return (vk_shader_modules) {};
 
@@ -1125,6 +1125,28 @@ VkInstance vk_instance_create(arena scratch)
    return instance;
 }
 
+typedef struct 
+{
+   arena scratch;
+} tinyobj_user_ctx;
+
+void tinyobj_file_read(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len)
+{
+   char shader_path[MAX_PATH];
+
+   tinyobj_user_ctx* user_data = (tinyobj_user_ctx*)ctx;
+
+   file_result project_dir = vk_project_directory(&user_data->scratch);
+
+   wsprintf(shader_path, project_dir.data, array_count(shader_path));
+   wsprintf(shader_path, "%s\\assets\\objs\\%s", project_dir.data, obj_filename);
+
+   file_result file_read = win32_file_read(&user_data->scratch, shader_path);
+
+   *len = file_read.file_size;
+   *buf = file_read.data;
+}
+
 bool vk_initialize(hw* hw)
 {
    if(!hw->renderer.window.handle)
@@ -1215,7 +1237,8 @@ bool vk_initialize(hw* hw)
 
    // tinyobjc
    {
-      const char* filename = "fixtures/cube.obj";
+      //const char* filename = "cube.obj";
+      const char* filename = "cornell_box.obj";
       const char* search_path = NULL;
 
       tinyobj_shape_t* shape = NULL;
@@ -1227,8 +1250,10 @@ bool vk_initialize(hw* hw)
 
       tinyobj_attrib_init(&attrib);
 
-      // pass the file reader
-      int result = tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, 0, NULL, TINYOBJ_FLAG_TRIANGULATE);
+      tinyobj_user_ctx user_data = {};
+      user_data.scratch = scratch;
+
+      int result = tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE);
    }
 
    return true;
