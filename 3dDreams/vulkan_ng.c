@@ -11,6 +11,10 @@
 
 #pragma comment(lib,	"vulkan-1.lib")
 
+/* define TINYOBJ_LOADER_C_IMPLEMENTATION for only *one* .c */
+#define TINYOBJ_LOADER_C_IMPLEMENTATION
+#include "../extern/tinyobjloader-c/tinyobj_loader_c.h"
+
 enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 
 //#define vk_break_on_validation
@@ -1193,11 +1197,12 @@ bool vk_initialize(hw* hw)
    context->frustum_pipeline = vk_frustum_pipeline_create(context->logical_dev, context->renderpass, cache, layout, &shaders[2]);
    context->pipeline_layout = layout;
 
-   //size buffer_size = MB(10);
 
    VkPhysicalDeviceMemoryProperties memory_props;
    vkGetPhysicalDeviceMemoryProperties(context->physical_dev, &memory_props);
 
+   // TODO: Use when we have tiny obj working
+   //size buffer_size = MB(10);
    //vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
    //vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
@@ -1206,6 +1211,25 @@ bool vk_initialize(hw* hw)
    hw->renderer.frame_present = vk_present;
    hw->renderer.frame_resize = vk_resize;
    hw->renderer.renderer_index = vk_renderer_index;
+
+
+   // tinyobjc
+   {
+      const char* filename = "fixtures/cube.obj";
+      const char* search_path = NULL;
+
+      tinyobj_shape_t* shape = NULL;
+      tinyobj_material_t* material = NULL;
+      tinyobj_attrib_t attrib;
+
+      size_t num_shapes;
+      size_t num_materials;
+
+      tinyobj_attrib_init(&attrib);
+
+      // pass the file reader
+      int result = tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, 0, NULL, TINYOBJ_FLAG_TRIANGULATE);
+   }
 
    return true;
 }
