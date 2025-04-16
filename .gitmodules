@@ -1,9 +1,6 @@
 [submodule "extern/volk"]
 	path = extern/volk
 	url = https://github.com/zeux/volk.git
-[submodule "extern/meshoptimizer"]
-	path = extern/meshoptimizer
-	url = https://github.com/zeux/meshoptimizer.git
-[submodule "extern/tinyobjloader"]
-	path = extern/tinyobjloader
-	url = https://github.com/tinyobjloader/tinyobjloader.git
+[submodule "extern/tinyobjloader-c"]
+	path = extern/tinyobjloader-c
+	url = https://github.com/syoyo/tinyobjloader-c.git
