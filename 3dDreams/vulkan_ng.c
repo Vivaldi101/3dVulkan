@@ -552,7 +552,7 @@ static VkImageView vk_image_view_create(VkDevice logical_dev, VkFormat format, V
    return image_view;
 }
 
-VkImageMemoryBarrier vk_pipeline_barrier(VkImage image, 
+VkImageMemoryBarrier vk_pipeline_barrier(VkImage image, VkImageAspectFlags aspect,
                                          VkAccessFlags src_access, VkAccessFlags dst_access, 
                                          VkImageLayout old_layout, VkImageLayout new_layout)
 {
@@ -569,7 +569,7 @@ VkImageMemoryBarrier vk_pipeline_barrier(VkImage image,
 
    result.image = image;
 
-   result.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   result.subresourceRange.aspectMask = aspect;
    result.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
    result.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
 
@@ -699,10 +699,15 @@ void vk_present(vk_context* context)
       renderpass_info.clearValueCount = 2;
       renderpass_info.pClearValues = clear;
 
-      VkImage image = context->swapchain_info.images[image_index];
-      VkImageMemoryBarrier render_begin_barrier = vk_pipeline_barrier(image, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      VkImage color_image = context->swapchain_info.images[image_index];
+      VkImageMemoryBarrier color_image_begin_barrier = vk_pipeline_barrier(color_image, VK_IMAGE_ASPECT_COLOR_BIT ,0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
       vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                           VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &render_begin_barrier);
+                           VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &color_image_begin_barrier);
+
+      //VkImage depth_image = context->swapchain_info.depths[image_index];
+      //VkImageMemoryBarrier depth_image_begin_barrier = vk_pipeline_barrier(depth_image, VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+      //vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                           //VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &depth_image_begin_barrier);
 
 
       vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
@@ -747,9 +752,13 @@ void vk_present(vk_context* context)
 
       vkCmdEndRenderPass(command_buffer);
 
-      VkImageMemoryBarrier render_end_barrier = vk_pipeline_barrier(image, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+      VkImageMemoryBarrier color_image_end_barrier = vk_pipeline_barrier(color_image, VK_IMAGE_ASPECT_COLOR_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
       vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
-                           VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &render_end_barrier);
+                           VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &color_image_end_barrier);
+
+      //VkImageMemoryBarrier depth_image_end_barrier = vk_pipeline_barrier(depth_image, VK_IMAGE_ASPECT_DEPTH_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+      //vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                           //VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &depth_image_end_barrier);
 
       vk_assert(vkEndCommandBuffer(command_buffer));
    }
@@ -760,6 +769,7 @@ void vk_present(vk_context* context)
 
    submit_info.pWaitDstStageMask = &(VkPipelineStageFlags) { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
+   // add more command buffers here
    submit_info.commandBufferCount = 1;
    submit_info.pCommandBuffers = &command_buffer;
 
