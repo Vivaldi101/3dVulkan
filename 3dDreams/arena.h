@@ -1,10 +1,13 @@
 #pragma once
 
 #include <stddef.h>
-#include <malloc.h>
 #include <stdint.h>
 #include <assert.h>
 #include "common.h"
+
+
+#define set_arena_type(t) typedef t arena_type;
+#define scratch_invariant(s, a, t) ((s) <= scratch_left((a), typeof(*(t))))
 
 #define arena_full(a)      ((a)->beg == (a)->end)   // or empty for stub arenas
 #define arena_loop(i, a, p) for(size (i) = 0; (i) < scratch_left((a), *(p)); ++(i))

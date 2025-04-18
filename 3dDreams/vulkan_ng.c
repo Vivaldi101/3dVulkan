@@ -15,6 +15,56 @@
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "../extern/tinyobjloader-c/tinyobj_loader_c.h"
 
+typedef struct 
+{
+   arena scratch;
+} tinyobj_user_ctx;
+
+typedef struct 
+{
+   f32 vx, vy, vz;
+   f32 nx, ny, nz;
+   f32 tu, tv;
+} vertex;
+
+static void tinyobj_load_mesh(arena scratch, tinyobj_attrib_t* attrib, tinyobj_shape_t* shapes,
+                              size_t shape_count, tinyobj_material_t* materials_out, size_t material_count)
+{
+   size index_count = attrib->num_faces/3;
+
+   vertex* verts = new(&scratch, vertex, index_count);
+   vertex* e = scratch_end_count(verts, scratch, index_count);
+
+   while(verts != e)
+   {
+      vertex* v = verts;
+
+      int vi = attrib->faces->v_idx;
+      //size vti = attrib->texcoords;
+      //size vni = attrib->texcoords;
+
+      //int vni
+      ++verts;
+   }
+}
+
+static void tinyobj_file_read(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len)
+{
+   char shader_path[MAX_PATH];
+
+   tinyobj_user_ctx* user_data = (tinyobj_user_ctx*)ctx;
+
+   file_result project_dir = vk_project_directory(&user_data->scratch);
+
+   wsprintf(shader_path, project_dir.data, array_count(shader_path));
+   wsprintf(shader_path, "%s\\assets\\objs\\%s", project_dir.data, obj_filename);
+
+   file_result file_read = win32_file_read(&user_data->scratch, shader_path);
+
+   *len = file_read.file_size;
+   *buf = file_read.data;
+}
+
 enum { MAX_VULKAN_OBJECT_COUNT = 16, OBJECT_SHADER_COUNT = 2 };
 
 //#define vk_break_on_validation
@@ -1097,11 +1147,12 @@ VkInstance vk_instance_create(arena scratch)
 
    u32 ext_count = 0;
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
-      return false;
+      return 0;
 
    VkExtensionProperties* extensions = new(&scratch, VkExtensionProperties, ext_count);
    if(!implies(!scratch_end(scratch, extensions), vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, extensions))))
-      return false;
+      return 0;
+
    const char** ext_names = new(&scratch, const char*, ext_count);
 
    for(size_t i = 0; i < ext_count; ++i)
@@ -1125,28 +1176,6 @@ VkInstance vk_instance_create(arena scratch)
    return instance;
 }
 
-typedef struct 
-{
-   arena scratch;
-} tinyobj_user_ctx;
-
-void tinyobj_file_read(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len)
-{
-   char shader_path[MAX_PATH];
-
-   tinyobj_user_ctx* user_data = (tinyobj_user_ctx*)ctx;
-
-   file_result project_dir = vk_project_directory(&user_data->scratch);
-
-   wsprintf(shader_path, project_dir.data, array_count(shader_path));
-   wsprintf(shader_path, "%s\\assets\\objs\\%s", project_dir.data, obj_filename);
-
-   file_result file_read = win32_file_read(&user_data->scratch, shader_path);
-
-   *len = file_read.file_size;
-   *buf = file_read.data;
-}
-
 bool vk_initialize(hw* hw)
 {
    if(!hw->renderer.window.handle)
@@ -1155,10 +1184,12 @@ bool vk_initialize(hw* hw)
    if(!vk_valid(volkInitialize()))
       return false;
 
-   vk_context* context = new(&hw->vk_storage, vk_context);
-   if(arena_end(&hw->vk_storage, context))
+   size contexts_left = scratch_left(hw->vk_storage, vk_context);
+
+   if(contexts_left < 1)
       return false;
 
+   vk_context* context = new(&hw->vk_storage, vk_context);
    context->storage = &hw->vk_storage;
 
    const arena scratch = hw->vk_scratch;
@@ -1169,10 +1200,10 @@ bool vk_initialize(hw* hw)
 #ifdef _DEBUG
    {
       VkDebugUtilsMessengerCreateInfoEXT messenger_info = {vk_info_ext(DEBUG_UTILS_MESSENGER)};
-      messenger_info.messageSeverity = 
-         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
+      messenger_info.messageSeverity =
+         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-      messenger_info.messageType = 
+      messenger_info.messageType =
          VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
          VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -1235,7 +1266,7 @@ bool vk_initialize(hw* hw)
    hw->renderer.renderer_index = vk_renderer_index;
 
 
-   // tinyobjc
+   // tinyobj 
    {
       //const char* filename = "cube.obj";
       const char* filename = "cornell_box.obj";
@@ -1253,7 +1284,8 @@ bool vk_initialize(hw* hw)
       tinyobj_user_ctx user_data = {};
       user_data.scratch = scratch;
 
-      int result = tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE);
+      tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE);
+      tinyobj_load_mesh(scratch, &attrib, shape, num_shapes, material, num_materials);
    }
 
    return true;
