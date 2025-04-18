@@ -78,7 +78,7 @@ void app_start(int argc, const char** argv, hw* hw)
 
    if(!vk_initialize(hw))
    {
-      hw_message("Could not open Vulkan");
+      hw_message("Could not initialize Vulkan");
       return;
    }
 
@@ -90,5 +90,5 @@ void app_start(int argc, const char** argv, hw* hw)
 	app_some_type type = {};
 
    if(!vk_uninitialize(hw))
-      hw_message("Could not close Vulkan");
+      hw_message("Could not uninitialize Vulkan");
 }

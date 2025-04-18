@@ -24,7 +24,9 @@
 #define scratch_clear(a) memset((a).beg, 0, scratch_size((a)))
 
 #define set_arena_type(t) typedef t arena_type;
+
 #define scratch_invariant(s, a, t) assert((s) <= scratch_left((a), t))
+#define arena_invariant(s, a, t) assert((s) <= arena_left((a), t))
 
 // TODO: Different news for scratch and storage arenas
 

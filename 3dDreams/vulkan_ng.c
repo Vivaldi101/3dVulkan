@@ -25,27 +25,14 @@ typedef struct
    f32 vx, vy, vz;
    f32 nx, ny, nz;
    f32 tu, tv;
-} vertex;
+} tinyobj_vertex;
 
-static void tinyobj_load_mesh(arena scratch, tinyobj_attrib_t* attrib, tinyobj_shape_t* shapes,
-                              size_t shape_count, tinyobj_material_t* materials_out, size_t material_count)
+static tinyobj_vertex* tinyobj_allocate_mesh(arena* obj_arena, u32 vertex_count)
 {
-   size index_count = attrib->num_faces/3;
+   set_arena_type(tinyobj_vertex);
+   arena_invariant(vertex_count, obj_arena, arena_type);
 
-   vertex* verts = new(&scratch, vertex, index_count);
-   vertex* e = scratch_end_count(verts, scratch, index_count);
-
-   while(verts != e)
-   {
-      vertex* v = verts;
-
-      int vi = attrib->faces->v_idx;
-      //size vti = attrib->texcoords;
-      //size vni = attrib->texcoords;
-
-      //int vni
-      ++verts;
-   }
+   return new(obj_arena, arena_type, vertex_count);
 }
 
 static void tinyobj_file_read(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len)
@@ -1191,17 +1178,19 @@ bool vk_initialize(hw* hw)
    vk_context* context = new(&hw->vk_storage, vk_context);
    context->storage = &hw->vk_storage;
 
-   const arena scratch = hw->vk_scratch;
+   arena scratch = hw->vk_scratch;
 
    u32 ext_count = 0;
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
       return 0;
 
-   set_arena_type(VkExtensionProperties);
-   size ext_left = scratch_left(scratch, arena_type);
+   {
+      set_arena_type(VkExtensionProperties);
+      size ext_left = scratch_left(scratch, arena_type);
 
-   if(ext_left < ext_count)
-      return 0;
+      if(ext_left < ext_count)
+         return 0;
+   }
 
    VkInstance instance = vk_instance_create(scratch, ext_count);
 
@@ -1297,8 +1286,21 @@ bool vk_initialize(hw* hw)
       tinyobj_user_ctx user_data = {};
       user_data.scratch = scratch;
 
-      tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE);
-      tinyobj_load_mesh(scratch, &attrib, shape, num_shapes, material, num_materials);
+      if(!tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE) == TINYOBJ_SUCCESS)
+         return false;
+
+      const u32 vert_count = attrib.num_vertices;
+
+      // must allocate the entire mesh
+      if(scratch_left(scratch, tinyobj_vertex) < vert_count)
+         return false;
+
+      tinyobj_vertex* verts = tinyobj_allocate_mesh(&scratch, vert_count);
+
+      for(size i = 0; i < vert_count; ++i)
+      {
+         verts[i].vx = 1.0f;
+      }
    }
 
    return true;
