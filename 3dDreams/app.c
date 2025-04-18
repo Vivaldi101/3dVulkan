@@ -77,7 +77,10 @@ void app_start(int argc, const char** argv, hw* hw)
    hw_window_open(hw, "App window1", x, y, w, h);
 
    if(!vk_initialize(hw))
+   {
       hw_message("Could not open Vulkan");
+      return;
+   }
 
    g_frustum_create(&frustum, (f32)w, (f32)h, 90.0f);
 

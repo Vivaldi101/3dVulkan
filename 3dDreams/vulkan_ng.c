@@ -1141,16 +1141,15 @@ static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    return pipeline;
 }
 
-VkInstance vk_instance_create(arena scratch)
+VkInstance vk_instance_create(arena scratch, u32 ext_count)
 {
+   set_arena_type(VkExtensionProperties);
+   scratch_invariant(ext_count, scratch, arena_type);
+
    VkInstance instance = 0;
 
-   u32 ext_count = 0;
-   if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
-      return 0;
-
-   VkExtensionProperties* extensions = new(&scratch, VkExtensionProperties, ext_count);
-   if(!implies(!scratch_end(scratch, extensions), vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, extensions))))
+   arena_type* extensions = new(&scratch, arena_type, ext_count);
+   if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, extensions)))
       return 0;
 
    const char** ext_names = new(&scratch, const char*, ext_count);
@@ -1194,7 +1193,21 @@ bool vk_initialize(hw* hw)
 
    const arena scratch = hw->vk_scratch;
 
-   VkInstance instance = vk_instance_create(scratch);
+   u32 ext_count = 0;
+   if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
+      return 0;
+
+   set_arena_type(VkExtensionProperties);
+   size ext_left = scratch_left(scratch, arena_type);
+
+   if(ext_left < ext_count)
+      return 0;
+
+   VkInstance instance = vk_instance_create(scratch, ext_count);
+
+   if(!instance)
+      return 0;
+
    volkLoadInstance(instance);
 
 #ifdef _DEBUG
