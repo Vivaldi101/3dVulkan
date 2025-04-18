@@ -21,9 +21,10 @@ static file_result win32_file_read(arena* file_arena, const char* path)
       return (file_result) {};
 
    u32 file_size_32 = (u32)(file_size.QuadPart);
-   result.data = newsize(file_arena, file_size_32);
-   if(arena_end(file_arena, result.data))
+   if(!arena_left(file_arena, byte))
       return (file_result) {};
+
+   result.data = newsize(file_arena, file_size_32);
 
    DWORD bytes_read = 0;
    if(!(ReadFile(file, result.data, file_size_32, &bytes_read, 0) && (file_size_32 == bytes_read)))

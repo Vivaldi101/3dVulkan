@@ -18,9 +18,6 @@
 #define arena_stub(p, a) ((p) == (a)->end)
 #define scratch_stub(p, a) arena_stub(p, &a)
 
-#define arena_end(a, p) ((byte*)(a)->end == (byte*)(p))
-#define scratch_end(a, p) ((byte*)(a).end == (byte*)(p))
-
 #define arena_end_count(p, a, n) (void*)(p)!=(a)->end?(p)+(n):(p)
 #define scratch_end_count(p, a, n) (void*)(p)!=(a).end?(p)+(n):(p)
 
