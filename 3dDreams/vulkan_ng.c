@@ -22,17 +22,15 @@ typedef struct
 
 typedef struct 
 {
-   f32 vx, vy, vz;
-   f32 nx, ny, nz;
-   f32 tu, tv;
+   f32 vx, vy, vz;   // pos
+   f32 nx, ny, nz;   // normal
+   f32 tu, tv;       // texture
 } tinyobj_vertex;
 
-static tinyobj_vertex* tinyobj_allocate_mesh(arena* obj_arena, u32 vertex_count)
+static tinyobj_vertex* tinyobj_mesh_scratch(arena* obj_arena, u32 vertex_count)
 {
-   set_arena_type(tinyobj_vertex);
-   arena_invariant(vertex_count, obj_arena, arena_type);
-
-   return new(obj_arena, arena_type, vertex_count);
+   arena_invariant(vertex_count, obj_arena, tinyobj_vertex);
+   return new(obj_arena, tinyobj_vertex, vertex_count);
 }
 
 static void tinyobj_file_read(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len)
@@ -1128,18 +1126,37 @@ static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    return pipeline;
 }
 
-VkInstance vk_instance_create(arena scratch, u32 ext_count)
+const char** vk_extension_names_scratch(arena scratch, size ext_count)
+{
+   set_arena_type(const char*);
+
+   if(scratch_left(scratch, arena_type) < ext_count)
+      return 0;
+
+   return new(&scratch, arena_type, ext_count);
+}
+
+VkInstance vk_instance_create(arena scratch)
 {
    set_arena_type(VkExtensionProperties);
-   scratch_invariant(ext_count, scratch, arena_type);
 
    VkInstance instance = 0;
+
+   u32 ext_count = 0;
+   if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
+      return 0;
+
+   if(scratch_left(scratch, arena_type) < ext_count)
+      return 0;
 
    arena_type* extensions = new(&scratch, arena_type, ext_count);
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, extensions)))
       return 0;
 
-   const char** ext_names = new(&scratch, const char*, ext_count);
+   const char** ext_names = vk_extension_names_scratch(scratch, ext_count);
+
+   if(!ext_names)
+      return 0;
 
    for(size_t i = 0; i < ext_count; ++i)
       ext_names[i] = extensions[i].extensionName;
@@ -1170,29 +1187,21 @@ bool vk_initialize(hw* hw)
    if(!vk_valid(volkInitialize()))
       return false;
 
-   size contexts_left = scratch_left(hw->vk_storage, vk_context);
+   set_arena_type(vk_context);
+   size contexts_left = scratch_left(hw->vk_storage, arena_type);
 
    if(contexts_left < 1)
       return false;
 
-   vk_context* context = new(&hw->vk_storage, vk_context);
+   scratch_invariant(1, hw->vk_storage, arena_type);
+
+   arena_type* context = new(&hw->vk_storage, arena_type);
+
    context->storage = &hw->vk_storage;
 
    arena scratch = hw->vk_scratch;
 
-   u32 ext_count = 0;
-   if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, 0)))
-      return 0;
-
-   {
-      set_arena_type(VkExtensionProperties);
-      size ext_left = scratch_left(scratch, arena_type);
-
-      if(ext_left < ext_count)
-         return 0;
-   }
-
-   VkInstance instance = vk_instance_create(scratch, ext_count);
+   VkInstance instance = vk_instance_create(scratch);
 
    if(!instance)
       return 0;
@@ -1256,10 +1265,12 @@ bool vk_initialize(hw* hw)
    VkPhysicalDeviceMemoryProperties memory_props;
    vkGetPhysicalDeviceMemoryProperties(context->physical_dev, &memory_props);
 
-   // TODO: Use when we have tiny obj working
-   //size buffer_size = MB(10);
-   //vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-   //vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+   size buffer_size = MB(10);
+   vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+   vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+   if(index_buffer.handle == VK_NULL_HANDLE || vertex_buffer.handle == VK_NULL_HANDLE)
+      return false;
 
    // app callbacks
    hw->renderer.backends[vk_renderer_index] = context;
@@ -1270,36 +1281,64 @@ bool vk_initialize(hw* hw)
 
    // tinyobj 
    {
-      //const char* filename = "cube.obj";
-      const char* filename = "cornell_box.obj";
-      const char* search_path = NULL;
+      const char* filename = "cube.obj";
+      //const char* filename = "cornell_box.obj";
+      const char* search_path = 0;
 
-      tinyobj_shape_t* shape = NULL;
-      tinyobj_material_t* material = NULL;
-      tinyobj_attrib_t attrib;
+      tinyobj_shape_t* shapes = 0;
+      tinyobj_material_t* materials = 0;
+      tinyobj_attrib_t attrib = {};
 
-      size_t num_shapes;
-      size_t num_materials;
+      size_t num_shapes = 0;
+      size_t num_materials = 0;
 
       tinyobj_attrib_init(&attrib);
 
       tinyobj_user_ctx user_data = {};
+      // user data scratch arena
       user_data.scratch = scratch;
 
-      if(!tinyobj_parse_obj(&attrib, &shape, &num_shapes, &material, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE) == TINYOBJ_SUCCESS)
+      if(!tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE) == TINYOBJ_SUCCESS)
          return false;
 
-      const u32 vert_count = attrib.num_vertices;
+      const u32 vert_count = attrib.num_faces/3;
 
-      // must allocate the entire mesh
       if(scratch_left(scratch, tinyobj_vertex) < vert_count)
          return false;
 
-      tinyobj_vertex* verts = tinyobj_allocate_mesh(&scratch, vert_count);
+      tinyobj_vertex* verts = tinyobj_mesh_scratch(&scratch, vert_count);
 
+      // TODO: just one shape at the moment
+      // TODO: colored verts
+      assert(num_shapes == 1);
       for(size i = 0; i < vert_count; ++i)
       {
-         verts[i].vx = 1.0f;
+         tinyobj_vertex v = {};
+         int vi = attrib.faces[i].v_idx;
+         int vti = attrib.faces[i].vt_idx;
+         int vni = attrib.faces[i].vn_idx;
+
+         if(vi >= 0.0f)
+         {
+            v.vx = attrib.vertices[vi * 3 + 0];
+            v.vy = attrib.vertices[vi * 3 + 1];
+            v.vz = attrib.vertices[vi * 3 + 2];
+         }
+
+         if(vni >= 0.0f)
+         {
+            v.nx = attrib.normals[vni * 3 + 0];
+            v.ny = attrib.normals[vni * 3 + 1];
+            v.nz = attrib.normals[vni * 3 + 2];
+         }
+
+         if(vti >= 0.0f)
+         {
+            v.tu = attrib.normals[vti * 2 + 0];
+            v.tv = attrib.normals[vti * 2 + 1];
+         }
+
+         verts[i] = v;
       }
    }
 
