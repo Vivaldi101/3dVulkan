@@ -27,10 +27,11 @@ typedef struct
    f32 tu, tv;       // texture
 } tinyobj_vertex;
 
-static tinyobj_vertex* tinyobj_mesh_scratch(arena* obj_arena, u32 vertex_count)
+static tinyobj_vertex* tinyobj_mesh_storage(arena* storage, u32 vertex_count)
 {
-   arena_invariant(vertex_count, obj_arena, tinyobj_vertex);
-   return new(obj_arena, tinyobj_vertex, vertex_count);
+   set_arena_type(tinyobj_vertex);
+   arena_invariant(vertex_count, storage, arena_type);
+   return new(storage, arena_type, vertex_count);
 }
 
 static void tinyobj_file_read(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len)
@@ -1126,14 +1127,12 @@ static VkPipeline vk_axis_pipeline_create(VkDevice logical_dev, VkRenderPass ren
    return pipeline;
 }
 
-const char** vk_extension_names_scratch(arena scratch, size ext_count)
+const char** vk_extension_names_storage(arena* storage, size ext_count)
 {
    set_arena_type(const char*);
+   arena_invariant(ext_count, storage, arena_type);
 
-   if(scratch_left(scratch, arena_type) < ext_count)
-      return 0;
-
-   return new(&scratch, arena_type, ext_count);
+   return new(storage, arena_type, ext_count);
 }
 
 VkInstance vk_instance_create(arena scratch)
@@ -1153,10 +1152,10 @@ VkInstance vk_instance_create(arena scratch)
    if(!vk_valid(vkEnumerateInstanceExtensionProperties(0, &ext_count, extensions)))
       return 0;
 
-   const char** ext_names = vk_extension_names_scratch(scratch, ext_count);
-
-   if(!ext_names)
+   if(scratch_left(scratch, const char*) < ext_count)
       return 0;
+
+   const char** ext_names = vk_extension_names_storage(&scratch, ext_count);
 
    for(size_t i = 0; i < ext_count; ++i)
       ext_names[i] = extensions[i].extensionName;
@@ -1306,7 +1305,7 @@ bool vk_initialize(hw* hw)
       if(scratch_left(scratch, tinyobj_vertex) < vert_count)
          return false;
 
-      tinyobj_vertex* verts = tinyobj_mesh_scratch(&scratch, vert_count);
+      tinyobj_vertex* verts = tinyobj_mesh_storage(&scratch, vert_count);
 
       // TODO: just one shape at the moment
       // TODO: colored verts
