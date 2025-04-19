@@ -1268,15 +1268,9 @@ bool vk_initialize(hw* hw)
    vk_buffer index_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
    vk_buffer vertex_buffer = vk_buffer_create(context->logical_dev, buffer_size, memory_props, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
+   // valid gpu buffers
    if(index_buffer.handle == VK_NULL_HANDLE || vertex_buffer.handle == VK_NULL_HANDLE)
       return false;
-
-   // app callbacks
-   hw->renderer.backends[vk_renderer_index] = context;
-   hw->renderer.frame_present = vk_present;
-   hw->renderer.frame_resize = vk_resize;
-   hw->renderer.renderer_index = vk_renderer_index;
-
 
    // tinyobj 
    {
@@ -1300,17 +1294,18 @@ bool vk_initialize(hw* hw)
       if(!tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials, &num_materials, filename, tinyobj_file_read, &user_data, TINYOBJ_FLAG_TRIANGULATE) == TINYOBJ_SUCCESS)
          return false;
 
-      const u32 vert_count = attrib.num_faces/3;
+      // TODO: Why is this / 3?
+      size index_count = attrib.num_faces/3;
 
-      if(scratch_left(scratch, tinyobj_vertex) < vert_count)
-         return false;
+      arena index_scratch = scratch;
+      scratch_shrink(index_scratch, index_count, tinyobj_vertex);
+      assert(index_scratch.end <= scratch.end);
 
-      tinyobj_vertex* verts = tinyobj_mesh_storage(&scratch, vert_count);
+      tinyobj_vertex* verts = new(&index_scratch, tinyobj_vertex, index_count);
+      assert(index_scratch.beg == index_scratch.end);
 
-      // TODO: just one shape at the moment
-      // TODO: colored verts
       assert(num_shapes == 1);
-      for(size i = 0; i < vert_count; ++i)
+      for(size i = 0; (byte*)verts != index_scratch.end; ++i, ++verts)
       {
          tinyobj_vertex v = {};
          int vi = attrib.faces[i].v_idx;
@@ -1339,7 +1334,27 @@ bool vk_initialize(hw* hw)
 
          verts[i] = v;
       }
+      // vb
+      memcpy(vertex_buffer.data, verts, index_count*sizeof(*verts));
+
+      index_scratch = scratch;
+      scratch_shrink(index_scratch, index_count, u32);
+
+      u32* indices = new(&index_scratch, u32, index_count);
+      assert(index_scratch.beg == index_scratch.end);
+
+      for(size i = 0; (byte*)indices++ != index_scratch.end; ++i)
+         indices[i] = (u32)i;
+
+      // ib
+      memcpy(index_buffer.data, indices, index_count*sizeof(*indices));
    }
+
+   // app callbacks
+   hw->renderer.backends[vk_renderer_index] = context;
+   hw->renderer.frame_present = vk_present;
+   hw->renderer.frame_resize = vk_resize;
+   hw->renderer.renderer_index = vk_renderer_index;
 
    return true;
 }

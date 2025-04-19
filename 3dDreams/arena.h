@@ -26,9 +26,9 @@
 #define set_arena_type(t) typedef t arena_type;
 
 #define scratch_invariant(s, a, t) assert((s) <= scratch_left((a), t))
-#define arena_invariant(s, a, t) assert((s) <= arena_left((a), t))
+#define scratch_shrink(a, s, t) (a).end = (a).beg + (s)*sizeof(t)
 
-#define scratch_invariant_size(s, a, st) assert((s) <= scratch_size(a) / (st))
+#define arena_invariant(s, a, t) assert((s) <= arena_left((a), t))
 
 // TODO: Different news for scratch and storage arenas
 
