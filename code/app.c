@@ -31,7 +31,7 @@ static void app_camera_update(app_state* state)
    f32 delta_x = (f32)state->input.mouse_pos[0] - (f32)state->input.mouse_prev_pos[0];
    f32 delta_y = (f32)state->input.mouse_pos[1] - (f32)state->input.mouse_prev_pos[1];
 
-   f32 zoom_speed = 2.f;
+   f32 zoom_speed = 200.f;
 
    if(state->input.mouse_wheel_state & MOUSE_WHEEL_STATE_UP)
    {
@@ -153,7 +153,7 @@ static void app_input_handle(app_state* state)
       f32 altitude = PI / 10.f;
       f32 azimuth = PI * 2.f;
       vec3 origin = {0, 0, 0};
-      app_camera_reset(&state->camera, origin, 1.f, altitude, azimuth);
+      app_camera_reset(&state->camera, origin, 10000.f, altitude, azimuth);
    }
 }
 
