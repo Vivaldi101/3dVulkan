@@ -175,6 +175,10 @@ align_struct vk_features
 align_struct vk_allocator
 {
    VkAllocationCallbacks handle;
+#ifdef _DEBUG
+   uptr min_addr; // for debugging
+   uptr max_addr;
+#endif
    list slots;
    arena* a;
 } vk_allocator;

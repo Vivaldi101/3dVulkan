@@ -47,6 +47,8 @@ static void* VKAPI_PTR vk_allocation(void* user_data,
 
          #if _DEBUG
          printf("ACQUIRING node from free-list: %p with %zu bytes\n", f, f->data.slot_size);
+         allocator->min_addr = min((uptr)((byte*)f->data.memory + sizeof(size)), allocator->min_addr);
+         allocator->max_addr = max((uptr)((byte*)f->data.memory + sizeof(size)), allocator->max_addr);
          #endif
 
          assert(!((uptr)f->data.memory & (alignment - 1)));
@@ -1772,6 +1774,11 @@ bool vk_initialize(hw* hw)
    global_allocator.handle.pfnInternalFree = vk_internal_free;
    global_allocator.handle.pfnInternalAllocation = vk_internal_allocation;
 
+#if _DEBUG
+   global_allocator.min_addr = UINT64_MAX;
+   global_allocator.max_addr = 0;
+#endif
+
    if(!(context->devices.instance = vk_instance_create(s).h))
    {
       printf("Could not create instance\n");
@@ -2013,4 +2020,11 @@ void vk_uninitialize(hw* hw)
 #endif
 
    vkDestroyInstance(devices->instance, &global_allocator.handle);
+
+#if _DEBUG
+   printf("Min allocation address in free-list: %zu\n", global_allocator.min_addr);
+   printf("Max allocation address in free-list: %zu\n", global_allocator.max_addr);
+
+   printf("Vulkan allocation address range: %zu MB\n", (global_allocator.max_addr - global_allocator.min_addr) / (1024*1024));
+#endif
 }
