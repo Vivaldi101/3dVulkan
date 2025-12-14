@@ -300,15 +300,16 @@ static inline mat4 mat4_perspective(f32 ar, f32 fov_y, f32 n, f32 f)
    f32 ay = (2 * n) / (t - b);
    f32 by = -(t + b) / (t - b);
 
-   f32 z0 = -f / (n - f);
    f32 z1 = (f * n) / (n - f);
+
+   f32 epsilon = 1.f - EPSILON;
 
    mat4 result = 
    {
       ax,   0,   0,    0,
       0,    ay,  0,    0,
-      bx,   by,  z0,   1.0f,
-      0,    0,   z1,   0,
+      bx,   by,   1.0f*epsilon, 1.0f,
+      0,    0,   z1*epsilon,   0,
    };
 
    return result;

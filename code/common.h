@@ -52,7 +52,7 @@ static_assert(custom_alignment == 64, "");
 
 #define clamp(t, min, max) ((t) <= (min) ? (min) : (t) >= (max) ? (max) : (t))
 
-#define EPSILON 1e-6  // Adjust this as needed
+#define EPSILON (10e-6f)  // Adjust this as needed
 
 #define PI 3.14159265358979323846f
 
