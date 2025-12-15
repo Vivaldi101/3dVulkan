@@ -17,6 +17,8 @@
 
 #include "../assets/shaders/mesh.h"
 
+#define VK_BREAK_ON_VALIDATION true
+
 #define vk_valid_handle(v) ((v) != VK_NULL_HANDLE)
 #define vk_valid_format(v) ((v) != VK_FORMAT_UNDEFINED)
 
@@ -209,8 +211,9 @@ align_struct vk_context
 
    vk_descriptor texture_descriptor;
 
+   VkFence render_fence;
    VkSemaphore image_ready_semaphore;
-   VkSemaphore image_done_semaphore;
+   VkSemaphore image_done_semaphores[3]; // TODO: array
    u32 image_index;
 
    VkQueue graphics_queue;

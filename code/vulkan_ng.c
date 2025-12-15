@@ -284,8 +284,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
 #else
    (void)data;
 #endif
-#ifdef vk_break_on_validation
-   assert((type & VK_DEBUG_REPORT_ERROR_BIT_EXT) != 0);
+#ifdef VK_BREAK_ON_VALIDATION
+   assert(false);
 #endif
 
    return false;
@@ -612,6 +612,20 @@ static VkQueue vk_graphics_queue_get(vk_device* devices)
    vkGetDeviceQueue(devices->logical, (u32)devices->queue_family_index, queue_index, &graphics_queue);
 
    return graphics_queue;
+}
+
+static hw_result vk_fence_create(vk_device* devices, bool timeout)
+{
+   VkFence fence = 0;
+   VkFenceCreateInfo fence_info = {vk_info(FENCE)};
+
+   if(timeout)
+      fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+   if(!vk_valid(vkCreateFence(devices->logical, &fence_info, &global_allocator.handle, &fence)))
+      return (hw_result){0};
+
+   return (hw_result){fence};
 }
 
 static hw_result vk_semaphore_create(vk_device* devices)
@@ -987,24 +1001,21 @@ static void vk_present(hw_renderer* renderer, vk_context* context)
    present_info.pSwapchains = &context->swapchain.handle;
    present_info.pImageIndices = &context->image_index;
    present_info.waitSemaphoreCount = 1;
-   present_info.pWaitSemaphores = &context->image_done_semaphore;
+   present_info.pWaitSemaphores = &context->image_done_semaphores[context->image_index];
 
    VkResult present_result = vkQueuePresentKHR(context->graphics_queue, &present_info);
 
    if(present_result == VK_SUBOPTIMAL_KHR || present_result == VK_ERROR_OUT_OF_DATE_KHR)
       vk_resize_swapchain(renderer, context->swapchain.image_width, context->swapchain.image_height);
-
-   // wait until all queue ops are done
-   // essentialy run gpu and cpu in sync (driver decides this)
-   // TODO: This is bad way to do sync but who cares for now
-   // TODO: Use fences really
-   vk_assert(vkDeviceWaitIdle(context->devices.logical));
 }
 
 static void vk_render(hw_renderer* renderer, vk_context* context, app_state* state)
 {
+   vk_assert(vkWaitForFences(context->devices.logical, 1, &context->render_fence, VK_TRUE, UINT64_MAX));
+   vk_assert(vkResetFences(context->devices.logical, 1, &context->render_fence));
+
    u32 image_index = 0;
-   VkResult next_image_result = vkAcquireNextImageKHR(context->devices.logical, context->swapchain.handle, UINT64_MAX, context->image_ready_semaphore, VK_NULL_HANDLE, &image_index);
+   VkResult next_image_result = vkAcquireNextImageKHR(context->devices.logical, context->swapchain.handle, UINT64_MAX, context->image_ready_semaphore, context->render_fence, &image_index);
 
    context->image_index = image_index;
 
@@ -1220,9 +1231,12 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    submit_info.pCommandBuffers = &command_buffer;
 
    submit_info.signalSemaphoreCount = 1;
-   submit_info.pSignalSemaphores = &context->image_done_semaphore;
+   submit_info.pSignalSemaphores = &context->image_done_semaphores[context->image_index];
 
-   vk_assert(vkQueueSubmit(context->graphics_queue, 1, &submit_info, VK_NULL_HANDLE));
+   vk_assert(vkWaitForFences(context->devices.logical, 1, &context->render_fence, VK_TRUE, UINT64_MAX));
+   vk_assert(vkResetFences(context->devices.logical, 1, &context->render_fence));
+
+   vk_assert(vkQueueSubmit(context->graphics_queue, 1, &submit_info, context->render_fence));
 }
 
 // TODO: pass amount of bindings to create here
@@ -1819,9 +1833,19 @@ bool vk_initialize(hw* hw)
       printf("Could not create image ready semaphore\n");
       return false;
    }
-   if(!(context->image_done_semaphore = vk_semaphore_create(devices).h))
+
+   for(size i = 0; i < array_count(context->image_done_semaphores); ++i)
    {
-      printf("Could not create image done semaphore\n");
+      if(!(context->image_done_semaphores[i] = vk_semaphore_create(devices).h))
+      {
+         printf("Could not create image done semaphore\n");
+         return false;
+      }
+   }
+
+   if(!(context->render_fence = vk_fence_create(devices, true).h))
+   {
+      printf("Could not create render fence\n");
       return false;
    }
 
@@ -1987,8 +2011,12 @@ void vk_uninitialize(hw* hw)
    vkDestroyAccelerationStructureKHR(context->devices.logical, context->rt_as.tlas, &global_allocator.handle);
 
    vkDestroyRenderPass(context->devices.logical, context->renderpass, &global_allocator.handle);
-   vkDestroySemaphore(context->devices.logical, context->image_done_semaphore, &global_allocator.handle);
+
+   for(size i = 0; i < array_count(context->image_done_semaphores); ++i)
+      vkDestroySemaphore(context->devices.logical, context->image_done_semaphores[i], &global_allocator.handle);
    vkDestroySemaphore(context->devices.logical, context->image_ready_semaphore, &global_allocator.handle);
+
+   vkDestroyFence(context->devices.logical, context->render_fence, &global_allocator.handle);
 
    for(u32 i = 0; i < context->framebuffers.count; ++i)
       vkDestroyFramebuffer(context->devices.logical, context->framebuffers.data[i], &global_allocator.handle);
