@@ -8,7 +8,7 @@ Simple diffuse lighting:
 
 Ray tracing with queries with shadow rays:
 
-<img width="1919" height="1031" alt="{03F847A0-798B-41B0-A741-A3A07766CF56}" src="https://github.com/user-attachments/assets/f26e7af5-bb05-4673-b0aa-322f03cb2e93" />
+<img width="1920" height="1025" alt="{79F038C0-B69F-4DAE-AB4D-452F3BC86DA5}" src="https://github.com/user-attachments/assets/a6885e5f-70c8-4275-8309-5ca460f79e8a" />
 
 Colors highlighting individual meshlets:
 
