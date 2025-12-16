@@ -5,7 +5,7 @@ struct vertex
 {
    float vx, vy, vz;    // pos
    uint8_t nx, ny, nz;  // normal
-   //uint8_t tx, ty, tz;  // tangent
+   uint8_t tx, ty, tz, tw;  // tangent
    float tu, tv;        // texture
 };
 

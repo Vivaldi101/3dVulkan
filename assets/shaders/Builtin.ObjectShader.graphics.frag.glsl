@@ -15,7 +15,7 @@ layout(location = 0) in vec3 in_normal;
 layout(location = 1) in vec3 in_world_frag_pos;
 layout(location = 2) in vec2 in_uv;
 layout(location = 3) flat in uint in_draw_ID;
-layout(location = 4) in mat3 TBN;
+layout(location = 4) in vec4 in_tangent;
 
 layout(set = 0, binding = 1) readonly buffer mesh_draw_block
 {
@@ -56,10 +56,12 @@ void main()
    
        if(draw.normal != -1)
        {
-         vec3 tangent_normal = texture(textures[draw.normal], in_uv).rgb;
-         tangent_normal = normalize(tangent_normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+         vec3 normal_map = texture(textures[draw.normal], in_uv).rgb;
+         normal_map = normalize(normal_map * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
 
-         world_normal = normalize(TBN * tangent_normal);
+         vec3 bitangent = cross(in_normal, in_tangent.xyz) * in_tangent.w;
+
+         world_normal = normalize(normal_map.x * in_tangent.xyz + normal_map.y * bitangent + normal_map.z * in_normal);
        }
 
        vec3 ambient_color = vec3(1.0); // scale the light to reduce brightness

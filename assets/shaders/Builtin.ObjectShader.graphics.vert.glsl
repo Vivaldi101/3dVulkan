@@ -30,48 +30,48 @@ layout(location = 0) out vec3 out_normal;
 layout(location = 1) out vec3 out_world_frag_pos;
 layout(location = 2) out vec2 out_uv;
 layout(location = 3) flat out uint out_draw_ID;
-layout(location = 4) out mat3 out_TBN;
+layout(location = 4) out vec4 out_tangent;
 
 void main()
 {
     int draw_ID = gl_DrawIDARB;
 
     vertex v;
-    vec3 p = vec3(0.f);
-    vec3 n = vec3(0.f);
-    vec2 t = vec2(0.f);
-
+    vec3 pos = vec3(0.f);
+    vec3 normal = vec3(0.f);
+    vec2 uv = vec2(0.f);
     vec4 world_pos = vec4(0.f);
+    vec4 tangent = vec4(0.f);
 
     if(!globals.draw_ground_plane)
     {
-        p = vec3(verts[gl_VertexIndex].vx, verts[gl_VertexIndex].vy, verts[gl_VertexIndex].vz) * 1.f;
-        n = vec3(verts[gl_VertexIndex].nx, verts[gl_VertexIndex].ny, verts[gl_VertexIndex].nz);
-        t = vec2(verts[gl_VertexIndex].tu, verts[gl_VertexIndex].tv);
+        pos = vec3(verts[gl_VertexIndex].vx, verts[gl_VertexIndex].vy, verts[gl_VertexIndex].vz) * 1.f;
+        normal = vec3(verts[gl_VertexIndex].nx, verts[gl_VertexIndex].ny, verts[gl_VertexIndex].nz);
+        tangent = vec4(verts[gl_VertexIndex].tx, verts[gl_VertexIndex].ty, verts[gl_VertexIndex].tz, verts[gl_VertexIndex].tw);
+        uv = vec2(verts[gl_VertexIndex].tu, verts[gl_VertexIndex].tv);
 
-        world_pos = draws[draw_ID].world * vec4(p, 1.0);
+        world_pos = draws[draw_ID].world * vec4(pos, 1.0);
     }
     else
     {
-        p = quad[gl_VertexIndex];
-        world_pos = vec4(p, 1.0);
+        pos = quad[gl_VertexIndex];
+        world_pos = vec4(pos, 1.0);
     }
 
     gl_Position = globals.projection * globals.view * world_pos;
 
     // Decode normal and transform to world space using inverse transpose
-    vec3 normal = (n - 127.5) / 127.5;
+    normal = (normal - 127.5) / 127.5;
+    tangent = (tangent - 127.5) / 127.5;
+
     mat3 normal_matrix = transpose(inverse(mat3(draws[draw_ID].world)));
     vec3 world_normal = normalize(normal_matrix * normal);
-    vec2 texcoord = t;
+    vec3 world_tangent = normalize(normal_matrix * tangent.xyz);
 
-    vec3 up = abs(world_normal.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
-    vec3 u = normalize(cross(up, world_normal));
-    vec3 b = cross(world_normal, u);
-    out_TBN = mat3(u, b, world_normal);
+    out_tangent = vec4(world_tangent, tangent.w);
 
     out_normal = world_normal;
     out_world_frag_pos = world_pos.xyz;
-    out_uv = texcoord;
+    out_uv = uv;
     out_draw_ID = draw_ID;
 }

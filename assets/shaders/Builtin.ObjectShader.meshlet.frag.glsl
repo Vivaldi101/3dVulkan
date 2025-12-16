@@ -21,7 +21,7 @@ layout(location = 1) in vec2 in_uv;
 layout(location = 2) in vec3 in_wp;
 layout(location = 3) in vec3 in_normal;
 layout(location = 4) flat in uint in_draw_ID;
-layout(location = 5) in mat3 in_TBN;
+layout(location = 5) in vec4 in_tangent;
 
 layout(set = 1, binding = 0)
 uniform sampler2D textures[];
@@ -52,10 +52,11 @@ void main()
 
    if(draw.normal != -1)
    {
-      vec3 tangent_normal = texture(textures[draw.normal], in_uv).rgb;
-      tangent_normal = normalize(tangent_normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+      vec3 normal_map = texture(textures[draw.normal], in_uv).rgb;
+      normal_map = normalize(normal_map * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
 
-      world_normal = normalize(in_TBN * tangent_normal);
+      vec3 bitangent = cross(in_normal, in_tangent.xyz) * in_tangent.w;
+      world_normal = normalize(normal_map.x * in_tangent.xyz + normal_map.y * bitangent + normal_map.z * in_normal);
    }
 
    vec3 sun_dir = normalize(vec3(1, 1, 1));

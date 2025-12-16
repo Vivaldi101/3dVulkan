@@ -45,7 +45,7 @@ layout(location = 1) out vec2 out_uv[];
 layout(location = 2) out vec3 out_wp[];
 layout(location = 3) out vec3 out_normal[];
 layout(location = 4) flat out uint out_draw_ID[];
-layout(location = 5) out mat3 out_TBN[];
+layout(location = 5) out vec4 out_tangent[];
 
 vec3 renormalize_normal(vec3 n)
 {
@@ -98,27 +98,27 @@ void main()
       vec4 wp = draws[draw_ID].world * vec4(vec3(v.vx, v.vy, v.vz), 1.0f);
       vec4 vo = globals.projection * globals.view * wp;
       vec3 n = vec3(v.nx, v.ny, v.nz);
+      vec4 t = vec4(v.tx, v.ty, v.tz, v.tw);
 
       gl_MeshVerticesEXT[i].gl_Position = vo;
       out_wp[i] = wp.xyz;
 
       vec3 normal = (n - 127.5) / 127.5;
+      vec4 tangent = (t - 127.5) / 127.5;
       vec3 world_normal = normalize(normal_matrix * normal);
+      vec3 world_tangent = normalize(normal_matrix * tangent.xyz);
 
 #if DEBUG
       out_color[i] = vec4(meshlet_color, 1.0);
 #else
       out_color[i] = vec4(vec3(normal), 1.0);
 #endif
-      vec2 texcoord = vec2(v.tu, v.tv);
-      out_uv[i] = texcoord;
+      vec2 uv = vec2(v.tu, v.tv);
+
+      out_uv[i] = uv;
       out_normal[i] = world_normal;
       out_draw_ID[i] = draw_ID;
-
-      vec3 up = abs(world_normal.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
-      vec3 u = normalize(cross(up, world_normal));
-      vec3 b = cross(world_normal, u);
-      out_TBN[i] = mat3(u, b, world_normal);
+      out_tangent[i] = vec4(world_tangent, tangent.w);
     }
 
     for(uint i = ti; i < triangle_count; i += 64)

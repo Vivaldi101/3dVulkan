@@ -460,6 +460,7 @@ static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_
          usize vertex_count = 0;
          cgltf_accessor* position_accessor = 0;
          cgltf_accessor* normal_accessor = 0;
+         cgltf_accessor* tangent_accessor = 0;
          cgltf_accessor* texcoord_accessor = 0;
 
          // parse attribute types
@@ -480,6 +481,10 @@ static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_
 
                case cgltf_attribute_type_normal:
                normal_accessor = attr->data;
+               break;
+
+               case cgltf_attribute_type_tangent:
+               tangent_accessor = attr->data;
                break;
 
                case cgltf_attribute_type_texcoord:
@@ -514,6 +519,16 @@ static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_
                vert.nx = (uint8_t)((norm[0] * 0.5f + 0.5f) * 255.0f);
                vert.ny = (uint8_t)((norm[1] * 0.5f + 0.5f) * 255.0f);
                vert.nz = (uint8_t)((norm[2] * 0.5f + 0.5f) * 255.0f);
+            }
+            if(tangent_accessor)
+            {
+               f32 tangent[4] = {0};
+               cgltf_accessor_read_float(tangent_accessor, k, tangent, 4);
+               // pack tangents
+               vert.tx = (uint8_t)((tangent[0] * 0.5f + 0.5f) * 255.0f);
+               vert.ty = (uint8_t)((tangent[1] * 0.5f + 0.5f) * 255.0f);
+               vert.tz = (uint8_t)((tangent[2] * 0.5f + 0.5f) * 255.0f);
+               vert.tw = (uint8_t)((tangent[3] * 0.5f + 0.5f) * 255.0f);
             }
             if(texcoord_accessor)
             {
