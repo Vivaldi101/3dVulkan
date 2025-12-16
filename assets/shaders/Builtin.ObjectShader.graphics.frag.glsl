@@ -43,22 +43,37 @@ void main()
    
        vec4 albedo = vec4(.5, .5, .5, 1);
        vec3 emissive = vec3(0.0);
+       vec3 normal = vec3(0.0, 0.0, 1.0);
 
        if(draw.albedo != -1)
          albedo = texture(textures[draw.albedo], in_uv).rgba;
+
+       if(albedo.a < 0.5) discard;
    
        if(draw.emissive != -1)
          emissive = texture(textures[draw.emissive], in_uv).rgb;
+   
+       if(draw.normal != -1)
+       {
+         normal = texture(textures[draw.normal], in_uv).rgb;
+         normal = normalize(normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+       }
 
-       float diffuse_factor = max(dot(normalize(in_normal), normalize(vec3(1, 0.45, 1))), 0.0);
-       vec3 diffuse = diffuse_factor * light_color;
+       vec3 light_color = vec3(0.6); // scale the light to reduce brightness
 
-       if(albedo.a < 0.5) discard;
+       float diffuse_factor = max(dot(normal, normalize(vec3(1, 0.45, 1))), 0.0);
+       
+       // Combine diffuse + emissive in linear space
+       vec3 color_linear = albedo.rgb * diffuse_factor * light_color + emissive;
 
-       out_color = vec4(albedo.rgb * sqrt(diffuse_factor + 0.05) + emissive, albedo.a);
+       // Apply gamma correction (linear -> sRGB)
+       vec3 color_srgb = pow(color_linear, vec3(1.0 / 2.2));
+
+       out_color = vec4(color_srgb, albedo.a);
     }
     else
     {
+      // draw the ground plane with some glow
       vec3 procedural_center = vec3(10.0, 7.0, 0.0);
       float glow_intensity = 3.0;
       

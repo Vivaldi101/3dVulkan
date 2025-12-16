@@ -41,6 +41,7 @@ void main()
 
    vec4 albedo = vec4(.5, .5, .5, 1);
    vec3 emissive = vec3(0.0);
+   vec3 normal = vec3(0.0, 0.0, 1.0);
 
    if(draw.albedo != -1)
       albedo = texture(textures[draw.albedo], in_uv).rgba;
@@ -48,11 +49,14 @@ void main()
    if(draw.emissive != -1)
       emissive = texture(textures[draw.emissive], in_uv).rgb;
 
-   //float diffuse_factor = max(dot(normalize(in_normal), normalize(vec3(1, 1, 0))), 0.0);
-   //vec3 diffuse = diffuse_factor * light_color;
+   if(draw.normal != -1)
+   {
+      normal = texture(textures[draw.normal], in_uv).rgb;
+      normal = normalize(normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+   }
 
-   vec3 sun_dir = normalize(vec3(1, 1, 1));
-   vec3 N = normalize(in_normal);
+   vec3 sun_dir = normalize(vec3(0, 0, 1));
+   vec3 N = normal;
    
    // Small offset to avoid self-intersection
    float epsilon = 0.0005;
