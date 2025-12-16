@@ -30,6 +30,7 @@ layout(location = 0) out vec3 out_normal;
 layout(location = 1) out vec3 out_world_frag_pos;
 layout(location = 2) out vec2 out_uv;
 layout(location = 3) flat out uint out_draw_ID;
+layout(location = 4) out mat3 out_TBN;
 
 void main()
 {
@@ -63,6 +64,11 @@ void main()
     mat3 normal_matrix = transpose(inverse(mat3(draws[draw_ID].world)));
     vec3 world_normal = normalize(normal_matrix * normal);
     vec2 texcoord = t;
+
+    vec3 up = abs(world_normal.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+    vec3 u = normalize(cross(up, world_normal));
+    vec3 b = cross(world_normal, u);
+    out_TBN = mat3(u, b, world_normal);
 
     out_normal = world_normal;
     out_world_frag_pos = world_pos.xyz;

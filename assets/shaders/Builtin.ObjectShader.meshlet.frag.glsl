@@ -21,6 +21,7 @@ layout(location = 1) in vec2 in_uv;
 layout(location = 2) in vec3 in_wp;
 layout(location = 3) in vec3 in_normal;
 layout(location = 4) flat in uint in_draw_ID;
+layout(location = 5) in mat3 in_TBN;
 
 layout(set = 1, binding = 0)
 uniform sampler2D textures[];
@@ -41,7 +42,7 @@ void main()
 
    vec4 albedo = vec4(.5, .5, .5, 1);
    vec3 emissive = vec3(0.0);
-   vec3 normal = vec3(0.0, 0.0, 1.0);
+   vec3 world_normal = vec3(0.0, 0.0, 1.0);
 
    if(draw.albedo != -1)
       albedo = texture(textures[draw.albedo], in_uv).rgba;
@@ -51,12 +52,14 @@ void main()
 
    if(draw.normal != -1)
    {
-      normal = texture(textures[draw.normal], in_uv).rgb;
-      normal = normalize(normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+      vec3 tangent_normal = texture(textures[draw.normal], in_uv).rgb;
+      tangent_normal = normalize(tangent_normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+
+      world_normal = normalize(in_TBN * tangent_normal);
    }
 
-   vec3 sun_dir = normalize(vec3(0, 0, 1));
-   vec3 N = normal;
+   vec3 sun_dir = normalize(vec3(1, 1, 1));
+   vec3 N = world_normal;
    
    // Small offset to avoid self-intersection
    float epsilon = 0.0005;

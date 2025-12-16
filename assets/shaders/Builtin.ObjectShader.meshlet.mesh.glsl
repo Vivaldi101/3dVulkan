@@ -45,6 +45,7 @@ layout(location = 1) out vec2 out_uv[];
 layout(location = 2) out vec3 out_wp[];
 layout(location = 3) out vec3 out_normal[];
 layout(location = 4) flat out uint out_draw_ID[];
+layout(location = 5) out mat3 out_TBN[];
 
 vec3 renormalize_normal(vec3 n)
 {
@@ -113,6 +114,11 @@ void main()
       out_uv[i] = texcoord;
       out_normal[i] = world_normal;
       out_draw_ID[i] = draw_ID;
+
+      vec3 up = abs(world_normal.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+      vec3 u = normalize(cross(up, world_normal));
+      vec3 b = cross(world_normal, u);
+      out_TBN[i] = mat3(u, b, world_normal);
     }
 
     for(uint i = ti; i < triangle_count; i += 64)

@@ -15,6 +15,7 @@ layout(location = 0) in vec3 in_normal;
 layout(location = 1) in vec3 in_world_frag_pos;
 layout(location = 2) in vec2 in_uv;
 layout(location = 3) flat in uint in_draw_ID;
+layout(location = 4) in mat3 TBN;
 
 layout(set = 0, binding = 1) readonly buffer mesh_draw_block
 {
@@ -43,7 +44,7 @@ void main()
    
        vec4 albedo = vec4(.5, .5, .5, 1);
        vec3 emissive = vec3(0.0);
-       vec3 normal = vec3(0.0, 0.0, 1.0);
+       vec3 world_normal = vec3(0.0, 0.0, 1.0);
 
        if(draw.albedo != -1)
          albedo = texture(textures[draw.albedo], in_uv).rgba;
@@ -55,19 +56,22 @@ void main()
    
        if(draw.normal != -1)
        {
-         normal = texture(textures[draw.normal], in_uv).rgb;
-         normal = normalize(normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+         vec3 tangent_normal = texture(textures[draw.normal], in_uv).rgb;
+         tangent_normal = normalize(tangent_normal * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
+
+         world_normal = normalize(TBN * tangent_normal);
        }
 
-       vec3 light_color = vec3(0.6); // scale the light to reduce brightness
+       vec3 ambient_color = vec3(1.0); // scale the light to reduce brightness
 
-       float diffuse_factor = max(dot(normal, normalize(vec3(1, 0.45, 1))), 0.0);
+       float diffuse_factor = max(dot(world_normal, normalize(vec3(1, 0.45, 1))), 0.0);
        
        // Combine diffuse + emissive in linear space
-       vec3 color_linear = albedo.rgb * diffuse_factor * light_color + emissive;
+       vec3 color_linear = albedo.rgb * diffuse_factor * ambient_color + emissive;
 
        // Apply gamma correction (linear -> sRGB)
-       vec3 color_srgb = pow(color_linear, vec3(1.0 / 2.2));
+       //vec3 color_srgb = pow(color_linear, vec3(1.0 / 2.2));
+       vec3 color_srgb = color_linear;
 
        out_color = vec4(color_srgb, albedo.a);
     }
