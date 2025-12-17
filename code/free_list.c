@@ -6,19 +6,6 @@ static void list_node_release(list* l, list_node* n)
    l->free_list->next = n;
 }
 
-static list_node* free_list_node(list* l)
-{
-   assert(l->free_list && l->free_list->next);
-
-   list_node* result = 0;
-
-   // take first from free list
-   result = l->free_list->next;
-   l->free_list->next = l->free_list->next->next;
-
-   return result;
-}
-
 static list_node* list_node_push(arena* a, list* l, size node_memory_size)
 {
    size alloc_size = sizeof(list_node) + node_memory_size;

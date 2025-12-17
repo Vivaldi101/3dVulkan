@@ -40,7 +40,9 @@ static void* VKAPI_PTR vk_allocation(void* user_data,
          prev = f;
          f = f->next;
       }
-      if(f)
+      assert(!f || f->data.slot_size == new_size);
+
+      if(f && (f->data.slot_size == new_size))
       {
          prev->next = f->next;
          f->next = 0;
