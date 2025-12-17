@@ -45,12 +45,18 @@ void main()
    vec3 world_normal = vec3(0.0, 0.0, 1.0);
 
    if(draw.albedo != -1)
+   {
       albedo = texture(textures[draw.albedo], in_uv).rgba;
+      albedo.xyz = color_to_linear(albedo.xyz);
+   }
 
    if(albedo.a < 0.5) discard;
    
    if(draw.emissive != -1)
+   {
       emissive = texture(textures[draw.emissive], in_uv).rgb;
+      emissive.xyz = color_to_linear(emissive.xyz);
+   }
 
    if(draw.normal != -1)
    {
@@ -98,5 +104,6 @@ void main()
    vec3 color = (albedo.rgb * ndotl * visibility + emissive) + ambient;
    
    out_color = vec4(color, albedo.a);
+   out_color.xyz = color_to_srgb(out_color.xyz);
 #endif
 }

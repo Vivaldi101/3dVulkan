@@ -29,5 +29,4 @@ struct mesh_draw
 
    mat4 world;           // world transform - TODO: use pos, quat, scale in future
 };
-
 #endif
