@@ -37,8 +37,8 @@ void main()
    out_color = in_color;
 #else
     mesh_draw draw = draws[in_draw_ID];
-    vec3 light_color = vec3(1.f);
-    float ambient = 0.f;
+   vec3 light_color = vec3(1.f);
+   float ambient = 0.f;
 
    vec4 albedo = vec4(.5, .5, .5, 1);
    vec3 emissive = vec3(0.0);
@@ -57,8 +57,12 @@ void main()
       vec3 normal_map = texture(textures[draw.normal], in_uv).rgb;
       normal_map = normalize(normal_map * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
 
-      vec3 bitangent = cross(in_normal, in_tangent.xyz) * in_tangent.w;
-      world_normal = normalize(normal_map.x * in_tangent.xyz + normal_map.y * bitangent + normal_map.z * in_normal);
+      vec3 normal = normalize(in_normal);
+      vec3 tangent = normalize(in_tangent.xyz);
+      vec3 bitangent = cross(normal, tangent) * in_tangent.w;
+      bitangent = normalize(bitangent);
+
+      world_normal = normalize(normal_map.x * tangent.xyz + normal_map.y * bitangent + normal_map.z * normal);
    }
 
    vec3 sun_dir = normalize(vec3(1, 1, 1));

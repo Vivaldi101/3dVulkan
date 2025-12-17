@@ -59,9 +59,12 @@ void main()
          vec3 normal_map = texture(textures[draw.normal], in_uv).rgb;
          normal_map = normalize(normal_map * 2.0 - 1.0); // Remap from [0,1] to [-1,1]
 
-         vec3 bitangent = cross(in_normal, in_tangent.xyz) * in_tangent.w;
+         vec3 normal = normalize(in_normal);
+         vec3 tangent = normalize(in_tangent.xyz);
+         vec3 bitangent = cross(normal, tangent) * in_tangent.w;
+         bitangent = normalize(bitangent);
 
-         world_normal = normalize(normal_map.x * in_tangent.xyz + normal_map.y * bitangent + normal_map.z * in_normal);
+         world_normal = normalize(normal_map.x * tangent.xyz + normal_map.y * bitangent + normal_map.z * normal);
        }
 
        vec3 ambient_color = vec3(1.0); // scale the light to reduce brightness
