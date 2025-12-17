@@ -1001,7 +1001,7 @@ static void vk_present(hw_renderer* renderer, vk_context* context)
    present_info.pSwapchains = &context->swapchain.handle;
    present_info.pImageIndices = &context->image_index;
    present_info.waitSemaphoreCount = 1;
-   present_info.pWaitSemaphores = &context->image_done_semaphores[context->image_index];
+   present_info.pWaitSemaphores = &context->image_done_semaphores.data[context->image_index];
 
    VkResult present_result = vkQueuePresentKHR(context->graphics_queue, &present_info);
 
@@ -1231,7 +1231,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    submit_info.pCommandBuffers = &command_buffer;
 
    submit_info.signalSemaphoreCount = 1;
-   submit_info.pSignalSemaphores = &context->image_done_semaphores[context->image_index];
+   submit_info.pSignalSemaphores = &context->image_done_semaphores.data[context->image_index];
 
    vk_assert(vkWaitForFences(context->devices.logical, 1, &context->render_fence, VK_TRUE, UINT64_MAX));
    vk_assert(vkResetFences(context->devices.logical, 1, &context->render_fence));
@@ -1834,13 +1834,22 @@ bool vk_initialize(hw* hw)
       return false;
    }
 
-   for(size i = 0; i < array_count(context->image_done_semaphores); ++i)
+   // TODO: break this apart so that handle creation is separate
+   context->swapchain = vk_swapchain_surface_create(s, devices, *surface, hw->renderer.window.width, hw->renderer.window.height);
+
+   // semaphores
+   context->image_done_semaphores.arena = a;
+   array_resize(context->image_done_semaphores, context->swapchain.image_count);
+
+   for(size i = 0; i < context->swapchain.image_count; ++i)
    {
-      if(!(context->image_done_semaphores[i] = vk_semaphore_create(devices).h))
+      VkSemaphore sema = vk_semaphore_create(devices).h;
+      if(!sema)
       {
-         printf("Could not create image done semaphore\n");
+         printf("Could not create %zuth image done semaphore\n", i);
          return false;
       }
+      array_add(context->image_done_semaphores, sema);
    }
 
    if(!(context->render_fence = vk_fence_create(devices, true).h))
@@ -1867,8 +1876,6 @@ bool vk_initialize(hw* hw)
       printf("Could not create command buffer\n");
       return false;
    }
-   // TODO: break this apart so that handle creation is separate
-   context->swapchain = vk_swapchain_surface_create(s, devices, *surface, hw->renderer.window.width, hw->renderer.window.height);
 
    if(!(context->renderpass = vk_renderpass_create(devices, swapchain).h))
    {
@@ -2012,8 +2019,9 @@ void vk_uninitialize(hw* hw)
 
    vkDestroyRenderPass(context->devices.logical, context->renderpass, &global_allocator.handle);
 
-   for(size i = 0; i < array_count(context->image_done_semaphores); ++i)
-      vkDestroySemaphore(context->devices.logical, context->image_done_semaphores[i], &global_allocator.handle);
+   for(size i = 0; i < context->image_done_semaphores.count; ++i)
+      vkDestroySemaphore(context->devices.logical, context->image_done_semaphores.data[i], &global_allocator.handle);
+
    vkDestroySemaphore(context->devices.logical, context->image_ready_semaphore, &global_allocator.handle);
 
    vkDestroyFence(context->devices.logical, context->render_fence, &global_allocator.handle);

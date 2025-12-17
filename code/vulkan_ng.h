@@ -213,7 +213,7 @@ align_struct vk_context
 
    VkFence render_fence;
    VkSemaphore image_ready_semaphore;
-   VkSemaphore image_done_semaphores[3]; // TODO: array
+   array(VkSemaphore) image_done_semaphores;
    u32 image_index;
 
    VkQueue graphics_queue;
