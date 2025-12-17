@@ -40,7 +40,7 @@ void main()
    vec3 light_color = vec3(1.f);
    float ambient = 0.f;
 
-   vec4 albedo = vec4(.5, .5, .5, 1);
+   vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
    vec3 emissive = vec3(0.0);
    vec3 world_normal = vec3(0.0, 0.0, 1.0);
 
