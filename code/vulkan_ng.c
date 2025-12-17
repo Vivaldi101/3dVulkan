@@ -166,11 +166,11 @@ static vk_shader_module vk_shader_load(VkDevice logical_device, arena scratch, c
    const s8 vert_spv_name = s8("vert.spv");
    const s8 frag_spv_name = s8("frag.spv");
 
-   if(s8_is_substr_count(shader_name, mesh_spv_name) != invalid_index)
+   if(s8_is_substr_count(shader_name, mesh_spv_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_MESH_BIT_EXT;
-   else if(s8_is_substr_count(shader_name, vert_spv_name) != invalid_index)
+   else if(s8_is_substr_count(shader_name, vert_spv_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_VERTEX_BIT;
-   else if(s8_is_substr_count(shader_name, frag_spv_name) != invalid_index)
+   else if(s8_is_substr_count(shader_name, frag_spv_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
    VkShaderModule module = vk_shader_spv_module_load(logical_device, scratch, shader_name);
@@ -491,7 +491,7 @@ static hw_result vk_logical_device_select_family_index(arena scratch, vk_device*
          return (hw_result){.i = i};
    }
 
-   return (hw_result){.i = invalid_index};
+   return (hw_result){.i = INVALID_INDEX};
 }
 
 static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_features* features)
@@ -1818,7 +1818,7 @@ bool vk_initialize(hw* hw)
       printf("Could not create the window surface\n");
       return false;
    }
-   if((context->devices.queue_family_index = vk_logical_device_select_family_index(s, devices, *surface).i) == invalid_index)
+   if((context->devices.queue_family_index = vk_logical_device_select_family_index(s, devices, *surface).i) == INVALID_INDEX)
    {
       printf("Could not select queue family index for surface\n");
       return false;

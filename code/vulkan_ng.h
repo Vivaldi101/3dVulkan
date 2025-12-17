@@ -101,7 +101,6 @@ align_struct vk_mesh_instance
 
 align_struct vk_mesh_draw
 {
-   // TODO: u32 sizes?
    size index_offset;
    size index_count;
    size vertex_count;

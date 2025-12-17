@@ -33,7 +33,7 @@ typedef enum alloc_flags
 #define array_push(a)       *(typeof(a.data))array_alloc((array*)&a, sizeof(typeof(*a.data)), __alignof(typeof(*a.data)), 1, 0)
 #define arrayp_push(a)      *(typeof(a->data))array_alloc((array*)a, sizeof(typeof(*a->data)), __alignof(typeof(*a->data)), 1, 0)
 
-// Adds to preallocated app_storage
+// Adds to preallocated arena
 #define array_add(a, v)        *((a.data + a.count++)) = (v)
 #define array_resize(a, s)  {(a).data = alloc(a.arena, sizeof(typeof(*a.data)), __alignof(typeof(*a.data)), (s), 0);};
 
