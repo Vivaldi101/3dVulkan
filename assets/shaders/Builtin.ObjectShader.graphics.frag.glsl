@@ -66,7 +66,8 @@ void main()
 
        vec3 ambient_color = vec3(1.0); // scale the light to reduce brightness
 
-       float diffuse_factor = max(dot(world_normal, normalize(vec3(1, 0.45, 1))), 0.0);
+       vec3 sun_dir = normalize(vec3(1, 1, 1));
+       float diffuse_factor = max(dot(world_normal, sun_dir), 0.0);
        
        // Combine diffuse + emissive in linear space
        vec3 color_linear = albedo.rgb * diffuse_factor * ambient_color + emissive;
