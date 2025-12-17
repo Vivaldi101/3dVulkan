@@ -153,7 +153,7 @@ static void app_input_handle(app_state* state)
       f32 altitude = PI / 10.f;
       f32 azimuth = PI * 2.f;
       vec3 origin = {0, 0, 0};
-      app_camera_reset(&state->camera, origin, 10000.f, altitude, azimuth);
+      app_camera_reset(&state->camera, origin, 1.f, altitude, azimuth);
    }
 }
 
