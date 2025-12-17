@@ -3,19 +3,19 @@
 
 #include "common.h"
 
-typedef struct vk_memory_slot
+typedef struct memory_slot
 {
    size slot_size;
    void* memory;
-} vk_memory_slot;
+} memory_slot;
 
 align_struct list_node
 {
-   vk_memory_slot data;
+   memory_slot data;
    struct list_node* next;
 } list_node;
 
-static_assert(offsetof(vk_memory_slot, slot_size) == offsetof(list_node, data));
+static_assert(offsetof(memory_slot, slot_size) == offsetof(list_node, data));
 
 align_struct list
 {
