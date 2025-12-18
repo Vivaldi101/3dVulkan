@@ -33,16 +33,17 @@ static void* VKAPI_PTR vk_allocation(void* user_data,
    // take from free-list
    if(l->free_list && l->free_list->next)
    {
-      list_node* f = l->free_list;
-      list_node* prev = 0;
+      list_node* prev = l->free_list; // head of free-list
+      list_node* f = prev->next;      // first real free-list node, null if empty
       while(f && (f->data.slot_size != new_size))
       {
          prev = f;
          f = f->next;
       }
+      // either not found or the size matches exactly
       assert(!f || f->data.slot_size == new_size);
 
-      if(f && (f->data.slot_size == new_size))
+      if(f)
       {
          prev->next = f->next;
          f->next = 0;
