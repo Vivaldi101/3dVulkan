@@ -471,18 +471,17 @@ static mat4 mat4_rotation_z(f32 rotz)
    return result;
 }
 
-#pragma pack(push, 1)
 // TODO: #include in shaders
-typedef struct mvp_transform
+__declspec(align(16)) typedef struct mvp_transform
 {
     mat4 projection;
     mat4 view;
     f32 n;
     f32 f;
     f32 ar;
-    bool draw_ground_plane; // TODO: Change to enum for different states
+    u32 draw_ground_plane;
+    u32 draw_normals;
 } mvp_transform;
-#pragma pack(pop)
 
 static void quaternion_to_matrix(const float q[4], float out_matrix[16])
 {

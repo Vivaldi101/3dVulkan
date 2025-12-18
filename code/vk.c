@@ -1158,6 +1158,9 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    }
    else
    {
+      if(state->draw_normals)
+         mvp.draw_normals = true;
+
       VkPipeline pipeline = context->non_rtx_pipeline;
       VkPipelineLayout pipeline_layout = context->non_rtx_pipeline_layout;
 
@@ -1192,7 +1195,8 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
       vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
 
-      mvp.draw_ground_plane = 1;
+      // TODO: Do this in mesh shading too
+      mvp.draw_ground_plane = true;
 
       cmd_push_all_constants(command_buffer, pipeline_layout, &mvp);
 
@@ -1201,10 +1205,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
       vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
    }
-
-   // draw frustum
-   //vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, context->frustum_pipeline);
-   //vkCmdDraw(command_buffer, 12, 1, 0, 0);
 
    if(state->draw_axis)
    {

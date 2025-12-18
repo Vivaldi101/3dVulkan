@@ -38,7 +38,6 @@ void main()
 #else
     mesh_draw draw = draws[in_draw_ID];
    vec3 light_color = vec3(1.f);
-   float ambient = 0.f;
 
    vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
    vec3 emissive = vec3(0.0);
@@ -82,7 +81,7 @@ void main()
    vec3 ray_origin = in_wp + N * epsilon;
    
    // Lambertian term
-   float ndotl = max(dot(N, sun_dir), 0.0);
+   float lambert_term = max(dot(N, sun_dir), 0.0);
    
    // Initialize and cast the shadow ray
    rayQueryEXT rq;
@@ -101,10 +100,20 @@ void main()
    // Visibility factor: 1 = fully lit, 0.1 = in shadow
    bool hit = (rayQueryGetIntersectionTypeEXT(rq, true) != gl_RayQueryCommittedIntersectionNoneEXT);
    float visibility = hit ? 0.1 : 1.0;
-   
-   // Apply Lambertian lighting and shadow
-   //vec3 color = albedo * ndotl * visibility + 0.05; // small ambient
-   vec3 linear_color = (albedo.rgb * ndotl * visibility + emissive) + ambient;
+
+   vec3 camera_pos = vec3(0); // TODO: camera as uniform
+   vec3 view_dir = normalize(camera_pos - in_wp); // camera position in world space
+
+   float diffuse_factor = max(dot(world_normal, sun_dir), 0.0);
+
+       // Blinn-Phong
+   vec3 half_dir = normalize(sun_dir + view_dir);
+   float spec_factor = pow(max(dot(world_normal, half_dir), 0.0), 32.0); // shininess
+   vec3 specular = vec3(1.0) * spec_factor; // white specular
+
+   vec3 ambient = 0.1 * albedo.rgb;
+
+   vec3 linear_color = (albedo.rgb * lambert_term * visibility + emissive) + ambient;
    
    out_color = vec4(linear_color, albedo.a);
    out_color.xyz = color_to_srgb(out_color.xyz);

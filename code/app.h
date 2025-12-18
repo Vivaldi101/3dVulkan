@@ -61,6 +61,7 @@ align_struct app_state
    s8 asset_file;  // TODO: for testing
    f64 frame_delta_in_seconds;
    bool is_mesh_shading;
+   bool draw_normals;
    bool draw_axis;
    bool quit;
 } app_state;

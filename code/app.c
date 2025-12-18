@@ -155,6 +155,11 @@ static void app_input_handle(app_state* state)
       vec3 origin = {0, 0, 0};
       app_camera_reset(&state->camera, origin, 1.f, altitude, azimuth);
    }
+   if(state->input.key == 'N' && state->input.key_state == KEY_STATE_UP)
+   {
+      state->input.key_state = 0;
+      state->draw_normals = !state->draw_normals;
+   }
 }
 
 void app_start(hw* hw, s8 asset_file)

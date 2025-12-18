@@ -9,6 +9,7 @@ layout(push_constant) uniform push_constants_block
     float far;
     float ar;
     bool draw_ground_plane;
+    bool draw_normals;
 } globals;
 
 #define RAYTRACE 1

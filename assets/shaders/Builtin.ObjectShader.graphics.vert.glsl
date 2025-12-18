@@ -68,6 +68,7 @@ void main()
     vec3 world_normal = normalize(normal_matrix * normal);
     vec4 world_tangent = draws[draw_ID].world * vec4(tangent.xyz, 1.0f);
 
+    // TODO: Some meshes dont have tangents so do a fallback calculation here
     out_tangent = vec4(world_tangent.xyz, tangent.w);
 
     out_normal = world_normal;

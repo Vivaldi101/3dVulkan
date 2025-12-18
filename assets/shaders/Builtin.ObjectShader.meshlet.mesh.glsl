@@ -118,6 +118,8 @@ void main()
       out_uv[i] = uv;
       out_normal[i] = world_normal;
       out_draw_ID[i] = draw_ID;
+
+      // TODO: Some meshes dont have tangents so do a fallback calculation here
       out_tangent[i] = vec4(world_tangent.xyz, tangent.w);
     }
 

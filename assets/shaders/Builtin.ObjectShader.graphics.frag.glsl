@@ -75,15 +75,24 @@ void main()
          world_normal = normalize(normal_map.x * tangent.xyz + normal_map.y * bitangent + normal_map.z * normal);
        }
 
-       vec3 ambient_color = vec3(1.0); // scale the light to reduce brightness
-
        vec3 sun_dir = normalize(vec3(0, 1, 0));
-       float diffuse_factor = max(dot(world_normal, sun_dir), 0.0);
-       
-       // Combine diffuse + emissive in linear space
-       vec3 linear_color = albedo.rgb * diffuse_factor * ambient_color + emissive;
+       vec3 camera_pos = vec3(0); // TODO: camera as uniform
+       vec3 view_dir = normalize(camera_pos - in_world_frag_pos); // camera position in world space
 
+       float lambert_term = max(dot(world_normal, sun_dir), 0.0);
+
+       vec3 ambient = 0.1 * albedo.rgb;
+
+       float visibility = 1.0;
+       vec3 linear_color = albedo.rgb * lambert_term * visibility + emissive + ambient;
        out_color = vec4(linear_color, albedo.a);
+
+       if(globals.draw_normals)
+       {
+          // normal debugging
+          vec3 linear_color = world_normal;
+          out_color = vec4(linear_color * 0.5 + 0.5, 1);
+       }
     }
     else
     {
