@@ -4,7 +4,7 @@
 #include "../extern/cgltf/cgltf.h"
 #include "../assets/shaders/mesh.h"
 
-#include "vulkan_ng.h"
+#include "vk.h"
 
 static bool vk_texture_load(vk_context* context, arena s, s8 img_uri, s8 gltf_path);
 

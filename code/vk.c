@@ -1,5 +1,5 @@
 #include "priority_queue.h"
-#include "vulkan_ng.h"
+#include "vk.h"
 
 #include "win32_file_io.c"
 

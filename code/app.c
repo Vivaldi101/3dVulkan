@@ -10,7 +10,7 @@
 #include "arena.h"
 
 #include <volk.c>
-#include "vulkan_ng.c"
+#include "vk.c"
 
 static void app_frame(arena scratch, app_state* state)
 {

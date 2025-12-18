@@ -31,9 +31,6 @@
     <ClCompile Include="..\code\texture.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\code\vulkan_ng.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\code\vulkan_spirv_loader.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -47,6 +44,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\code\free_list.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\code\vk.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -78,9 +78,6 @@
     <ClInclude Include="..\code\priority_queue.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\code\vulkan_ng.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\code\vulkan_shader_module.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -90,6 +87,7 @@
     <ClInclude Include="..\code\free_list.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\code\vk.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\code\build.bat">

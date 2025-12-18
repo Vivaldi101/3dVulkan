@@ -1,4 +1,4 @@
-#include "vulkan_ng.h"
+#include "vk.h"
 
 static bool rt_blas_geometry_build(arena s, vk_context* context, VkAccelerationStructureKHR* blases)
 {

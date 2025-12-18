@@ -2,7 +2,7 @@
 #include "common.h"
 #include "app.h"
 #include "math.h"
-#include "vulkan_ng.h"
+#include "vk.h"
 
 static hw_result window_surface_create(vk_allocator* allocator, void* instance, void* window_handle)
 {

@@ -1,5 +1,5 @@
 #include "arena.h"
-#include "vulkan_ng.h"
+#include "vk.h"
 
 // This must match what is in the shader_build.bat file
 #define BUILTIN_SHADER_NAME "Builtin.ObjectShader"

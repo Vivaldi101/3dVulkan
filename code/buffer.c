@@ -1,4 +1,4 @@
-#include "vulkan_ng.h"
+#include "vk.h"
 
 // buffer hash table entry names
 static const char* vb_buffer_name = "vb";

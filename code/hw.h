@@ -17,7 +17,7 @@
 #include "arena.h"
 #include "common.h"
 
-#include "vulkan_ng.h"
+#include "vk.h"
 
 enum
 {

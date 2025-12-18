@@ -170,7 +170,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\code\vulkan_ng.c">
+    <ClCompile Include="..\code\vk.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -196,7 +196,7 @@
     <ClInclude Include="..\code\hw.h" />
     <ClInclude Include="..\code\math.h" />
     <ClInclude Include="..\code\priority_queue.h" />
-    <ClInclude Include="..\code\vulkan_ng.h" />
+    <ClInclude Include="..\code\vk.h" />
     <ClInclude Include="..\code\vulkan_shader_module.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
