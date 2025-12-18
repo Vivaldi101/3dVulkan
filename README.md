@@ -35,4 +35,4 @@ For msvc build, open the project under win32-solution.
 
 Tested on NVIDIA and AMD vendors.
 
-TODO: Support for other platforms (linux, macos, ios), proper lighting models, tangent space normals etc.
+TODO: Support for other platforms (linux, macos, ios), proper lighting models etc.
