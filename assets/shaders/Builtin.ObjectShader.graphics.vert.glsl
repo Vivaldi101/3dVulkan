@@ -40,7 +40,7 @@ void main()
     vec3 pos = vec3(0.f);
     vec3 normal = vec3(0.f);
     vec2 uv = vec2(0.f);
-    vec4 world_pos = vec4(0.f);
+    vec4 vertex_world_pos = vec4(0.f);
     vec4 tangent = vec4(0.f);
 
     if(!globals.draw_ground_plane)
@@ -50,15 +50,15 @@ void main()
         tangent = vec4(verts[gl_VertexIndex].tx, verts[gl_VertexIndex].ty, verts[gl_VertexIndex].tz, verts[gl_VertexIndex].tw);
         uv = vec2(verts[gl_VertexIndex].tu, verts[gl_VertexIndex].tv);
 
-        world_pos = draws[draw_ID].world * vec4(pos, 1.0);
+        vertex_world_pos = draws[draw_ID].world * vec4(pos, 1.0);
     }
     else
     {
         pos = quad[gl_VertexIndex];
-        world_pos = vec4(pos, 1.0);
+        vertex_world_pos = vec4(pos, 1.0);
     }
 
-    gl_Position = globals.projection * globals.view * world_pos;
+    gl_Position = globals.projection * globals.view * vertex_world_pos;
 
     // Decode normal and transform to world space using inverse transpose
     normal = (normal - 127.5) / 127.5;
@@ -66,12 +66,12 @@ void main()
 
     mat3 normal_matrix = transpose(inverse(mat3(draws[draw_ID].world)));
     vec3 world_normal = normalize(normal_matrix * normal);
-    vec3 world_tangent = normalize(normal_matrix * tangent.xyz);
+    vec4 world_tangent = draws[draw_ID].world * vec4(tangent.xyz, 1.0f);
 
-    out_tangent = vec4(world_tangent, tangent.w);
+    out_tangent = vec4(world_tangent.xyz, tangent.w);
 
     out_normal = world_normal;
-    out_world_frag_pos = world_pos.xyz;
+    out_world_frag_pos = vertex_world_pos.xyz;
     out_uv = uv;
     out_draw_ID = draw_ID;
 }
