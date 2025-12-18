@@ -14,6 +14,9 @@ Colors highlighting individual meshlets:
 
 <img width="1920" height="1032" alt="{2C9913E1-49C9-47D6-93AF-40BEE56DDC8F}" src="https://github.com/user-attachments/assets/bb3df0fa-2574-41c4-87b7-dbe37a2ebf48" />
 
+Normals:
+<img width="1917" height="1033" alt="{A5DF8784-C76B-4A40-A0E6-FF53A5541C35}" src="https://github.com/user-attachments/assets/393d9412-f971-4ee0-974c-c931eac613ac" />
+
 Ray tracing with queries with shadow rays:
 
 <img width="1920" height="1034" alt="{705D6244-9119-4BFB-8BC9-E618A5A0BF66}" src="https://github.com/user-attachments/assets/24b02378-aede-44cb-9cc2-c11bdef8dd64" />
