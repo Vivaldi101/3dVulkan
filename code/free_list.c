@@ -1,5 +1,29 @@
 #include "free_list.h"
 
+static list_node* free_list_node_get(list* l, size new_size)
+{
+   if(!l->free_list || !l->free_list->next)
+      return 0;
+
+   list_node* prev = l->free_list; // head of free-list
+   list_node* f = prev->next;      // first real free-list node, null if empty
+   while(f && (f->data.slot_size != new_size))
+   {
+      prev = f;
+      f = f->next;
+   }
+   // either not found or the size matches exactly
+   assert(!f || f->data.slot_size == new_size);
+
+   if(!f)
+      return 0;
+
+   prev->next = f->next;
+   f->next = 0;
+
+   return f;
+}
+
 static void list_node_release(list* l, list_node* n)
 {
    n->next = l->free_list->next;

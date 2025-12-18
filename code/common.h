@@ -19,6 +19,7 @@ typedef uintptr_t       uptr;
 typedef unsigned char   byte;
 typedef size_t          usize;
 typedef usize           size;
+typedef u32             fp;
 
 #define INVALID_INDEX ((size)-1)
 

@@ -32,33 +32,18 @@ static void* VKAPI_PTR vk_allocation(void* user_data,
    arena* a = allocator->a;
    list* l = &allocator->slots;
 
-   // take from free-list
-   if(l->free_list && l->free_list->next)
+   list_node* f = free_list_node_get(l, new_size);
+   if(f)
    {
-      list_node* prev = l->free_list; // head of free-list
-      list_node* f = prev->next;      // first real free-list node, null if empty
-      while(f && (f->data.slot_size != new_size))
-      {
-         prev = f;
-         f = f->next;
-      }
-      // either not found or the size matches exactly
-      assert(!f || f->data.slot_size == new_size);
+      assert(!((uptr)f->data.memory & (alignment - 1)));
 
-      if(f)
-      {
-         prev->next = f->next;
-         f->next = 0;
+      #if _DEBUG
+      printf("ACQUIRING node from free-list: %p with %zu bytes\n", f, f->data.slot_size);
+      allocator->min_addr = min((uptr)((byte*)f->data.memory + sizeof(size)), allocator->min_addr);
+      allocator->max_addr = max((uptr)((byte*)f->data.memory + sizeof(size)), allocator->max_addr);
+      #endif
 
-         #if _DEBUG
-         printf("ACQUIRING node from free-list: %p with %zu bytes\n", f, f->data.slot_size);
-         allocator->min_addr = min((uptr)((byte*)f->data.memory + sizeof(size)), allocator->min_addr);
-         allocator->max_addr = max((uptr)((byte*)f->data.memory + sizeof(size)), allocator->max_addr);
-         #endif
-
-         assert(!((uptr)f->data.memory & (alignment - 1)));
-         return (byte*)f->data.memory + sizeof(size);
-      }
+      return (byte*)f->data.memory + sizeof(size);
    }
 
    // + sizeof(size) for header size for realloc
