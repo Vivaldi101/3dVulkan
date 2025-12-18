@@ -39,7 +39,7 @@ static void app_camera_update(app_state* state)
       state->camera.target_radius -= zoom_speed;
       state->input.mouse_wheel_state = 0;
       // prevent flipping
-      state->camera.target_radius = max(state->camera.target_radius, 1.0f);
+      state->camera.target_radius = max(state->camera.target_radius, 0.0001f);
    }
    else if(state->input.mouse_wheel_state & MOUSE_WHEEL_STATE_DOWN)
    {
