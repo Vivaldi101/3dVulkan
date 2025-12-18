@@ -17,13 +17,6 @@ Colors highlighting individual meshlets:
 Normals:
 <img width="1917" height="1033" alt="{A5DF8784-C76B-4A40-A0E6-FF53A5541C35}" src="https://github.com/user-attachments/assets/393d9412-f971-4ee0-974c-c931eac613ac" />
 
-Ray tracing with queries with shadow rays:
-
-<img width="1920" height="1034" alt="{705D6244-9119-4BFB-8BC9-E618A5A0BF66}" src="https://github.com/user-attachments/assets/24b02378-aede-44cb-9cc2-c11bdef8dd64" />
-
-Colors highlighting individual meshlets:
-
-<img width="1920" height="1031" alt="{877D303F-569C-4ECF-9B6A-6330D98CCDF9}" src="https://github.com/user-attachments/assets/a98b7fbc-c724-4878-bb9d-702cab72a615" />
 
 For command line build, follow these steps:
 
