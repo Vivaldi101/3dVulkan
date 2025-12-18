@@ -104,9 +104,9 @@ void main()
    
    // Apply Lambertian lighting and shadow
    //vec3 color = albedo * ndotl * visibility + 0.05; // small ambient
-   vec3 color = (albedo.rgb * ndotl * visibility + emissive) + ambient;
+   vec3 linear_color = (albedo.rgb * ndotl * visibility + emissive) + ambient;
    
-   out_color = vec4(color, albedo.a);
+   out_color = vec4(linear_color, albedo.a);
    out_color.xyz = color_to_srgb(out_color.xyz);
 #endif
 }

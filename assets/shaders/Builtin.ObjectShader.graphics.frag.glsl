@@ -81,13 +81,9 @@ void main()
        float diffuse_factor = max(dot(world_normal, sun_dir), 0.0);
        
        // Combine diffuse + emissive in linear space
-       vec3 color_linear = albedo.rgb * diffuse_factor * ambient_color + emissive;
+       vec3 linear_color = albedo.rgb * diffuse_factor * ambient_color + emissive;
 
-       // Apply gamma correction (linear -> sRGB)
-       //vec3 color_srgb = pow(color_linear, vec3(1.0 / 2.2));
-       vec3 color_srgb = color_linear;
-
-       out_color = vec4(color_srgb, albedo.a);
+       out_color = vec4(linear_color, albedo.a);
     }
     else
     {
@@ -105,9 +101,9 @@ void main()
       vec3 glow_color = vec3(0.95, 0.78, 0.0) * falloff * glow_intensity; // amber yellow
       //vec3 base_color = vec3(71.0/255, 58.0/255, 10.0/255);
       vec3 base_color = vec3(0.1176, 0.1176, 0.1176);
-      vec3 final_color = clamp(base_color + glow_color, 0.0, 1.0);
+      vec3 linear_color = clamp(base_color + glow_color, 0.0, 1.0);
       
-      out_color = vec4(final_color, 1.0);
+      out_color = vec4(linear_color, 1.0);
     }
 
     out_color.xyz = color_to_srgb(out_color.xyz);
