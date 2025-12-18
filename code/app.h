@@ -62,6 +62,7 @@ align_struct app_state
    f64 frame_delta_in_seconds;
    bool is_mesh_shading;
    bool draw_axis;
+   bool quit;
 } app_state;
 
 typedef struct hw hw;

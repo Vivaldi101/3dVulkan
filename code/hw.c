@@ -163,7 +163,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
 
    i64 begin = clock_query_counter();
    i64 fps_counter = begin;
-   while(!hw->quit)
+   while(!hw->state.quit)
    {
       SwitchToFiber(hw->message_fiber); // run the fiber message pump
 

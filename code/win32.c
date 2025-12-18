@@ -103,7 +103,7 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
 
       case WM_DESTROY:
       {
-         win32_hw->quit = true;
+         win32_hw->state.quit = true;
          win32_hw->renderer.window.width = 0;
          win32_hw->renderer.window.height = 0;
       }
@@ -237,6 +237,8 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
                             SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
             }
          }
+         else if(win32_hw->state.input.key == VK_ESCAPE)
+            win32_hw->state.quit = true;
 
          return 0;
       }

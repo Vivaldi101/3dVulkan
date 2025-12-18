@@ -79,8 +79,6 @@ align_struct hw
    void* main_fiber;
    void* message_fiber;
 
-   bool quit;
-   
    void (*window_title_set)(struct hw* hw, s8 message, ...);
    #ifdef _WIN32
    void (CALLBACK *platform_loop)(struct hw* hw);
