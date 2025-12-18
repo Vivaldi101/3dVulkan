@@ -840,11 +840,11 @@ static void gpu_log(hw* hw)
 
    if(hw->state.is_mesh_shading)
       hw->window_title_set(hw,
-                       s8("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'm' to toggle RTX; RTX ON"),
+                       s8("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
    else
       hw->window_title_set(hw,
-                       s8("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'm' to toggle RTX; RTX OFF"),
+                       s8("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
 }
 
