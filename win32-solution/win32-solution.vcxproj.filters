@@ -87,7 +87,9 @@
     <ClInclude Include="..\code\free_list.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\code\vk.h" />
+    <ClInclude Include="..\code\vk.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\code\build.bat">
