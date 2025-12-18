@@ -106,7 +106,7 @@ void main()
       vec3 normal = (n - 127.5) / 127.5;
       vec4 tangent = (t - 127.5) / 127.5;
       vec3 world_normal = normalize(normal_matrix * normal);
-      vec3 world_tangent = normalize(normal_matrix * tangent.xyz);
+      vec4 world_tangent = draws[draw_ID].world * vec4(tangent.xyz, 1.0f);
 
 #if DEBUG
       out_color[i] = vec4(meshlet_color, 1.0);
@@ -118,7 +118,7 @@ void main()
       out_uv[i] = uv;
       out_normal[i] = world_normal;
       out_draw_ID[i] = draw_ID;
-      out_tangent[i] = vec4(world_tangent, tangent.w);
+      out_tangent[i] = vec4(world_tangent.xyz, tangent.w);
     }
 
     for(uint i = ti; i < triangle_count; i += 64)
