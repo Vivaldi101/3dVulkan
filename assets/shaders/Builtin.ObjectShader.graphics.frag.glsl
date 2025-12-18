@@ -67,6 +67,8 @@ void main()
 
          vec3 normal = normalize(in_normal);
          vec3 tangent = normalize(in_tangent.xyz);
+         tangent = normalize(tangent - (normal * dot(normal, tangent)));  // Re-orthogonalize
+
          vec3 bitangent = cross(normal, tangent) * in_tangent.w;
          bitangent = normalize(bitangent);
 
@@ -75,7 +77,7 @@ void main()
 
        vec3 ambient_color = vec3(1.0); // scale the light to reduce brightness
 
-       vec3 sun_dir = normalize(vec3(1, 1, 1));
+       vec3 sun_dir = normalize(vec3(0, 1, 0));
        float diffuse_factor = max(dot(world_normal, sun_dir), 0.0);
        
        // Combine diffuse + emissive in linear space
