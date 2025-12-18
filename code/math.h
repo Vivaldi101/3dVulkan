@@ -471,18 +471,6 @@ static mat4 mat4_rotation_z(f32 rotz)
    return result;
 }
 
-// TODO: #include in shaders
-__declspec(align(16)) typedef struct mvp_transform
-{
-    mat4 projection;
-    mat4 view;
-    f32 n;
-    f32 f;
-    f32 ar;
-    u32 draw_ground_plane;
-    u32 draw_normals;
-} mvp_transform;
-
 static void quaternion_to_matrix(const float q[4], float out_matrix[16])
 {
    float x = q[0];

@@ -1,3 +1,4 @@
+#include "../assets/shaders/common.glsl"
 #include "priority_queue.h"
 #include "vk.h"
 
@@ -13,6 +14,7 @@ static vk_allocator global_allocator;
 #include "buffer.c"
 #include "gltf.c"
 #include "rt.c"
+
 
 static void* VKAPI_PTR vk_allocation(void* user_data,
                                      size_t new_size,
@@ -891,17 +893,17 @@ static hw_result vk_query_pool_create(vk_device* devices, size query_pool_size)
 }
 
 // TODO: these into cmd.c
-static void cmd_push_all_constants(VkCommandBuffer command_buffer, VkPipelineLayout layout, mvp_transform* mvp)
+static void cmd_push_all_constants(VkCommandBuffer command_buffer, VkPipelineLayout layout, struct mvp_transform* mvp)
 {
    vkCmdPushConstants(command_buffer, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(*mvp), mvp);
 }
 
-static void cmd_push_rtx_constants(VkCommandBuffer command_buffer, VkPipelineLayout layout, mvp_transform* mvp, u32 offset)
+static void cmd_push_rtx_constants(VkCommandBuffer command_buffer, VkPipelineLayout layout, struct mvp_transform* mvp, u32 offset)
 {
    vkCmdPushConstants(command_buffer, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_MESH_BIT_EXT, offset, sizeof(*mvp), mvp);
 }
 
-static void cmd_push_all_rtx_constants(VkCommandBuffer command_buffer, VkPipelineLayout layout, mvp_transform* mvp)
+static void cmd_push_all_rtx_constants(VkCommandBuffer command_buffer, VkPipelineLayout layout, struct mvp_transform* mvp)
 {
    cmd_push_rtx_constants(command_buffer, layout, mvp, 0);
 }
@@ -1054,7 +1056,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    vkCmdResetQueryPool(context->cmd.buffer, context->query_pool, 0, context->query_pool_size);
    vkCmdWriteTimestamp(context->cmd.buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, context->query_pool, 0);
 
-   mvp_transform mvp = {0};
+   struct mvp_transform mvp = {0};
    const f32 ar = (f32)context->swapchain.image_width / context->swapchain.image_height;
 
    // world space origin
@@ -1316,7 +1318,7 @@ static bool vk_pipeline_layout_create(VkPipelineLayout* layout, VkDevice logical
       push_constants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
    push_constants.offset = 0;
-   push_constants.size = sizeof(mvp_transform);
+   push_constants.size = sizeof(struct mvp_transform);
 
    info.pushConstantRangeCount = 1;
    info.pPushConstantRanges = &push_constants;

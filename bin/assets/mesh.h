@@ -29,4 +29,16 @@ struct mesh_draw
 
    mat4 world;           // world transform - TODO: use pos, quat, scale in future
 };
+
+struct mvp_transform
+{
+    mat4 projection;
+    mat4 view;
+    float n;
+    float f;
+    float ar;
+    uint32_t draw_ground_plane;
+    uint32_t draw_normals;
+};
+
 #endif
