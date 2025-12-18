@@ -31,13 +31,12 @@ static void app_camera_update(app_state* state)
    f32 delta_x = (f32)state->input.mouse_pos[0] - (f32)state->input.mouse_prev_pos[0];
    f32 delta_y = (f32)state->input.mouse_pos[1] - (f32)state->input.mouse_prev_pos[1];
 
-   f32 zoom_speed = 20.f;
+   f32 zoom_speed = 2.f;
 
    if(state->input.mouse_wheel_state & MOUSE_WHEEL_STATE_UP)
    {
       // closer radius
       state->camera.target_radius -= zoom_speed;
-      state->input.mouse_wheel_state = 0;
       // prevent flipping
       state->camera.target_radius = max(state->camera.target_radius, 0.0001f);
    }
@@ -58,17 +57,15 @@ static void app_camera_update(app_state* state)
       if(state->camera.target_altitude > max_altitude) state->camera.target_altitude = max_altitude;
       if(state->camera.target_altitude < -max_altitude) state->camera.target_altitude = -max_altitude;
 
-      // dont go below the ground plane
-      //state->camera.target_altitude = max(state->camera.target_altitude, deg2rad(5.f));
-
       // stop when rotating
       state->camera.target_radius = state->camera.smoothed_radius;
+      state->input.mouse_wheel_state = 0;
    }
 
    // smooth damping
    state->camera.smoothed_azimuth += (state->camera.target_azimuth - state->camera.smoothed_azimuth) * smoothing_factor;
    state->camera.smoothed_altitude += (state->camera.target_altitude - state->camera.smoothed_altitude) * smoothing_factor;
-   state->camera.smoothed_radius += (state->camera.target_radius - state->camera.smoothed_radius) * smoothing_factor*.25f;
+   state->camera.smoothed_radius += (state->camera.target_radius - state->camera.smoothed_radius) * smoothing_factor;
 
    // use smoothed values for position
    f32 azimuth = state->camera.smoothed_azimuth;
