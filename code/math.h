@@ -248,13 +248,15 @@ static vec3 vec3_cross(const vec3* a, const vec3* b)
 static inline mat4 mat4_view(vec3 origin, vec3 dir)
 {
    // compute the uvn vectors in view space with z going into the screen
-   vec3 n = dir;
+
+   // right
+   vec3 u = {0};
    // up
    vec3 v = {0.0f, 1.0f, 0.0f};
+   // forward
+   vec3 n = dir;
 
-   vec3 u;
    vec3_cross(n, v, u);
-
    // recompute v
    vec3_cross(u, n, v);
 

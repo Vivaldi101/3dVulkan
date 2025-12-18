@@ -1059,15 +1059,16 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    struct mvp_transform mvp = {0};
    const f32 ar = (f32)context->swapchain.image_width / context->swapchain.image_height;
 
-   // world space origin
+   // world space eye and direction
    vec3 eye = state->camera.eye;
    vec3 dir = state->camera.dir;
+
    vec3_normalize(dir);
 
    mvp.n = 0.01f;
    mvp.f = 10000.0f;
    mvp.ar = ar;
-   mvp.projection = mat4_perspective(ar, 75.0f, mvp.n, mvp.f);
+   mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
    mvp.view = mat4_view(eye, dir);
 
    assert(mvp.n > 0.0f);
