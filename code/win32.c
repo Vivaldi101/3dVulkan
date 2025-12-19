@@ -513,6 +513,7 @@ int main(int argc, char** argv)
    void* program_memory = global_allocate(0, arena_max_commit_size, MEM_RESERVE, PAGE_READWRITE);
    assert(program_memory);
 
+   // TODO: cleanup these arena inits
    arena app_arena = {0};
    app_arena.end = program_memory;
    app_arena.kind = arena_persistent_kind;
@@ -584,6 +585,11 @@ int main(int argc, char** argv)
    assert(arena_left(&app_storage) >= 0);
    assert(arena_left(&vulkan_storage) >= 0);
    assert(arena_left(&scratch_storage) >= 0);
+
+#if _DEBUG
+   printf("App permanent memory usage: %zu MB\n", (uptr)((byte*)app_storage.beg - (byte*)program_memory) / (1024*1024));
+   printf("Vulkan host memory usage: %zu MB\n", (uptr)((byte*)vulkan_storage.beg - ((byte*)program_memory + arena_part_size)) / (1024*1024));
+#endif
 
    global_free(program_memory, 0, MEM_RELEASE);
 

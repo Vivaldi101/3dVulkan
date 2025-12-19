@@ -2045,11 +2045,4 @@ void vk_uninitialize(hw* hw)
 #endif
 
    vkDestroyInstance(devices->instance, &global_allocator.handle);
-
-#if _DEBUG
-   printf("Min allocation address in free-list: %zu\n", global_allocator.min_addr);
-   printf("Max allocation address in free-list: %zu\n", global_allocator.max_addr);
-
-   printf("Vulkan allocation address range: %zu MB\n", (global_allocator.max_addr - global_allocator.min_addr) / (1024*1024));
-#endif
 }
