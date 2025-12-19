@@ -309,6 +309,7 @@ typedef BOOL(*VirtualFreePtr)(LPVOID, SIZE_T, DWORD);
 static VirtualAllocPtr global_allocate = 0;
 static VirtualFreePtr global_free = 0;
 
+// TODO: should be win32_*
 void hw_global_reserve_available()
 {
    MEMORYSTATUSEX memory_status;
@@ -366,6 +367,40 @@ void hw_virtual_memory_init()
 
    assert(global_allocate);
    assert(global_free);
+}
+
+// TODO: return s8 instead
+arena win32_file_read(arena* a, const char* path)
+{
+   arena result = {0};
+
+   HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+   if(file == INVALID_HANDLE_VALUE)
+   {
+      printf("No file with such name");
+      return (arena) {0};
+   }
+
+   LARGE_INTEGER file_size;
+   if(!GetFileSizeEx(file, &file_size))
+      return (arena) {0};
+
+   u32 file_size_32 = (u32)(file_size.QuadPart);
+   if(file_size_32 == 0)
+      return (arena) {0};
+
+   byte* buffer = push(a, byte, file_size_32);
+
+   DWORD bytes_read = 0;
+   if(!(ReadFile(file, buffer, file_size_32, &bytes_read, 0) && (file_size_32 == bytes_read)))
+      return (arena) {};
+
+   CloseHandle(file);
+
+   result.beg = buffer;
+   result.end = buffer + bytes_read;
+
+   return result;
 }
 
 align_struct scratch_foo
@@ -506,32 +541,10 @@ int main(int argc, char** argv)
    hw.main_fiber = ConvertThreadToFiber(0);
    hw.message_fiber = CreateFiber(0, hw.platform_loop, &hw);
 
+   hw.file_read = win32_file_read;
+
    assert(hw.main_fiber);
    assert(hw.message_fiber);
-
-   // TOOD: Remove
-   // arena tests
-   #if 0
-
-   array_foo first = {&app_storage};
-   array_foo second = {&app_storage};
-
-   for(size i = 0; i < 63; i++)
-      array_push(first) = (arena_foo){i};
-
-   array_push(second) = (arena_foo){1};
-
-   //array_free(second);
-
-   array_push(second) = (arena_foo){63};
-
-   for(size i = 0; i < first.count; ++i)
-      printf("First: %d\n", (int)first.data[i].k);
-
-   for(size i = 0; i < second.count; ++i)
-      printf("Second: %d\n", (int)second.data[i].k);
-
-   #else
 
    s8 asset_file = {0};
 
@@ -547,8 +560,6 @@ int main(int argc, char** argv)
       asset_file = s8(argv[1]);
 
    app_start(&hw, asset_file);
-
-   #endif
 
    assert(arena_left(&app_storage) >= 0);
    assert(arena_left(&vulkan_storage) >= 0);

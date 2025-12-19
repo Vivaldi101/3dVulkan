@@ -46,7 +46,7 @@ static s8 vk_exe_directory(arena* a)
 }
 
 // TODO: Change name to vk_spv_compile
-static VkShaderModule vk_shader_spv_module_load(VkDevice logical_device, arena scratch, s8 shader_name)
+static VkShaderModule vk_shader_spv_module_load(hw* hw, VkDevice logical_device, arena scratch, s8 shader_name)
 {
    VkShaderModule result = 0;
 
@@ -60,7 +60,7 @@ static VkShaderModule vk_shader_spv_module_load(VkDevice logical_device, arena s
 
    wsprintf(shader_path.data, s8_data(prefix), shader_dir.data, shader_name.data);
 
-   arena shader_file = win32_file_read(&scratch, shader_path.data);
+   arena shader_file = hw->file_read(&scratch, shader_path.data);
 
    VkShaderModuleCreateInfo module_info = {0};
    module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

@@ -2,11 +2,10 @@
 #include "priority_queue.h"
 #include "vk.h"
 
-#include "win32_file_io.c"
-
 // TODO: global for now
 static vk_allocator global_allocator;
 
+// unity build
 #include "vulkan_spirv_loader.c"
 #include "free_list.c"
 #include "texture.c"
@@ -14,7 +13,6 @@ static vk_allocator global_allocator;
 #include "buffer.c"
 #include "gltf.c"
 #include "rt.c"
-
 
 static void* VKAPI_PTR vk_allocation(void* user_data,
                                      size_t new_size,
@@ -145,7 +143,7 @@ static bool vk_gltf_read(vk_context* context, s8 filename)
    return gltf_load(context, gltf_path);
 }
 
-static vk_shader_module vk_shader_load(VkDevice logical_device, arena scratch, const char* shader_name_raw)
+static vk_shader_module vk_shader_load(hw* hw, VkDevice logical_device, arena scratch, const char* shader_name_raw)
 {
    vk_shader_module result = {0};
 
@@ -163,7 +161,7 @@ static vk_shader_module vk_shader_load(VkDevice logical_device, arena scratch, c
    else if(s8_is_substr_count(shader_name, frag_spv_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-   VkShaderModule module = vk_shader_spv_module_load(logical_device, scratch, shader_name);
+   VkShaderModule module = vk_shader_spv_module_load(hw, logical_device, scratch, shader_name);
 
    switch(shader_stage)
    {
@@ -185,7 +183,7 @@ static vk_shader_module vk_shader_load(VkDevice logical_device, arena scratch, c
    return result;
 }
 
-static bool spirv_initialize(vk_context* context)
+static bool spirv_initialize(hw* hw, vk_context* context)
 {
    const s8_array shaders = vk_shader_names_read(context->app_storage, s8("bin\\assets\\shaders"));
 
@@ -211,7 +209,7 @@ static bool spirv_initialize(vk_context* context)
 
       if(s8_is_substr_count(shader, s8(meshlet_module_name)) != -1)
       {
-         vk_shader_module mm = vk_shader_load(context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module mm = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
          if(mm.stage == VK_SHADER_STAGE_MESH_BIT_EXT)
             spv_hash_insert(table, meshlet_module_name"_ms", mm);
          else if(mm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -219,7 +217,7 @@ static bool spirv_initialize(vk_context* context)
       }
       else if(s8_is_substr_count(shader, s8(graphics_module_name)) != -1)
       {
-         vk_shader_module gm = vk_shader_load(context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module gm = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
          if(gm.stage == VK_SHADER_STAGE_VERTEX_BIT)
             spv_hash_insert(table, graphics_module_name"_vs", gm);
          else if(gm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -227,7 +225,7 @@ static bool spirv_initialize(vk_context* context)
       }
       else if(s8_is_substr_count(shader, s8(axis_module_name)) != -1)
       {
-         vk_shader_module am = vk_shader_load(context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module am = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
          if(am.stage == VK_SHADER_STAGE_VERTEX_BIT)
             spv_hash_insert(table, axis_module_name"_vs", am);
          else if(am.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -235,7 +233,7 @@ static bool spirv_initialize(vk_context* context)
       }
       else if(s8_is_substr_count(shader, s8(frustum_module_name)) != -1)
       {
-         vk_shader_module fm = vk_shader_load(context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module fm = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
          if(fm.stage == VK_SHADER_STAGE_VERTEX_BIT)
             spv_hash_insert(table, frustum_module_name"_vs", fm);
          else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -1900,7 +1898,7 @@ bool vk_initialize(hw* hw)
    context->buffer_table = buffer_hash_create(buffer_table_size, a);
    buffer_hash_clear(&context->buffer_table);
 
-   if(!spirv_initialize(context))
+   if(!spirv_initialize(hw, context))
    {
       printf("Could not compile and load all the required shader modules\n");
       return false;
