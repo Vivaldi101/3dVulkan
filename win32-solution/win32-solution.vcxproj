@@ -142,10 +142,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\code\d3d12.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\code\free_list.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -185,8 +181,6 @@
     <ClInclude Include="..\code\app.h" />
     <ClInclude Include="..\code\arena.h" />
     <ClInclude Include="..\code\common.h" />
-    <ClInclude Include="..\code\d3d12.h" />
-    <ClInclude Include="..\code\d3dx12.h" />
     <ClInclude Include="..\code\fixed_point.h" />
     <ClInclude Include="..\code\free_list.h" />
     <ClInclude Include="..\code\hw.h" />

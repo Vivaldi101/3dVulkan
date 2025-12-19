@@ -1,7 +1,5 @@
 #include "vulkan_shader_module.h"
 
-#include <stdio.h>
-
 typedef struct hash_key_obj
 {
    i32 vi, vti, vni;

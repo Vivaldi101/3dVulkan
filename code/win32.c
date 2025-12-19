@@ -403,6 +403,7 @@ arena win32_file_read(arena* a, const char* path)
    return result;
 }
 
+#if 0
 align_struct scratch_foo
 {
    i64 i, j;
@@ -481,6 +482,7 @@ static void arena_test_result(arena* a, size sz)
    for(size i = 0; i < sz; ++i)
       printf("arena_test_compute2: %lld\n", result[i]->k);
 }
+#endif
 
 int main(int argc, char** argv)
 {

@@ -16,9 +16,6 @@
     <ClCompile Include="..\code\buffer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\code\d3d12.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\code\hash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -55,12 +52,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\code\common.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\code\d3d12.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\code\d3dx12.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\code\fixed_point.h">
