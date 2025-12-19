@@ -44,6 +44,21 @@ static void win32_window_title(hw* hw, s8 message, ...)
    va_end(args);
 }
 
+void win32_print_last_error(s8 message)
+{
+   printf("%s\n", s8_data(message));
+
+   DWORD error = GetLastError();
+   if(error != 0)
+   {
+      // TODO: use a scratch buffer for this
+      static char buffer[4096] = {};
+      FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                     0, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, array_count(buffer), 0);
+      printf("%s\n", buffer);
+   }
+}
+
 static void CALLBACK win32_platform_loop(hw* hw)
 {
    for(;;)
@@ -101,13 +116,11 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
       }
       break;
 
-      case WM_DESTROY:
+      case WM_CLOSE:
       {
          win32_hw->state.quit = true;
-         win32_hw->renderer.window.width = 0;
-         win32_hw->renderer.window.height = 0;
       }
-      return 0;
+      break;
 
       case WM_ERASEBKGND:
          return 1; // prevent Windows from clearing the background with white
@@ -395,7 +408,8 @@ arena win32_file_read(arena* a, const char* path)
    if(!(ReadFile(file, buffer, file_size_32, &bytes_read, 0) && (file_size_32 == bytes_read)))
       return (arena) {};
 
-   CloseHandle(file);
+   if(!CloseHandle(file))
+      return (arena) {};
 
    result.beg = buffer;
    result.end = buffer + bytes_read;
@@ -561,7 +575,11 @@ int main(int argc, char** argv)
    else
       asset_file = s8(argv[1]);
 
+   win32_print_last_error(s8("App starting...\n"));
+
    app_start(&hw, asset_file);
+
+   win32_print_last_error(s8("App closing...\n"));
 
    assert(arena_left(&app_storage) >= 0);
    assert(arena_left(&vulkan_storage) >= 0);

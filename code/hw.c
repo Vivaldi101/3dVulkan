@@ -167,6 +167,9 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
    {
       SwitchToFiber(hw->message_fiber); // run the fiber message pump
 
+      if(hw->state.quit)
+         break;
+
       if(hw->renderer.window.resize)
       {
          hw->renderer.window.resize = false;
