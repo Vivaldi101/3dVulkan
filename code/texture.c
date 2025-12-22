@@ -102,7 +102,7 @@ static size vk_texture_size(u32 w, u32 h, u32 levels)
 }
 
 // TODO: pass devices and return the texture
-static bool vk_texture_load(vk_context* context, arena s, s8 img_uri, s8 gltf_path)
+static bool vk_texture_load(vk_context* context, arena s, s8 uri, s8 gltf_path)
 {
    u8* gltf_end = gltf_path.data + gltf_path.len;
    size tex_path_start = gltf_path.len;
@@ -117,14 +117,14 @@ static bool vk_texture_load(vk_context* context, arena s, s8 img_uri, s8 gltf_pa
 
    s8 tex_dir = s8_slice(gltf_path, 0, tex_path_start + 1);
 
-   size tex_len = img_uri.len + tex_dir.len;
+   size tex_len = uri.len + tex_dir.len;
 
    vk_texture tex = {0};
    array(char) tex_path = {&s};
    array_resize(tex_path, tex_len + 1); // for null terminate
 
    memcpy(tex_path.data, tex_dir.data, tex_dir.len);
-   memcpy(tex_path.data + tex_dir.len, img_uri.data, img_uri.len);
+   memcpy(tex_path.data + tex_dir.len, uri.data, uri.len);
 
    tex_path.data[tex_len] = 0;        // null terminate
 

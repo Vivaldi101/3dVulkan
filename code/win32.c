@@ -570,17 +570,17 @@ int main(int argc, char** argv)
       printf("Place the gltf asset in assets/gltf directory and ");
       printf("use like so: program_name.exe <gltf-dir/gltf-name.gltf>\n");
 
-      asset_file = s8("sponza/sponza.gltf"); // default gltf scene
+      asset_file = s8_lit("sponza/sponza.gltf"); // default gltf scene
       printf("Launching with the default gltf scene: %s\n", s8_data(asset_file));
    }
    else
-      asset_file = s8(argv[1]);
+      asset_file = s8_lit(argv[1]);
 
-   win32_print_last_error(s8("App starting...\n"));
+   win32_print_last_error(s8_lit("App starting...\n"));
 
    app_start(&hw, asset_file);
 
-   win32_print_last_error(s8("App closing...\n"));
+   win32_print_last_error(s8_lit("App closing...\n"));
 
    assert(arena_left(&app_storage) >= 0);
    assert(arena_left(&vulkan_storage) >= 0);

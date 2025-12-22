@@ -14,7 +14,7 @@ static s8 win32_module_path(arena* a)
    {
       dir_path_len = GetModuleFileName(NULL, (char*)buffer, MAX_PATH);
       if(dir_path_len == 0)
-         return s8("");
+         return s8_lit("");
 
       if(dir_path_len == MAX_PATH)
       {
@@ -33,7 +33,7 @@ static s8 vk_exe_directory(arena* a)
    if(module_path.len == 0)
       return (s8){0};
 
-   s8 project_name = s8("3dDreams");
+   s8 project_name = s8_lit("3dDreams");
    size index = s8_is_substr_count(module_path, project_name);
 
    if(index == -1)
@@ -53,7 +53,7 @@ static VkShaderModule vk_shader_spv_module_load(hw* hw, VkDevice logical_device,
    s8 shader_dir = vk_exe_directory(&scratch);
 
    array(char) shader_path = {&scratch};
-   s8 prefix = s8("%s\\bin\\assets\\shaders\\%s");
+   s8 prefix = s8_lit("%s\\bin\\assets\\shaders\\%s");
 
    shader_path.count = shader_dir.len + prefix.len + shader_name.len;  // TODO s8 for shader_name
    array_resize(shader_path, shader_path.count);
@@ -78,7 +78,7 @@ static s8_array vk_shader_names_read(arena* a, s8 shader_folder_path)
 {
    array(char) shader_path = {a}; // TODO: this should be scratch
 
-   s8 prefix = s8("%sbin\\assets\\shaders\\%s");
+   s8 prefix = s8_lit("%sbin\\assets\\shaders\\%s");
    s8 exe_dir = vk_exe_directory(a);
 
    if(exe_dir.len == 0)

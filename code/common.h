@@ -23,9 +23,6 @@ typedef u32             fp;
 
 #define INVALID_INDEX ((size)-1)
 
-#define s8(s) (s8){(u8 *)s, strlen(s)}
-#define s8_data(s) (const char*)(s).data
-
 #define fault(p)  {hw_message_box(p); __debugbreak();}
 
 #define implies(p, q) (!(p) || (q))
@@ -62,6 +59,9 @@ static_assert(custom_alignment == 64, "");
 
 #define PAGE_SIZE KB(4)
 #define ALIGN_PAGE_SIZE (PAGE_SIZE - 1)
+
+#define s8_lit(s) (s8){(u8 *)(s), sizeof((s))-1}
+#define s8_data(s) (const char*)(s).data
 
 typedef struct s8
 {

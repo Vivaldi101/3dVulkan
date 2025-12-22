@@ -6,7 +6,7 @@
 
 #include "vk.h"
 
-static bool vk_texture_load(vk_context* context, arena s, s8 img_uri, s8 gltf_path);
+static bool vk_texture_load(vk_context* context, arena s, s8 uri, s8 gltf_path);
 
 typedef struct vertex vertex;
 typedef struct 
@@ -639,9 +639,11 @@ static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_
       assert(img->uri);
 
       cgltf_decode_uri(img->uri);
+      size uri_len = strlen(img->uri);
 
+      s8 uri = (s8){(u8*)img->uri, uri_len};
       // TODO: pass just textures, devices instead of entire context
-      if(!vk_texture_load(context, s, s8(img->uri), gltf_path))
+      if(!vk_texture_load(context, s, uri, gltf_path))
          return false;
    }
 

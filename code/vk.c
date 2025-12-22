@@ -130,29 +130,28 @@ static void VKAPI_PTR vk_internal_free(void* user_data,
 static bool vk_gltf_read(vk_context* context, s8 filename)
 {
    array(char) file_path = {context->app_storage};
-   s8 prefix = s8("%s\\assets\\gltf\\%s");
+   s8 prefix = s8_lit("%s\\assets\\gltf\\%s");
    s8 exe_dir = vk_exe_directory(context->app_storage);
 
-   file_path.count = exe_dir.len + prefix.len + filename.len - s8("%s%s").len;
+   file_path.count = exe_dir.len + prefix.len + filename.len - s8_lit("%s%s").len;
    array_resize(file_path, file_path.count);
    wsprintf(file_path.data, s8_data(prefix), (const char*)exe_dir.data, filename.data);
 
    s8 gltf_path = {.data = (u8*)file_path.data, .len = file_path.count};
 
-   assert(s8_equals(s8_slice(gltf_path, gltf_path.len - s8(".gltf").len, gltf_path.len), s8(".gltf")));
+   assert(s8_equals(s8_slice(gltf_path, gltf_path.len - s8_lit(".gltf").len, gltf_path.len), s8_lit(".gltf")));
    return gltf_load(context, gltf_path);
 }
 
-static vk_shader_module vk_shader_load(hw* hw, VkDevice logical_device, arena scratch, const char* shader_name_raw)
+static vk_shader_module vk_shader_load(hw* hw, VkDevice logical_device, arena scratch, s8 shader_name)
 {
    vk_shader_module result = {0};
 
    VkShaderStageFlagBits shader_stage = 0;
 
-   const s8 shader_name = s8(shader_name_raw);
-   const s8 mesh_spv_name = s8("mesh.spv");
-   const s8 vert_spv_name = s8("vert.spv");
-   const s8 frag_spv_name = s8("frag.spv");
+   const s8 mesh_spv_name = s8_lit("mesh.spv");
+   const s8 vert_spv_name = s8_lit("vert.spv");
+   const s8 frag_spv_name = s8_lit("frag.spv");
 
    if(s8_is_substr_count(shader_name, mesh_spv_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_MESH_BIT_EXT;
@@ -185,7 +184,7 @@ static vk_shader_module vk_shader_load(hw* hw, VkDevice logical_device, arena sc
 
 static bool spirv_initialize(hw* hw, vk_context* context)
 {
-   const s8_array shaders = vk_shader_names_read(context->app_storage, s8("bin\\assets\\shaders"));
+   const s8_array shaders = vk_shader_names_read(context->app_storage, s8_lit("bin\\assets\\shaders"));
 
    if(shaders.count == 0)
    {
@@ -207,33 +206,33 @@ static bool spirv_initialize(hw* hw, vk_context* context)
    {
       s8 shader = shaders.data[i];
 
-      if(s8_is_substr_count(shader, s8(meshlet_module_name)) != -1)
+      if(s8_is_substr_count(shader, s8_lit(meshlet_module_name)) != -1)
       {
-         vk_shader_module mm = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module mm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(mm.stage == VK_SHADER_STAGE_MESH_BIT_EXT)
             spv_hash_insert(table, meshlet_module_name"_ms", mm);
          else if(mm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             spv_hash_insert(table, meshlet_module_name"_fs", mm);
       }
-      else if(s8_is_substr_count(shader, s8(graphics_module_name)) != -1)
+      else if(s8_is_substr_count(shader, s8_lit(graphics_module_name)) != -1)
       {
-         vk_shader_module gm = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module gm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(gm.stage == VK_SHADER_STAGE_VERTEX_BIT)
             spv_hash_insert(table, graphics_module_name"_vs", gm);
          else if(gm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             spv_hash_insert(table, graphics_module_name"_fs", gm);
       }
-      else if(s8_is_substr_count(shader, s8(axis_module_name)) != -1)
+      else if(s8_is_substr_count(shader, s8_lit(axis_module_name)) != -1)
       {
-         vk_shader_module am = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module am = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(am.stage == VK_SHADER_STAGE_VERTEX_BIT)
             spv_hash_insert(table, axis_module_name"_vs", am);
          else if(am.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             spv_hash_insert(table, axis_module_name"_fs", am);
       }
-      else if(s8_is_substr_count(shader, s8(frustum_module_name)) != -1)
+      else if(s8_is_substr_count(shader, s8_lit(frustum_module_name)) != -1)
       {
-         vk_shader_module fm = vk_shader_load(hw, context->devices.logical, context->scratch, s8_data(shader));
+         vk_shader_module fm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(fm.stage == VK_SHADER_STAGE_VERTEX_BIT)
             spv_hash_insert(table, frustum_module_name"_vs", fm);
          else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -247,9 +246,9 @@ static bool spirv_initialize(hw* hw, vk_context* context)
 static bool vk_assets_read(vk_context* context, s8 asset_file)
 {
    bool success = false;
-   if (s8_is_substr(asset_file, s8(".gltf")))
+   if (s8_is_substr(asset_file, s8_lit(".gltf")))
       success = vk_gltf_read(context, asset_file);
-   else if (s8_is_substr(asset_file, s8(".obj")))
+   else if (s8_is_substr(asset_file, s8_lit(".obj")))
       ;
       //vk_obj_read(context, asset_file);
    else
@@ -439,13 +438,13 @@ static hw_result vk_physical_device_select(arena s, vk_device* device, vk_featur
 
       for(u32 j = 0; j < extension_count; ++j)
       {
-         s8 e = s8(extensions[j].extensionName);
+         s8 e = s8_lit(extensions[j].extensionName);
          printf("Available Vulkan device extension[%u]: %s\n", j, s8_data(e));
 
-         if(s8_equals(e, s8(VK_EXT_MESH_SHADER_EXTENSION_NAME)))
+         if(s8_equals(e, s8_lit(VK_EXT_MESH_SHADER_EXTENSION_NAME)))
             features->mesh_shading_supported = true;
 
-         if(s8_equals(e, s8(VK_KHR_RAY_QUERY_EXTENSION_NAME)))
+         if(s8_equals(e, s8_lit(VK_KHR_RAY_QUERY_EXTENSION_NAME)))
             features->raytracing_supported = true;
 
          if(features->raytracing_supported && features->mesh_shading_supported)
@@ -486,20 +485,20 @@ static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_
 {
    array(s8) extensions = {&scratch};
 
-   array_push(extensions) = s8(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-   array_push(extensions) = s8(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
-   array_push(extensions) = s8(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
+   array_push(extensions) = s8_lit(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+   array_push(extensions) = s8_lit(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+   array_push(extensions) = s8_lit(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME);
 
    if(features->mesh_shading_supported)
    {
-      array_push(extensions) = s8(VK_EXT_MESH_SHADER_EXTENSION_NAME);
-      array_push(extensions) = s8(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+      array_push(extensions) = s8_lit(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+      array_push(extensions) = s8_lit(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
    }
    if(features->raytracing_supported)
    {
-      array_push(extensions) = s8(VK_KHR_RAY_QUERY_EXTENSION_NAME);
-      array_push(extensions) = s8(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
-      array_push(extensions) = s8(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+      array_push(extensions) = s8_lit(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+      array_push(extensions) = s8_lit(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+      array_push(extensions) = s8_lit(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
    }
 
    VkPhysicalDeviceFeatures2 features2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
@@ -823,11 +822,11 @@ static void gpu_log(hw* hw)
 
    if(hw->state.is_mesh_shading)
       hw->window_title_set(hw,
-                       s8("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON"),
+                       s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
    else
       hw->window_title_set(hw,
-                       s8("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
+                       s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
 }
 
