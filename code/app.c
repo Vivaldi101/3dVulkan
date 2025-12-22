@@ -22,7 +22,7 @@ static void app_frame(arena scratch, app_state* state)
 static void app_camera_update(app_state* state)
 {
    f32 decay = -logf(0.08f);
-   f32 k = 1.0f - expf(-decay * (f32)state->frame_delta_in_seconds);
+   f32 smoothing_factor = 1.0f - expf(-decay * (f32)state->frame_delta_in_seconds);
 
    // half turn across view plane extents (in azimuth)
    f32 rotation_speed_x = (2.f*PI) / state->camera.viewplane_width;
@@ -64,9 +64,9 @@ static void app_camera_update(app_state* state)
    }
 
    // smooth damping
-   state->camera.smoothed_azimuth += (state->camera.target_azimuth - state->camera.smoothed_azimuth) * k;
-   state->camera.smoothed_altitude += (state->camera.target_altitude - state->camera.smoothed_altitude) * k;
-   state->camera.smoothed_radius += (state->camera.target_radius - state->camera.smoothed_radius) * k;
+   state->camera.smoothed_azimuth += (state->camera.target_azimuth - state->camera.smoothed_azimuth) * smoothing_factor;
+   state->camera.smoothed_altitude += (state->camera.target_altitude - state->camera.smoothed_altitude) * smoothing_factor;
+   state->camera.smoothed_radius += (state->camera.target_radius - state->camera.smoothed_radius) * smoothing_factor;
 
    // use smoothed values for position
    f32 azimuth = state->camera.smoothed_azimuth;
@@ -97,8 +97,8 @@ static void app_camera_update(app_state* state)
       xz = vec3_scale(&xz, delta_x);
       up = vec3_scale(&up, delta_y);
 
-      xz = vec3_scale(&xz, k * .045f);
-      up = vec3_scale(&up, k * .045f);
+      xz = vec3_scale(&xz, smoothing_factor * smoothing_factor);
+      up = vec3_scale(&up, smoothing_factor * smoothing_factor);
 
       state->camera.origin = vec3_sub(&xz, &state->camera.origin);
       state->camera.origin = vec3_add(&up, &state->camera.origin);
