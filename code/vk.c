@@ -14,6 +14,8 @@ static vk_allocator global_allocator;
 #include "gltf.c"
 #include "rt.c"
 
+#include <volk.c>
+
 static void* VKAPI_PTR vk_allocation(void* user_data,
                                      size_t new_size,
                                      size_t alignment,

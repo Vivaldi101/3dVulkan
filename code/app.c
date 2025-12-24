@@ -9,7 +9,6 @@
 #include "math.h"
 #include "arena.h"
 
-#include <volk.c>
 #include "vk.c"
 
 static void app_frame(arena scratch, app_state* state)
