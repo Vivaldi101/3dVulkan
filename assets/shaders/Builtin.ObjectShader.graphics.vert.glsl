@@ -8,12 +8,20 @@
 #include "mesh.h"
 #include "common.glsl"
 
-vec3 quad[4] = vec3[]
+vec3 ground_plane[4] = vec3[]
 (
-    vec3(-120.0f, 0.0f, -120.0f),  // top-left
-    vec3(-120.0f, 0.0f,  120.0f),  // bottom-left
-    vec3(120.0f,  0.0f,   -120.0f), // top-right
-    vec3(120.0f,  0.0f,   120.0f)   // bottom-right
+    vec3(-10.0f, 0.0f, -10.0f),  // top-left
+    vec3(-10.0f, 0.0f,  10.0f),  // bottom-left
+    vec3(10.0f,  0.0f,   -10.0f), // top-right
+    vec3(10.0f,  0.0f,   10.0f)   // bottom-right
+);
+
+vec3 screen_plane[4] = vec3[]
+(
+    vec3(-1.0f, 1.0f, 0.0f),  // top-left
+    vec3(-1.0f, -1.0f, 0.0f),  // bottom-left
+    vec3(1.0f,  1.0f,  0.0f), // top-right
+    vec3(1.0f,  -1.0f,  0.0f)   // bottom-right
 );
 
 layout(set = 0, binding = 0) readonly buffer vertex_block
@@ -43,6 +51,8 @@ void main()
     vec4 vertex_world_pos = vec4(0.f);
     vec4 tangent = vec4(0.f);
 
+    vec3 camera_dir = -vec3(globals.view[0][2], globals.view[1][2], globals.view[2][2]);
+
     if(!globals.draw_ground_plane)
     {
         pos = vec3(verts[gl_VertexIndex].vx, verts[gl_VertexIndex].vy, verts[gl_VertexIndex].vz) * 1.f;
@@ -54,14 +64,26 @@ void main()
     }
     else
     {
-        float t = float(globals.time);
-        pos = quad[gl_VertexIndex];
+       if(dot(camera_dir, vec3(0, 1.f, 0)) > 0.f)
+       {
+          float t = float(globals.time);
+          pos = ground_plane[gl_VertexIndex];
 
-        float wave1 = sin(pos.x * 2.0 + t) * 0.85;
-        float wave2 = cos(pos.z * 3.0 + t) * 0.35;
+          float wave1 = sin(pos.x * 2.0 + t) * 0.85;
+          float wave2 = cos(pos.z * 3.0 + t) * 0.35;
 
-        vec3 displaced_pos = pos + vec3(0.0, wave1 + wave2 + .5f, 0.0);
-        vertex_world_pos = vec4(displaced_pos, 1.0);
+          vec3 displaced_pos = pos + vec3(0.0, wave1 + wave2 + .5f, 0.0);
+          vertex_world_pos = vec4(displaced_pos, 1.0);
+       }
+       else
+       {
+          float t = float(globals.time);
+          pos = screen_plane[gl_VertexIndex];
+
+          vertex_world_pos = vec4(pos, 1.0);
+          gl_Position = vertex_world_pos;
+          return;
+       }
     }
 
     gl_Position = globals.projection * globals.view * vertex_world_pos;

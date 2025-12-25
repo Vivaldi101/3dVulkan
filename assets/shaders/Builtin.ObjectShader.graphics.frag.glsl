@@ -38,6 +38,19 @@ float ndc_to_linear_z(float ndc_z, float near, float far)
 void main()
 {
     vec3 light_color = vec3(1.f);
+    vec3 camera_dir = -vec3(globals.view[0][2], globals.view[1][2], globals.view[2][2]);
+
+    if(dot(camera_dir, vec3(0, 1.f, 0)) <= 0.f)
+    {
+       vec3 base_color = vec3(0.05, 0.08, 0.45); // dark blue base for water
+       
+       vec3 linear_color = clamp(base_color, 0.0, 1.0);
+       
+       out_color = vec4(linear_color, 0.76f);
+       out_color.xyz = color_to_srgb(out_color.xyz);
+       return;
+    }
+
     if(!globals.draw_ground_plane)
     {
        mesh_draw draw = draws[in_draw_ID];
