@@ -154,10 +154,10 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
 {
    clock_query_frequency();
 
-   f32 altitude = PI / 10.f;
+   f32 altitude = PI / 8.f;
    f32 azimuth = PI * 2.f;
    vec3 origin = {0, 0, 0};
-   app_camera_reset(&hw->state.camera, origin, 1.0f, altitude, azimuth);
+   app_camera_reset(&hw->state.camera, origin, 4.0f, altitude, azimuth);
 
    f64 log_delta = clock_time_to_counter(.5f);
 

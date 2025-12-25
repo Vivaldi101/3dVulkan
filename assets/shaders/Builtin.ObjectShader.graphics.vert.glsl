@@ -10,10 +10,10 @@
 
 vec3 quad[4] = vec3[]
 (
-    vec3(-100.0f, 0.2f, -100.0f),  // top-left
-    vec3(-100.0f, 0.2f,  100.0f),  // bottom-left
-    vec3(100.0f,  0.2f,   -100.0f), // top-right
-    vec3(100.0f,  0.2f,   100.0f)   // bottom-right
+    vec3(-120.0f, 0.0f, -120.0f),  // top-left
+    vec3(-120.0f, 0.0f,  120.0f),  // bottom-left
+    vec3(120.0f,  0.0f,   -120.0f), // top-right
+    vec3(120.0f,  0.0f,   120.0f)   // bottom-right
 );
 
 layout(set = 0, binding = 0) readonly buffer vertex_block
@@ -57,11 +57,10 @@ void main()
         float t = float(globals.time);
         pos = quad[gl_VertexIndex];
 
-        // Basic sine wave displacement
-        float wave1 = sin(pos.x * 2.0 + t * 2.0) * 0.15;
-        float wave2 = cos(pos.z * 3.0 + t * 0.5) * 0.35;
+        float wave1 = sin(pos.x * 2.0 + t) * 0.85;
+        float wave2 = cos(pos.z * 3.0 + t) * 0.35;
 
-        vec3 displaced_pos = pos + vec3(0.0, wave1 + wave2, 0.0);
+        vec3 displaced_pos = pos + vec3(0.0, wave1 + wave2 + .5f, 0.0);
         vertex_world_pos = vec4(displaced_pos, 1.0);
     }
 

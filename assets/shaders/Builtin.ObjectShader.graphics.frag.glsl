@@ -109,11 +109,17 @@ void main()
        
        // water-like glow color
        vec3 glow_color = vec3(0.0, 0.6, 0.9) * falloff * glow_intensity; // cyan-blue
-       vec3 base_color = vec3(0.05, 0.1, 0.2); // dark blue base for water
+       vec3 base_color = vec3(0.05, 0.08, 0.25); // dark blue base for water
        
        vec3 linear_color = clamp(base_color + glow_color, 0.0, 1.0);
+       //vec3 linear_color = clamp(base_color, 0.0, 1.0);
        
-       float water_alpha = 0.18f;
+       float t = (sin(float(globals.time)) + 1) * 0.5f; //  [-1, 1] => [0, 2] / 2 => [0, 1]
+
+       float min_alpha = 0.25f;   // dont go below this
+       float max_alpha = 0.50f;   // dont go above this
+       float water_alpha = mix(min_alpha, max_alpha, t);
+
        out_color = vec4(linear_color, water_alpha);
     }
 
