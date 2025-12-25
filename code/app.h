@@ -60,6 +60,7 @@ align_struct app_state
    app_camera camera;
    s8 asset_file;  // TODO: for testing
    f64 frame_delta_in_seconds;
+   f64 time_in_seconds;
    bool is_mesh_shading;
    bool draw_normals;
    bool draw_axis;

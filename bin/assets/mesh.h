@@ -34,6 +34,7 @@ struct mvp_transform
 {
     mat4 projection;
     mat4 view;
+    double time;
     float n;
     float f;
     float ar;

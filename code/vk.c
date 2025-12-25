@@ -828,8 +828,10 @@ static void gpu_log(hw* hw)
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
    else
       hw->window_title_set(hw,
-                       s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
+                       s8_lit("cpu elapsed: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
+
+   hw->state.time_in_seconds += hw->state.frame_delta_in_seconds;
 }
 
 static void vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
@@ -1054,6 +1056,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    mvp.ar = ar;
    mvp.projection = mat4_perspective(ar, 90.0f, mvp.n, mvp.f);
    mvp.view = mat4_view(eye, dir);
+   mvp.time = state->time_in_seconds;
 
    assert(mvp.n > 0.0f);
    assert(mvp.ar != 0.0f);

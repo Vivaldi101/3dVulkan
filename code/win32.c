@@ -574,7 +574,10 @@ int main(int argc, char** argv)
       printf("Launching with the default gltf scene: %s\n", s8_data(asset_file));
    }
    else
-      asset_file = s8_lit(argv[1]);
+   {
+      asset_file.data = (u8*)argv[1];
+      asset_file.len = strlen(argv[1]);
+   }
 
    win32_print_last_error(s8_lit("App starting...\n"));
 

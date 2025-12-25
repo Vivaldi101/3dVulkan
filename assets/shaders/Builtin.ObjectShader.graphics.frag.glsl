@@ -96,23 +96,25 @@ void main()
     }
     else
     {
-      // draw the ground plane with some glow
-      vec3 procedural_center = vec3(10.0, 7.0, 0.0);
-      float glow_intensity = 3.0;
-      
-      float dist = length(in_world_frag_pos - procedural_center);
-      
-      // bright center + longer aura
-      float core  = exp(-dist * .15);        // small, bright dot
-      float halo  = exp(-dist * 3.05);       // larger glow spread
-      float falloff = core + 0.9 * halo;     // adjust 0.5 for halo strength
-      
-      vec3 glow_color = vec3(0.95, 0.78, 0.0) * falloff * glow_intensity; // amber yellow
-      //vec3 base_color = vec3(71.0/255, 58.0/255, 10.0/255);
-      vec3 base_color = vec3(0.1176, 0.1176, 0.1176);
-      vec3 linear_color = clamp(base_color + glow_color, 0.0, 1.0);
-      
-      out_color = vec4(linear_color, 1.0);
+       // draw the ground plane with water-like glow
+       vec3 procedural_center = vec3(0.0, 0.0, 0.0);
+       float glow_intensity = 3.0;
+       
+       float dist = length(in_world_frag_pos - procedural_center);
+       
+       // bright center + longer aura
+       float core  = exp(-dist * 0.15);  // small, bright dot
+       float halo  = exp(-dist * 3.05);  // larger glow spread
+       float falloff = core + 0.9 * halo;
+       
+       // water-like glow color
+       vec3 glow_color = vec3(0.0, 0.6, 0.9) * falloff * glow_intensity; // cyan-blue
+       vec3 base_color = vec3(0.05, 0.1, 0.2); // dark blue base for water
+       
+       vec3 linear_color = clamp(base_color + glow_color, 0.0, 1.0);
+       
+       float water_alpha = 0.18f;
+       out_color = vec4(linear_color, water_alpha);
     }
 
     out_color.xyz = color_to_srgb(out_color.xyz);

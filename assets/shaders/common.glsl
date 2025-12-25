@@ -5,6 +5,7 @@ layout(push_constant) uniform push_constants_block
 {
     mat4 projection;
     mat4 view;
+    double time;
     float near;
     float far;
     float ar;

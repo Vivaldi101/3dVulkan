@@ -196,10 +196,10 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
 
       begin = end;
 
-      if(fps_counter >= log_delta)
+      //if(fps_counter >= log_delta)
       {
          hw->renderer.gpu_log(hw);
-         fps_counter = 0;
+         //fps_counter = 0;
       }
    }
 }
