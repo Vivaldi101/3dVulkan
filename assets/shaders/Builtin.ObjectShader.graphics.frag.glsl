@@ -38,6 +38,7 @@ float ndc_to_linear_z(float ndc_z, float near, float far)
 void main()
 {
     vec3 light_color = vec3(1.f);
+    // TODO: take camera pos too
     vec3 camera_dir = -vec3(globals.view[0][2], globals.view[1][2], globals.view[2][2]);
 
     if(dot(camera_dir, vec3(0, 1.f, 0)) <= 0.f)

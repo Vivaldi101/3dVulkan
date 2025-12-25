@@ -51,6 +51,7 @@ void main()
     vec4 vertex_world_pos = vec4(0.f);
     vec4 tangent = vec4(0.f);
 
+    // TODO: take camera pos too
     vec3 camera_dir = -vec3(globals.view[0][2], globals.view[1][2], globals.view[2][2]);
 
     if(!globals.draw_ground_plane)
