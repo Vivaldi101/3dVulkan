@@ -61,7 +61,7 @@ void main()
        vec3 linear_color = clamp(base_color, 0.0, 1.0);
        //vec3 linear_color = clamp(base_color, 0.0, 1.0);
        
-       float t = (sin(float(globals.time)) + 1) * 0.5f; //  [-1, 1] => [0, 2] / 2 => [0, 1]
+       float t = (sin(float(globals.time)) + 1) * 0.5f; //  map from [-1, 1] to [0, 2] and scale down by 2 to [0, 1]
 
        float min_alpha = 0.25f;   // dont go below this
        float max_alpha = 0.50f;   // dont go above this
@@ -148,7 +148,7 @@ void main()
        vec3 linear_color = clamp(base_color + glow_color, 0.0, 1.0);
        //vec3 linear_color = clamp(base_color, 0.0, 1.0);
        
-       float t = (sin(float(globals.time)) + 1) * 0.5f; //  [-1, 1] => [0, 2] / 2 => [0, 1]
+       float t = (sin(float(globals.time)) + 1) * 0.5f; //  map from [-1, 1] to [0, 2] and scale down by 2 to [0, 1]
 
        float min_alpha = 0.25f;   // dont go below this
        float max_alpha = 0.50f;   // dont go above this
