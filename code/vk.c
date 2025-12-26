@@ -1529,7 +1529,7 @@ static bool vk_axis_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    pipeline_info.pViewportState = &viewport_info;
 
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
-   raster_info.lineWidth = 2.0f;
+   raster_info.lineWidth = 4.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
    raster_info.polygonMode = VK_POLYGON_MODE_FILL;
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -1539,13 +1539,8 @@ static bool vk_axis_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    sample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
    pipeline_info.pMultisampleState = &sample_info;
 
+   // no depth or stencil tests for world axis since we want to see them always
    VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
-   depth_stencil_info.depthTestEnable = true;
-   depth_stencil_info.depthWriteEnable = true;
-   depth_stencil_info.depthBoundsTestEnable = true;
-   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
-   depth_stencil_info.minDepthBounds = 0.0f;
-   depth_stencil_info.maxDepthBounds = 1.0f;
    pipeline_info.pDepthStencilState = &depth_stencil_info;
 
    VkPipelineColorBlendAttachmentState color_blend_attachment = {0};
