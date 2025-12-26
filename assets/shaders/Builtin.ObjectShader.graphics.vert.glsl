@@ -51,8 +51,8 @@ void main()
     vec4 vertex_world_pos = vec4(0.f);
     vec4 tangent = vec4(0.f);
 
-    // TODO: take camera pos too
-    vec3 camera_dir = -vec3(globals.view[0][2], globals.view[1][2], globals.view[2][2]);
+    mat4 camera_inverse = inverse(globals.view);
+    vec3 camera_pos = camera_inverse[3].xyz;
 
     if(!globals.draw_ground_plane)
     {
@@ -65,7 +65,9 @@ void main()
     }
     else
     {
-       if(dot(camera_dir, vec3(0, 1.f, 0)) > 0.f)
+       plane world_plane_y = plane_normal_create(vec3(0, 1.f, 0), vec3(0.f, 0.f, 0.f));
+
+       if(plane_distance(world_plane_y, camera_pos) > 0.f)
        {
           float t = float(globals.time);
           pos = ground_plane[gl_VertexIndex];

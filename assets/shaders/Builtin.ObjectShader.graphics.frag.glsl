@@ -38,10 +38,11 @@ float ndc_to_linear_z(float ndc_z, float near, float far)
 void main()
 {
     vec3 light_color = vec3(1.f);
-    // TODO: take camera pos too
-    vec3 camera_dir = -vec3(globals.view[0][2], globals.view[1][2], globals.view[2][2]);
+    mat4 camera_inverse = inverse(globals.view);
+    vec3 camera_pos = camera_inverse[3].xyz;
+    plane world_plane_y = plane_normal_create(vec3(0, 1.f, 0), vec3(0.f, 0.f, 0.f));
 
-    if(dot(camera_dir, vec3(0, 1.f, 0)) <= 0.f)
+    if(plane_distance(world_plane_y, camera_pos) <= 0.f)
     {
        // draw the ground plane with water-like glow
        vec3 procedural_center = vec3(0.0, 0.0, 0.0);
