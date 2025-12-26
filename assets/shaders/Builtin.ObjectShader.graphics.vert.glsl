@@ -10,10 +10,10 @@
 
 vec3 ground_plane[4] = vec3[]
 (
-    vec3(-10.0f, 0.0f, -10.0f),  // top-left
-    vec3(-10.0f, 0.0f,  10.0f),  // bottom-left
-    vec3(10.0f,  0.0f,   -10.0f), // top-right
-    vec3(10.0f,  0.0f,   10.0f)   // bottom-right
+    vec3(-100.0f, 0.0f, -100.0f),  // top-left
+    vec3(-100.0f, 0.0f,  100.0f),  // bottom-left
+    vec3(100.0f,  0.0f,   -100.0f), // top-right
+    vec3(100.0f,  0.0f,   100.0f)   // bottom-right
 );
 
 vec3 screen_plane[4] = vec3[]

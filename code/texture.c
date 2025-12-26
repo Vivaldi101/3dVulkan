@@ -5,8 +5,7 @@
 
 #include "../extern/stb_image.h"
 
-// TODO: wide contract
-static VkImageView vk_image_view_create(vk_device* devices, VkFormat format, VkImage image, VkImageAspectFlags aspect_mask)
+static hw_result vk_image_view_create(vk_device* devices, VkFormat format, VkImage image, VkImageAspectFlags aspect_mask)
 {
    VkImageView image_view = 0;
 
@@ -19,14 +18,16 @@ static VkImageView vk_image_view_create(vk_device* devices, VkFormat format, VkI
    view_info.subresourceRange.levelCount = 1;
 
    if(!vk_valid(vkCreateImageView(devices->logical, &view_info, &global_allocator.handle, &image_view)))
-      return VK_NULL_HANDLE;
+      return (hw_result) {0};
 
-   return image_view;
+   return (hw_result){image_view};
 }
 
-static bool vk_image_create(vk_image* image, vk_device* devices, VkFormat format, VkExtent3D extent, VkImageUsageFlags usage)
+// TODO: just return the image
+static hw_result vk_image_create(vk_image* image, vk_device* devices, VkFormat format, VkExtent3D extent, VkImageUsageFlags usage)
 {
    VkImageCreateInfo image_info = {0};
+
    image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
    image_info.imageType = VK_IMAGE_TYPE_2D; 
    image_info.extent = extent;
@@ -42,7 +43,7 @@ static bool vk_image_create(vk_image* image, vk_device* devices, VkFormat format
    image_info.pQueueFamilyIndices = 0;
 
    if(vkCreateImage(devices->logical, &image_info, &global_allocator.handle, &image->handle) != VK_SUCCESS)
-      return false;
+      return (hw_result){0};
 
    VkMemoryRequirements memory_requirements;
    vkGetImageMemoryRequirements(devices->logical, image->handle, &memory_requirements);
@@ -64,23 +65,23 @@ static bool vk_image_create(vk_image* image, vk_device* devices, VkFormat format
       }
 
    if(memory_type_index == VK_MAX_MEMORY_TYPES)
-      return false;
+      return (hw_result){0};
 
    alloc_info.memoryTypeIndex = memory_type_index;
 
    VkDeviceMemory memory;
    if(vkAllocateMemory(devices->logical, &alloc_info, &global_allocator.handle, &memory) != VK_SUCCESS)
-      return false;
+      return (hw_result){0};
 
    image->memory = memory;
 
    if(vkBindImageMemory(devices->logical, image->handle, memory, 0) != VK_SUCCESS)
-      return false;
+      return (hw_result){0};
 
-   return true;
+   return (hw_result){memory};
 }
 
-static bool vk_depth_image_create(vk_image* image, vk_device* devices, VkFormat format, VkExtent3D extent)
+static hw_result vk_depth_image_create(vk_image* image, vk_device* devices, VkFormat format, VkExtent3D extent)
 {
    return vk_image_create(image, devices, format, extent, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
@@ -138,10 +139,8 @@ static bool vk_texture_load(vk_context* context, arena s, s8 uri, s8 gltf_path)
    VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 
    vk_image image = {0};
-   if(!vk_image_create(&image, &context->devices, VK_FORMAT_R8G8B8A8_UNORM, extents, usage))
+   if(!vk_image_create(&image, &context->devices, VK_FORMAT_R8G8B8A8_UNORM, extents, usage).h)
       return false;
-
-   VkImageView image_view = vk_image_view_create(&context->devices, format, image.handle, VK_IMAGE_ASPECT_COLOR_BIT);
 
    size tex_size = tex_width * tex_height * STBI_rgb_alpha;
 
@@ -160,7 +159,9 @@ static bool vk_texture_load(vk_context* context, arena s, s8 uri, s8 gltf_path)
 
    tex.image.handle = image.handle;
    tex.image.memory = image.memory;
-   tex.image.view = image_view;
+
+   if(!(tex.image.view = vk_image_view_create(&context->devices, format, image.handle, VK_IMAGE_ASPECT_COLOR_BIT).h))
+      return false;
 
    array_add(context->textures, tex);
 

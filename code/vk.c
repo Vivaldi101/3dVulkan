@@ -711,11 +711,8 @@ static hw_result vk_renderpass_create(vk_device* devices, vk_swapchain_surface* 
    return (hw_result){renderpass};
 }
 
-static VkFramebuffer vk_framebuffer_create(VkDevice logical_device, VkRenderPass renderpass, vk_swapchain_surface* surface_info, VkImageView* attachments, u32 attachment_count)
+static hw_result vk_framebuffer_create(VkDevice logical_device, VkRenderPass renderpass, vk_swapchain_surface* surface_info, VkImageView* attachments, u32 attachment_count)
 {
-   assert(vk_valid_handle(logical_device));
-   assert(vk_valid_handle(renderpass));
-
    VkFramebuffer framebuffer = 0;
 
    VkFramebufferCreateInfo framebuffer_info = {vk_info(FRAMEBUFFER)};
@@ -726,9 +723,9 @@ static VkFramebuffer vk_framebuffer_create(VkDevice logical_device, VkRenderPass
    framebuffer_info.height = surface_info->image_height;
    framebuffer_info.layers = 1;
 
-   vk_assert(vkCreateFramebuffer(logical_device, &framebuffer_info, &global_allocator.handle, &framebuffer));
+   vkCreateFramebuffer(logical_device, &framebuffer_info, &global_allocator.handle, &framebuffer);
 
-   return framebuffer;
+   return (hw_result){framebuffer};
 }
 
 VkImageMemoryBarrier vk_pipeline_barrier(VkImage image, VkImageAspectFlags aspect,
@@ -773,8 +770,7 @@ static void vk_swapchain_destroy(vk_device* devices, vk_swapchain_images* images
    vkDestroySwapchainKHR(devices->logical, swapchain->handle, &global_allocator.handle);
 }
 
-// TODO: wide contract
-static void vk_swapchain_update(arena scratch, vk_device* devices, vk_swapchain_images* images, vk_swapchain_surface* swapchain, framebuffers_array* framebuffers, VkRenderPass renderpass)
+static bool vk_swapchain_update(arena scratch, vk_device* devices, vk_swapchain_images* images, vk_swapchain_surface* swapchain, framebuffers_array* framebuffers, VkRenderPass renderpass)
 {
    VkImage* raw_images = push(&scratch, VkImage, swapchain->image_count);
 
@@ -786,16 +782,21 @@ static void vk_swapchain_update(arena scratch, vk_device* devices, vk_swapchain_
    {
       images->images.data[i].handle = raw_images[i];
 
-      vk_depth_image_create(&images->depths.data[i], devices, VK_FORMAT_D32_SFLOAT, depth_extent); // TODO: Return false here if fail
-
-      images->images.data[i].view = vk_image_view_create(devices, swapchain->format, images->images.data[i].handle, VK_IMAGE_ASPECT_COLOR_BIT);
-      images->depths.data[i].view = vk_image_view_create(devices, VK_FORMAT_D32_SFLOAT, images->depths.data[i].handle, VK_IMAGE_ASPECT_DEPTH_BIT);
+      // TODO: just return the image and no in/out param
+      if(!vk_depth_image_create(&images->depths.data[i], devices, VK_FORMAT_D32_SFLOAT, depth_extent).h)
+         return false;
+      if(!(images->images.data[i].view = vk_image_view_create(devices, swapchain->format, images->images.data[i].handle, VK_IMAGE_ASPECT_COLOR_BIT).h))
+         return false;
+      if(!(images->depths.data[i].view = vk_image_view_create(devices, VK_FORMAT_D32_SFLOAT, images->depths.data[i].handle, VK_IMAGE_ASPECT_DEPTH_BIT).h))
+         return false;
 
       VkImageView attachments[2] = {images->images.data[i].view, images->depths.data[i].view};
 
-      VkFramebuffer fb = vk_framebuffer_create(devices->logical, renderpass, swapchain, attachments, array_count(attachments));
-      framebuffers->data[i] = fb;
+      if(!(framebuffers->data[i] = vk_framebuffer_create(devices->logical, renderpass, swapchain, attachments, array_count(attachments)).h))
+         return false;
    }
+
+   return true;
 }
 
 static void gpu_log(hw* hw)
@@ -828,16 +829,18 @@ static void gpu_log(hw* hw)
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
    else
       hw->window_title_set(hw,
-                       s8_lit("cpu elapsed: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
+                       s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
 
    hw->state.time_in_seconds += hw->state.frame_delta_in_seconds;
 }
 
-static void vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
+static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
 {
    if(width == 0 || height == 0)
-      return;
+      return false;
+
+   printf("Window size: [%ux%u]\n", width, height);
 
    u32 renderer_index = renderer->renderer_index;
    assert(renderer_index < RENDERER_COUNT);
@@ -860,9 +863,7 @@ static void vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
    VkRenderPass renderpass = context->renderpass;
 
    context->swapchain = vk_swapchain_surface_create(s, devices, surface, width, height);
-   vk_swapchain_update(s, devices, images, swapchain, framebuffers, renderpass);
-
-   printf("Window size: [%ux%u]\n", width, height);
+   return vk_swapchain_update(s, devices, images, swapchain, framebuffers, renderpass);
 }
 
 static hw_result vk_query_pool_create(vk_device* devices, size query_pool_size)
@@ -1896,7 +1897,11 @@ bool vk_initialize(hw* hw)
       array_add(context->images.depths, (vk_image) { 0 });
    }
 
-   hw->renderer.frame_resize(&hw->renderer, hw->renderer.window.width, hw->renderer.window.height);
+   if(!hw->renderer.frame_resize(&hw->renderer, hw->renderer.window.width, hw->renderer.window.height))
+   {
+      printf("Could not resize a frame\n");
+      return false;
+   }
 
    const size buffer_table_size = 1 << 8;
    context->buffer_table = buffer_hash_create(buffer_table_size, a);
