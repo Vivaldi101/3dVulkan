@@ -51,8 +51,8 @@ void main()
     vec4 vertex_world_pos = vec4(0.f);
     vec4 tangent = vec4(0.f);
 
-    mat4 camera_inverse = inverse(globals.view);
-    vec3 camera_pos = camera_inverse[3].xyz;
+    mat3 camera_inverse = transpose(mat3(globals.view));
+    vec3 camera_pos = camera_inverse * -globals.view[3].xyz;
 
     if(!globals.draw_ground_plane)
     {

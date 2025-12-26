@@ -38,8 +38,8 @@ float ndc_to_linear_z(float ndc_z, float near, float far)
 void main()
 {
     vec3 light_color = vec3(1.f);
-    mat4 camera_inverse = inverse(globals.view);
-    vec3 camera_pos = camera_inverse[3].xyz;
+    mat3 camera_inverse = transpose(mat3(globals.view));
+    vec3 camera_pos = camera_inverse * -globals.view[3].xyz;
     plane world_plane_y = plane_normal_create(vec3(0, 1.f, 0), vec3(0.f, 0.f, 0.f));
 
     if(plane_distance(world_plane_y, camera_pos) <= 0.f)
