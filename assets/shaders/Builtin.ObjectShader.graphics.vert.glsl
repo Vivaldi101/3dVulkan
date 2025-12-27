@@ -10,10 +10,10 @@
 
 vec3 ground_plane[4] = vec3[]
 (
-    vec3(-100.0f, 0.0f, -100.0f),  // top-left
-    vec3(-100.0f, 0.0f,  100.0f),  // bottom-left
-    vec3(100.0f,  0.0f,   -100.0f), // top-right
-    vec3(100.0f,  0.0f,   100.0f)   // bottom-right
+    vec3(-100.0f, 1.0f, -100.0f),  // top-left
+    vec3(-100.0f, 1.0f,  100.0f),  // bottom-left
+    vec3(100.0f,  1.0f,   -100.0f), // top-right
+    vec3(100.0f,  1.0f,   100.0f)   // bottom-right
 );
 
 vec3 screen_plane[4] = vec3[]
@@ -62,34 +62,33 @@ void main()
         uv = vec2(verts[gl_VertexIndex].tu, verts[gl_VertexIndex].tv);
 
         vertex_world_pos = draws[draw_ID].world * vec4(pos, 1.0);
+        gl_Position = globals.projection * globals.view * vertex_world_pos;
     }
     else
     {
-       plane world_plane_y = plane_normal_create(vec3(0, 1.f, 0), vec3(0.f, 0.f, 0.f));
+       float t = float(globals.time);
+       pos = ground_plane[gl_VertexIndex];
 
-       if(plane_distance(world_plane_y, camera_pos) > 0.f)
+       float wave = sin(2.0 + t) * 0.85;
+       vec3 wave_pos = vec3(pos.x, wave + pos.y, pos.z);
+
+       plane wave_plane = plane_normal_create(vec3(0, 1.f, 0), wave_pos);
+
+       if(plane_distance(wave_plane, camera_pos) >= 0.f)
        {
-          float t = float(globals.time);
-          pos = ground_plane[gl_VertexIndex];
-
-          float wave1 = sin(pos.x * 2.0 + t) * 0.85;
-          float wave2 = cos(pos.z * 3.0 + t) * 0.35;
-
-          vec3 displaced_pos = pos + vec3(0.0, wave1 + wave2 + .5f, 0.0);
-          vertex_world_pos = vec4(displaced_pos, 1.0);
+          // above water
+          vertex_world_pos = vec4(wave_pos, 1.0);
+          gl_Position = globals.projection * globals.view * vertex_world_pos;
        }
        else
        {
-          float t = float(globals.time);
+          // below water
           pos = screen_plane[gl_VertexIndex];
-
           vertex_world_pos = vec4(pos, 1.0);
           gl_Position = vertex_world_pos;
-          return;
        }
     }
 
-    gl_Position = globals.projection * globals.view * vertex_world_pos;
 
     // Decode normal and transform to world space using inverse transpose
     normal = (normal - 127.5) / 127.5;
