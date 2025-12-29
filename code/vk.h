@@ -141,10 +141,10 @@ align_struct vk_device
    size queue_family_index;
 } vk_device;
 
-align_struct ctx_shader_destroy
+align_struct vk_ctx
 {
    vk_device* devices;
-} ctx_shader_destroy;
+} vk_ctx;
 
 align_struct vk_geometry
 {
@@ -223,13 +223,7 @@ align_struct vk_context
 
    VkRenderPass renderpass;
 
-   // TODO: vk_pipeline
-   VkPipeline rtx_pipeline;
-   VkPipeline non_rtx_pipeline;
-   VkPipeline axis_pipeline;
-   VkPipeline frustum_pipeline;
-
-   //pipeline_hash_table pipeline_table;
+   vk_pipeline_hash_table pipeline_table;
 
    VkPipelineLayout non_rtx_pipeline_layout;
    VkPipelineLayout rtx_pipeline_layout;
