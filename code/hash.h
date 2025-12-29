@@ -23,4 +23,12 @@ align_struct vk_shader_hash_table
    size count;
 } vk_shader_hash_table;
 
+align_struct vk_pipeline_hash_table
+{
+   VkPipeline* values;
+   const char** keys;
+   size max_count;
+   size count;
+} vk_pipeline_hash_table;
+
 #endif

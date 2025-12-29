@@ -12,8 +12,8 @@
 
 #include "common.h"
 #include "arena.h"
+#include "hash.h"
 #include "free_list.h"
-#include "vulkan_shader_module.h"
 
 #include "../assets/shaders/mesh.h"
 

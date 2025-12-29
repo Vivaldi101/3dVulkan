@@ -187,7 +187,7 @@
     <ClInclude Include="..\code\math.h" />
     <ClInclude Include="..\code\priority_queue.h" />
     <ClInclude Include="..\code\vk.h" />
-    <ClInclude Include="..\code\vulkan_shader_module.h">
+    <ClInclude Include="..\code\hash.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>

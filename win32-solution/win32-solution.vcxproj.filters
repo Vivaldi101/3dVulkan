@@ -66,7 +66,7 @@
     <ClInclude Include="..\code\priority_queue.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\code\vulkan_shader_module.h">
+    <ClInclude Include="..\code\hash.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\assets\shaders\mesh.h">
