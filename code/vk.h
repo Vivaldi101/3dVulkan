@@ -188,6 +188,7 @@ typedef array(VkFramebuffer) framebuffers_array;
 align_struct vk_context
 {
    framebuffers_array framebuffers;
+
    array(vk_texture) textures;
 
    array(meshlet) meshlets;
@@ -228,11 +229,12 @@ align_struct vk_context
    VkPipeline axis_pipeline;
    VkPipeline frustum_pipeline;
 
+   //pipeline_hash_table pipeline_table;
+
    VkPipelineLayout non_rtx_pipeline_layout;
    VkPipelineLayout rtx_pipeline_layout;
 
-   spv_hash_table shader_table;
-
+   vk_shader_hash_table shader_table;
    vk_buffer_hash_table buffer_table;
 
    vk_swapchain_surface swapchain;

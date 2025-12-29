@@ -110,6 +110,9 @@
     <None Include="..\assets\shaders\common.glsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="..\assets\shaders\Builtin.ObjectShader.water.mesh.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\code\shader_build.log">

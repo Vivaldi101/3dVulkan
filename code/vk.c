@@ -151,18 +151,18 @@ static vk_shader_module vk_shader_load(hw* hw, VkDevice logical_device, arena sc
 
    VkShaderStageFlagBits shader_stage = 0;
 
-   const s8 mesh_spv_name = s8_lit("mesh.spv");
-   const s8 vert_spv_name = s8_lit("vert.spv");
-   const s8 frag_spv_name = s8_lit("frag.spv");
+   const s8 mesh_vk_shader_name = s8_lit("mesh.spv");
+   const s8 vert_vk_shader_name = s8_lit("vert.spv");
+   const s8 frag_vk_shader_name = s8_lit("frag.spv");
 
-   if(s8_is_substr_count(shader_name, mesh_spv_name) != INVALID_INDEX)
+   if(s8_is_substr_count(shader_name, mesh_vk_shader_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_MESH_BIT_EXT;
-   else if(s8_is_substr_count(shader_name, vert_spv_name) != INVALID_INDEX)
+   else if(s8_is_substr_count(shader_name, vert_vk_shader_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_VERTEX_BIT;
-   else if(s8_is_substr_count(shader_name, frag_spv_name) != INVALID_INDEX)
+   else if(s8_is_substr_count(shader_name, frag_vk_shader_name) != INVALID_INDEX)
       shader_stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-   VkShaderModule module = vk_shader_spv_module_load(hw, logical_device, scratch, shader_name);
+   VkShaderModule module = vk_shader_vk_shader_module_load(hw, logical_device, scratch, shader_name);
 
    switch(shader_stage)
    {
@@ -184,19 +184,13 @@ static vk_shader_module vk_shader_load(hw* hw, VkDevice logical_device, arena sc
    return result;
 }
 
-static bool spirv_initialize(hw* hw, vk_context* context)
+static void spirv_initialize(hw* hw, vk_context* context, s8_array* shaders)
 {
-   const s8_array shaders = vk_shader_names_read(context->app_storage, s8_lit("bin\\assets\\shaders"));
+   assert(shaders->count > 0);
 
-   if(shaders.count == 0)
-   {
-      printf("No shaders found\n");
-      return false;
-   }
+   vk_shader_hash_table* table = &context->shader_table;
 
-   spv_hash_table* table = &context->shader_table;
-
-   table->max_count = shaders.count;
+   table->max_count = shaders->count;
 
    // TODO: make function for hash tables
    table->keys = push(context->app_storage, const char*, table->max_count);
@@ -204,45 +198,43 @@ static bool spirv_initialize(hw* hw, vk_context* context)
 
    pointer_clear(table->values, table->max_count * sizeof(vk_shader_module));
 
-   for(size i = 0; i < shaders.count; ++i)
+   for(size i = 0; i < shaders->count; ++i)
    {
-      s8 shader = shaders.data[i];
+      s8 shader = shaders->data[i];
 
       if(s8_is_substr_count(shader, s8_lit(meshlet_module_name)) != -1)
       {
          vk_shader_module mm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(mm.stage == VK_SHADER_STAGE_MESH_BIT_EXT)
-            spv_hash_insert(table, meshlet_module_name"_ms", mm);
+            vk_shader_hash_insert(table, meshlet_module_name"_ms", mm);
          else if(mm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-            spv_hash_insert(table, meshlet_module_name"_fs", mm);
+            vk_shader_hash_insert(table, meshlet_module_name"_fs", mm);
       }
       else if(s8_is_substr_count(shader, s8_lit(graphics_module_name)) != -1)
       {
          vk_shader_module gm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(gm.stage == VK_SHADER_STAGE_VERTEX_BIT)
-            spv_hash_insert(table, graphics_module_name"_vs", gm);
+            vk_shader_hash_insert(table, graphics_module_name"_vs", gm);
          else if(gm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-            spv_hash_insert(table, graphics_module_name"_fs", gm);
+            vk_shader_hash_insert(table, graphics_module_name"_fs", gm);
       }
       else if(s8_is_substr_count(shader, s8_lit(axis_module_name)) != -1)
       {
          vk_shader_module am = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(am.stage == VK_SHADER_STAGE_VERTEX_BIT)
-            spv_hash_insert(table, axis_module_name"_vs", am);
+            vk_shader_hash_insert(table, axis_module_name"_vs", am);
          else if(am.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-            spv_hash_insert(table, axis_module_name"_fs", am);
+            vk_shader_hash_insert(table, axis_module_name"_fs", am);
       }
       else if(s8_is_substr_count(shader, s8_lit(frustum_module_name)) != -1)
       {
          vk_shader_module fm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(fm.stage == VK_SHADER_STAGE_VERTEX_BIT)
-            spv_hash_insert(table, frustum_module_name"_vs", fm);
+            vk_shader_hash_insert(table, frustum_module_name"_vs", fm);
          else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-            spv_hash_insert(table, frustum_module_name"_fs", fm);
+            vk_shader_hash_insert(table, frustum_module_name"_fs", fm);
       }
    }
-
-   return true;
 }
 
 static bool vk_assets_read(vk_context* context, s8 asset_file)
@@ -250,9 +242,6 @@ static bool vk_assets_read(vk_context* context, s8 asset_file)
    bool success = false;
    if (s8_is_substr(asset_file, s8_lit(".gltf")))
       success = vk_gltf_read(context, asset_file);
-   else if (s8_is_substr(asset_file, s8_lit(".obj")))
-      ;
-      //vk_obj_read(context, asset_file);
    else
       printf("Unsupported asset format: %s\n", s8_data(asset_file));
 
@@ -1139,6 +1128,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       }
 
       cmd_push_storage_buffer(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
+
       cmd_push_all_rtx_constants(command_buffer, pipeline_layout, &mvp);
 
       if(buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name))
@@ -1186,7 +1176,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
       vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
 
-      // TODO: Do this in mesh shading too
       mvp.draw_ground_plane = true;
 
       cmd_push_all_constants(command_buffer, pipeline_layout, &mvp);
@@ -1407,8 +1396,9 @@ static bool vk_mesh_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    pipeline_info.pColorBlendState = &color_blend_info;
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
-   dynamic_info.pDynamicStates = (VkDynamicState[3]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
-   dynamic_info.dynamicStateCount = 3;
+   VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
+   dynamic_info.pDynamicStates = dynamic_states;
+   dynamic_info.dynamicStateCount = array_count(dynamic_states);
    pipeline_info.pDynamicState = &dynamic_info;
 
    pipeline_info.renderPass = context->renderpass;
@@ -1687,8 +1677,8 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    enum {shader_module_count = 2};
    vk_shader_module shader_modules[shader_module_count] = {0};
 
-   vk_shader_module gm_vs = spv_hash_lookup(&context->shader_table, graphics_module_name"_vs");
-   vk_shader_module gm_fs = spv_hash_lookup(&context->shader_table, graphics_module_name"_fs");
+   vk_shader_module gm_vs = vk_shader_hash_lookup(&context->shader_table, graphics_module_name"_vs");
+   vk_shader_module gm_fs = vk_shader_hash_lookup(&context->shader_table, graphics_module_name"_fs");
 
    shader_modules[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
    shader_modules[0].handle = gm_vs.handle;
@@ -1700,8 +1690,8 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
       return false;
    context->non_rtx_pipeline = graphics;
 
-   vk_shader_module mm_ms = spv_hash_lookup(&context->shader_table, meshlet_module_name"_ms");
-   vk_shader_module mm_fs = spv_hash_lookup(&context->shader_table, meshlet_module_name"_fs");
+   vk_shader_module mm_ms = vk_shader_hash_lookup(&context->shader_table, meshlet_module_name"_ms");
+   vk_shader_module mm_fs = vk_shader_hash_lookup(&context->shader_table, meshlet_module_name"_fs");
 
    shader_modules[0].stage = VK_SHADER_STAGE_MESH_BIT_EXT;
    shader_modules[0].handle = mm_ms.handle;
@@ -1713,8 +1703,8 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
       return false;
    context->rtx_pipeline = mesh;
 
-   vk_shader_module am_vs = spv_hash_lookup(&context->shader_table, axis_module_name"_vs");
-   vk_shader_module am_fs = spv_hash_lookup(&context->shader_table, axis_module_name"_fs");
+   vk_shader_module am_vs = vk_shader_hash_lookup(&context->shader_table, axis_module_name"_vs");
+   vk_shader_module am_fs = vk_shader_hash_lookup(&context->shader_table, axis_module_name"_fs");
 
    shader_modules[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
    shader_modules[0].handle = am_vs.handle;
@@ -1726,8 +1716,8 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
       return false;
    context->axis_pipeline = axis;
 
-   vk_shader_module fm_vs = spv_hash_lookup(&context->shader_table, frustum_module_name"_vs");
-   vk_shader_module fm_fs = spv_hash_lookup(&context->shader_table, frustum_module_name"_fs");
+   vk_shader_module fm_vs = vk_shader_hash_lookup(&context->shader_table, frustum_module_name"_vs");
+   vk_shader_module fm_fs = vk_shader_hash_lookup(&context->shader_table, frustum_module_name"_fs");
 
    shader_modules[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
    shader_modules[0].handle = fm_vs.handle;
@@ -1902,11 +1892,15 @@ bool vk_initialize(hw* hw)
    context->buffer_table = buffer_hash_create(buffer_table_size, a);
    buffer_hash_clear(&context->buffer_table);
 
-   if(!spirv_initialize(hw, context))
+   s8_array shaders = vk_shader_names_read(context->app_storage, s8_lit("bin\\assets\\shaders"));
+
+   if(shaders.count == 0)
    {
-      printf("Could not compile and load all the required shader modules\n");
+      printf("No shaders found\n");
       return false;
    }
+
+   spirv_initialize(hw, context, &shaders);
 
    if(!vk_assets_read(context, hw->state.asset_file))
    {
@@ -1940,7 +1934,7 @@ bool vk_initialize(hw* hw)
       return false;
    }
 
-   spv_hash_function(&context->shader_table, spv_hash_log_module_name, 0);
+   vk_shader_hash_function(&context->shader_table, vk_shader_hash_log_module_name, 0);
 
    return true;
 }
@@ -1959,7 +1953,7 @@ void vk_uninitialize(hw* hw)
    vk_device* devices = &context->devices;
    vk_buffer_hash_table* buffer_table = &context->buffer_table;
 
-   spv_hash_function(&context->shader_table, vk_shader_module_destroy, &(ctx_shader_destroy){&context->devices});
+   vk_shader_hash_function(&context->shader_table, vk_shader_module_destroy, &(ctx_shader_destroy){&context->devices});
 
    // TODO: iterate buffer objects here
    vk_buffer vb = *buffer_hash_lookup(buffer_table, vb_buffer_name);

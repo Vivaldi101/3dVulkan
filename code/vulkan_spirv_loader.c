@@ -45,8 +45,8 @@ static s8 vk_exe_directory(arena* a)
    return module_path;
 }
 
-// TODO: Change name to vk_spv_compile
-static VkShaderModule vk_shader_spv_module_load(hw* hw, VkDevice logical_device, arena scratch, s8 shader_name)
+// TODO: Change name to vk_vk_shader_compile
+static VkShaderModule vk_shader_vk_shader_module_load(hw* hw, VkDevice logical_device, arena scratch, s8 shader_name)
 {
    VkShaderModule result = 0;
 

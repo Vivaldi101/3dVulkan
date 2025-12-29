@@ -15,12 +15,12 @@ align_struct vk_shader_module_name
    const char* name;
 } vk_shader_module_name;
 
-align_struct spv_hash_table
+align_struct vk_shader_hash_table
 {
    vk_shader_module* values;
    const char** keys;
    size max_count;
    size count;
-} spv_hash_table;
+} vk_shader_hash_table;
 
 #endif

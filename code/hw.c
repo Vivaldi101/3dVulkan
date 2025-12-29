@@ -159,8 +159,6 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
    vec3 origin = {0, 0, 0};
    app_camera_reset(&hw->state.camera, origin, 4.0f, altitude, azimuth);
 
-   f64 log_delta = clock_time_to_counter(.5f);
-
    i64 begin = clock_query_counter();
    i64 fps_counter = begin;
    while(!hw->state.quit)
