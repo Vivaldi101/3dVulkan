@@ -72,7 +72,25 @@ static void vk_shader_hash_log_module_name(void* ctx, vk_shader_module_name shad
    printf("Shader module '%s': \t'%p'\n", shader_module.name, shader_module.module.handle);
 }
 
-// TODO: try to generalize these iterators
+// TODO: try to generalize these iterator functions
+static void vk_buffer_hash_function(vk_buffer_hash_table* table, void(*p)(void* ctx, vk_buffer* buffer), void* ctx)
+{
+   u32 index = 0;
+   u32 count = 0;
+
+   while(count != table->count)
+   {
+      if(table->keys[index])
+      {
+         vk_buffer* buffer = &table->values[index];
+         p(ctx, buffer);
+         ++count;
+      }
+      index = (index + 1) % table->max_count;
+   }
+
+}
+
 static void vk_pipeline_hash_function(vk_pipeline_hash_table* table, void(*p)(void* ctx, VkPipeline pipeline), void* ctx)
 {
    u32 index = 0;

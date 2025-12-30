@@ -172,7 +172,6 @@ align_struct vk_features
    f32 time_period;
 } vk_features;
 
-// TODO: change to hw_gpu_allocator and add to hw.h
 align_struct vk_allocator
 {
    VkAllocationCallbacks handle;

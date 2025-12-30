@@ -189,7 +189,7 @@ static void spirv_initialize(hw* hw, vk_context* context, s8_array* shaders)
    assert(shaders->count > 0);
 
    vk_pipeline_hash_table* pipeline_table = &context->pipeline_table;
-   pipeline_table->max_count = shaders->count / 2; // mostly two stages per pipeline 
+   pipeline_table->max_count = (size)ceilf((f32)shaders->count / 2); // max 2 stages per pipeline
 
    // TODO: make function for hash tables
    pipeline_table->keys = push(context->app_storage, const char*, pipeline_table->max_count);
@@ -240,6 +240,14 @@ static void spirv_initialize(hw* hw, vk_context* context, s8_array* shaders)
             vk_shader_hash_insert(shader_table, frustum_module_name"_vs", fm);
          else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             vk_shader_hash_insert(shader_table, frustum_module_name"_fs", fm);
+      }
+      else if(s8_is_substr_count(shader, s8_lit(water_module_name)) != -1)
+      {
+         vk_shader_module fm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
+         if(fm.stage == VK_SHADER_STAGE_MESH_BIT_EXT)
+            vk_shader_hash_insert(shader_table, water_module_name"_ms", fm);
+         else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+            vk_shader_hash_insert(shader_table, water_module_name"_fs", fm);
       }
    }
 }
@@ -1947,14 +1955,21 @@ bool vk_initialize(hw* hw)
    return true;
 }
 
-static void vk_shader_module_destroy(void* ctx, vk_shader_module_name shader_module)
+static void vk_ctx_buffer_destroy(void* ctx, vk_buffer* buffer)
+{
+   vk_ctx* p = (vk_ctx*)ctx;
+
+   vk_buffer_destroy(p->devices, buffer);
+}
+
+static void vk_ctx_shader_module_destroy(void* ctx, vk_shader_module_name shader_module)
 {
    vk_ctx* p = (vk_ctx*)ctx;
 
    vkDestroyShaderModule(p->devices->logical, shader_module.module.handle, 0);
 }
 
-static void vk_pipeline_destroy(void* ctx, VkPipeline pipeline)
+static void vk_ctx_pipeline_destroy(void* ctx, VkPipeline pipeline)
 {
    vk_ctx* p = (vk_ctx*)ctx;
 
@@ -1963,27 +1978,14 @@ static void vk_pipeline_destroy(void* ctx, VkPipeline pipeline)
 
 void vk_uninitialize(hw* hw)
 {
-   // TODO: Semcompress this entire function
+   // TODO: compress this entire function
    vk_context* context = hw->renderer.backends[VULKAN_RENDERER_INDEX];
    vk_device* devices = &context->devices;
-   vk_buffer_hash_table* buffer_table = &context->buffer_table;
-
-   vk_shader_hash_function(&context->shader_table, vk_shader_module_destroy, &(vk_ctx){&context->devices});
-
-   // TODO: iterate buffer objects here
-   vk_buffer vb = *buffer_hash_lookup(buffer_table, vb_buffer_name);
-   vk_buffer ib = *buffer_hash_lookup(buffer_table, ib_buffer_name);
-   vk_buffer mb = *buffer_hash_lookup(buffer_table, mb_buffer_name);
-
-   vk_buffer indirect = *buffer_hash_lookup(buffer_table, indirect_buffer_name);
-   vk_buffer indirect_rtx = *buffer_hash_lookup(buffer_table, indirect_rtx_buffer_name);
-   vk_buffer transform = *buffer_hash_lookup(buffer_table, mesh_draw_buffer_name);
-
-   vk_buffer tlas = *buffer_hash_lookup(buffer_table, tlas_buffer_name);
-   vk_buffer blas = *buffer_hash_lookup(buffer_table, blas_buffer_name);
-   vk_buffer rt = *buffer_hash_lookup(buffer_table, rt_buffer_name);
 
    vkDeviceWaitIdle(context->devices.logical);
+
+   vk_shader_hash_function(&context->shader_table, vk_ctx_shader_module_destroy, &(vk_ctx){&context->devices});
+   vk_buffer_hash_function(&context->buffer_table, vk_ctx_buffer_destroy, &(vk_ctx){&context->devices});
 
    vkDestroyDescriptorSetLayout(context->devices.logical, context->non_rtx_set_layout, &global_allocator.handle);
    vkDestroyDescriptorSetLayout(context->devices.logical, context->rtx_set_layout, &global_allocator.handle);
@@ -1991,25 +1993,13 @@ void vk_uninitialize(hw* hw)
    vkDestroyDescriptorSetLayout(context->devices.logical, context->texture_descriptor.layout, &global_allocator.handle);
    vkDestroyDescriptorPool(context->devices.logical, context->texture_descriptor.descriptor_pool, &global_allocator.handle);
 
-   vk_pipeline_hash_function(&context->pipeline_table, vk_pipeline_destroy, &(vk_ctx){&context->devices});
+   vk_pipeline_hash_function(&context->pipeline_table, vk_ctx_pipeline_destroy, &(vk_ctx){&context->devices});
 
    vkDestroyPipelineLayout(context->devices.logical, context->non_rtx_pipeline_layout, &global_allocator.handle);
    vkDestroyPipelineLayout(context->devices.logical, context->rtx_pipeline_layout, &global_allocator.handle);
 
    vkDestroyCommandPool(context->devices.logical, context->cmd.pool, &global_allocator.handle);
    vkDestroyQueryPool(context->devices.logical, context->query_pool, &global_allocator.handle);
-
-   vk_buffer_destroy(&context->devices, &ib);
-   vk_buffer_destroy(&context->devices, &vb);
-   vk_buffer_destroy(&context->devices, &mb);
-
-   vk_buffer_destroy(&context->devices, &indirect);
-   vk_buffer_destroy(&context->devices, &indirect_rtx);
-   vk_buffer_destroy(&context->devices, &transform);
-
-   vk_buffer_destroy(&context->devices, &tlas);
-   vk_buffer_destroy(&context->devices, &blas);
-   vk_buffer_destroy(&context->devices, &rt);
 
    for(size i = 0; i < context->rt_as.blas_count; i++)
       vkDestroyAccelerationStructureKHR(context->devices.logical, context->rt_as.blases[i], &global_allocator.handle);

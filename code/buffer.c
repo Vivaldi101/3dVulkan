@@ -17,6 +17,7 @@ static const char* rt_buffer_name = "rt";
 #define meshlet_module_name "meshlet"
 #define frustum_module_name "frustum"
 #define axis_module_name "axis"
+#define water_module_name "water"
 
 static bool vk_buffer_allocate(vk_buffer* buffer, VkDevice device, VkPhysicalDevice physical, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags)
 {
