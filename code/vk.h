@@ -169,6 +169,7 @@ align_struct vk_features
 {
    bool mesh_shading_supported;
    bool raytracing_supported;
+   bool dynamic_state_extended;
    f32 time_period;
 } vk_features;
 

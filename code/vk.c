@@ -400,6 +400,7 @@ static vk_swapchain_surface vk_window_swapchain_surface_create(arena scratch, co
 // TODO: wrap into vk_device select
 static hw_result vk_physical_device_select(arena s, vk_device* device, vk_features* features)
 {
+
    hw_result result = {0};
 
    u32 dev_count = 0;
@@ -413,6 +414,8 @@ static hw_result vk_physical_device_select(arena s, vk_device* device, vk_featur
    u32 fallback_gpu = 0;
    for(u32 i = 0; i < dev_count; ++i)
    {
+      pointer_clear(features, sizeof(*features));
+
       VkPhysicalDeviceProperties props;
       vkGetPhysicalDeviceProperties(devs[i], &props);
 
@@ -453,10 +456,14 @@ static hw_result vk_physical_device_select(arena s, vk_device* device, vk_featur
          if(s8_equals(e, s8_lit(VK_KHR_RAY_QUERY_EXTENSION_NAME)))
             features->raytracing_supported = true;
 
-         if(features->raytracing_supported && features->mesh_shading_supported)
+         if(s8_equals(e, s8_lit(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME)))
+            features->dynamic_state_extended = true;
+
+         if(features->raytracing_supported && features->mesh_shading_supported && features->dynamic_state_extended)
          {
             printf("Ray tracing supported\n");
             printf("Mesh shading supported\n");
+            printf("Dynamic state extended supported\n");
 
             return (hw_result){.h = devs[i]};
          }
@@ -506,6 +513,10 @@ static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_
       array_push(extensions) = s8_lit(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
       array_push(extensions) = s8_lit(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
    }
+   if(features->dynamic_state_extended)
+   {
+      array_push(extensions) = s8_lit(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+   }
 
    VkPhysicalDeviceFeatures2 features2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 
@@ -520,6 +531,8 @@ static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_
    VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 
    VkPhysicalDeviceRayQueryFeaturesKHR ray_query = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
+
+   VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamic_state = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT};
 
    features12.storageBuffer8BitAccess = true;
    features12.uniformAndStorageBuffer8BitAccess = true;
@@ -556,6 +569,14 @@ static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_
 
       ray_query.rayQuery = true;
       acceleration_features.accelerationStructure = true;
+   }
+
+   if(features->dynamic_state_extended)
+   {
+      dynamic_state.pNext = features2.pNext;
+      features2.pNext = &dynamic_state;
+
+      dynamic_state.extendedDynamicState3PolygonMode = true;
    }
 
    vkGetPhysicalDeviceFeatures2(devices->physical, &features2);
@@ -1109,6 +1130,8 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
    if(state->is_mesh_shading)
    {
+      vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_FILL);
+
       VkPipeline meshlet_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, meshlet_module_name);
 
       VkPipelineLayout pipeline_layout = context->rtx_pipeline_layout;
@@ -1152,6 +1175,9 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
                                        buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name)->handle,
                                        0, (u32)context->geometry.mesh_draws.count,
                                        sizeof(VkDrawMeshTasksIndirectCommandEXT));
+
+      if(state->draw_axis)
+         vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
 
       VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
       cmd_bind_pipeline(command_buffer, water_pipeline);
@@ -1375,7 +1401,7 @@ static bool vk_mesh_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+   //raster_info.polygonMode = wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    pipeline_info.pRasterizationState = &raster_info;
 
@@ -1417,7 +1443,7 @@ static bool vk_mesh_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    pipeline_info.pColorBlendState = &color_blend_info;
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
-   VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
+   VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_POLYGON_MODE_EXT};
    dynamic_info.pDynamicStates = dynamic_states;
    dynamic_info.dynamicStateCount = array_count(dynamic_states);
    pipeline_info.pDynamicState = &dynamic_info;
@@ -1459,7 +1485,7 @@ static bool vk_graphics_pipeline_create(VkPipeline* pipeline, vk_context* contex
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   raster_info.polygonMode = VK_POLYGON_MODE_FILL;
+   //raster_info.polygonMode = VK_POLYGON_MODE_FILL;
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    pipeline_info.pRasterizationState = &raster_info;
 
@@ -1501,6 +1527,7 @@ static bool vk_graphics_pipeline_create(VkPipeline* pipeline, vk_context* contex
    pipeline_info.pColorBlendState = &color_blend_info;
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
+   // TODO: fix the dynamic states to match mesh shader
    dynamic_info.pDynamicStates = (VkDynamicState[4]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY};
    dynamic_info.dynamicStateCount = 4;
    pipeline_info.pDynamicState = &dynamic_info;

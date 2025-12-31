@@ -13,12 +13,6 @@ layout(location = 0) out vec4 out_color;
 layout(location = 0) in vec3 in_world_pos;
 layout(location = 1) in vec4 in_color;
 
-//layout(location = 1) in vec2 in_uv[];
-//layout(location = 2) in vec3 in_wp[];
-//layout(location = 3) in vec3 in_normal[];
-//layout(location = 4) flat in uint in_draw_ID[];
-//layout(location = 5) in vec4 in_tangent[];
-
 void main()
 {
    // draw the ground plane with water-like glow
@@ -40,7 +34,7 @@ void main()
        
        float t = (sin(float(globals.time)) + 1) * 0.5f; //  map from [-1, 1] to [0, 2] and scale down by 2 to [0, 1]
 
-       float min_alpha = 0.25f;   // dont go below this
+       float min_alpha = 0.45f;   // dont go below this
        float max_alpha = 0.50f;   // dont go above this
        float water_alpha = mix(min_alpha, max_alpha, t);
 
