@@ -13,7 +13,7 @@ layout(push_constant) uniform push_constants_block
 } globals;
 
 #define RAYTRACE 1
-#define DEBUG 0
+#define DEBUG 0   // TODO: make this toggleable
 
 vec3 color_to_srgb(vec3 color)
 {

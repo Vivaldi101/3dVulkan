@@ -24,10 +24,10 @@ layout(location = 1) out vec4 out_color[];
 
 // water quad in world positions
 const vec3 ground_plane[4] = vec3[](
-    vec3(-10.0, 1.0, -10.0),
-    vec3(-10.0, 1.0,  10.0),
-    vec3( 10.0, 1.0, -10.0),
-    vec3( 10.0, 1.0,  10.0)
+    vec3(-25.0, 1.0, -25.0),
+    vec3(-25.0, 1.0,  25.0),
+    vec3( 25.0, 1.0, -25.0),
+    vec3( 25.0, 1.0,  25.0)
 );
 
 // bilinear interpolation
@@ -76,7 +76,7 @@ void main()
 
     float time = float(globals.time);
 
-    // Generate vertices
+    // generate vertices
     uint vid = 0;
     for (uint y = 0; y <= SUBDIV; ++y)
     {
@@ -87,10 +87,10 @@ void main()
 
             vec3 pos = quad_lerp(u, v);
 
-            // Water displacement
-            pos.y += wave(pos.xz, time);
-            pos.x += wave(pos.yz + vec2(0.0,1.0), time*0.5) * 0.05;
-            pos.z += wave(pos.xy + vec2(1.0,0.0), time*0.7) * 0.05;
+            // water displacement
+            pos.y += wave(pos.xz + vec2(1.0,1.0), time);
+            pos.x += wave(pos.yz + vec2(0.0,1.0), time);
+            pos.z += wave(pos.xy + vec2(1.0,0.0), time);
 
             mat4 view_proj = globals.projection * globals.view;
             gl_MeshVerticesEXT[vid].gl_Position = view_proj * vec4(pos, 1);
@@ -103,7 +103,7 @@ void main()
         }
     }
 
-    // Generate triangles
+    // generate triangles
     uint pid = 0;
     for (uint y = 0; y < SUBDIV; ++y)
     {

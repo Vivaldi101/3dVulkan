@@ -32,10 +32,11 @@ void main()
        
        vec3 linear_color = clamp(base_color + glow_color, 0.0, 1.0);
        
+       // alpha based on time
        float t = (sin(float(globals.time)) + 1) * 0.5f; //  map from [-1, 1] to [0, 2] and scale down by 2 to [0, 1]
 
-       float min_alpha = 0.45f;   // dont go below this
-       float max_alpha = 0.50f;   // dont go above this
+       float min_alpha = 0.30f;   // dont go below this
+       float max_alpha = 0.325f;   // dont go above this
        float water_alpha = mix(min_alpha, max_alpha, t);
 
        out_color = vec4(linear_color, water_alpha);
