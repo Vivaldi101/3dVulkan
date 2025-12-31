@@ -1127,11 +1127,11 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
    vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+   vkCmdSetLineWidth(command_buffer, 2.f);
+   vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_FILL);
 
    if(state->is_mesh_shading)
    {
-      vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_FILL);
-
       VkPipeline meshlet_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, meshlet_module_name);
 
       VkPipelineLayout pipeline_layout = context->rtx_pipeline_layout;
@@ -1401,7 +1401,6 @@ static bool vk_mesh_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   //raster_info.polygonMode = wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    pipeline_info.pRasterizationState = &raster_info;
 
@@ -1444,6 +1443,7 @@ static bool vk_mesh_pipeline_create(VkPipeline* pipeline, vk_context* context, V
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
    VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_POLYGON_MODE_EXT};
+
    dynamic_info.pDynamicStates = dynamic_states;
    dynamic_info.dynamicStateCount = array_count(dynamic_states);
    pipeline_info.pDynamicState = &dynamic_info;
@@ -1485,7 +1485,6 @@ static bool vk_graphics_pipeline_create(VkPipeline* pipeline, vk_context* contex
    VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
    raster_info.lineWidth = 1.0f;
    raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
-   //raster_info.polygonMode = VK_POLYGON_MODE_FILL;
    raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
    pipeline_info.pRasterizationState = &raster_info;
 
@@ -1527,9 +1526,10 @@ static bool vk_graphics_pipeline_create(VkPipeline* pipeline, vk_context* contex
    pipeline_info.pColorBlendState = &color_blend_info;
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
-   // TODO: fix the dynamic states to match mesh shader
-   dynamic_info.pDynamicStates = (VkDynamicState[4]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY};
-   dynamic_info.dynamicStateCount = 4;
+   VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_POLYGON_MODE_EXT, VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY};
+
+   dynamic_info.pDynamicStates = dynamic_states;
+   dynamic_info.dynamicStateCount = array_count(dynamic_states);
    pipeline_info.pDynamicState = &dynamic_info;
 
    pipeline_info.renderPass = context->renderpass;
