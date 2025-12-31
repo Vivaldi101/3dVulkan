@@ -38,7 +38,6 @@ struct mvp_transform
     float n;
     float f;
     float ar;
-    uint32_t draw_ground_plane;
     uint32_t draw_normals;
 };
 

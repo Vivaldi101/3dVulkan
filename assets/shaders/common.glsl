@@ -9,7 +9,6 @@ layout(push_constant) uniform push_constants_block
     float near;
     float far;
     float ar;
-    bool draw_ground_plane;
     bool draw_normals;
 } globals;
 

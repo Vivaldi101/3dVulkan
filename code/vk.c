@@ -1222,15 +1222,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
                                   sizeof(VkDrawIndexedIndirectCommand));
 
       vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
-
-      mvp.draw_ground_plane = true;
-
-      cmd_push_all_constants(command_buffer, pipeline_layout, &mvp);
-
-      // draw ground plane
-      vkCmdDraw(command_buffer, 4, 1, 0, 0);
-
-      vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
    }
 
    if(state->draw_axis)

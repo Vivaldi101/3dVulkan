@@ -54,41 +54,13 @@ void main()
     mat3 camera_inverse = transpose(mat3(globals.view));
     vec3 camera_pos = camera_inverse * -globals.view[3].xyz;
 
-    if(!globals.draw_ground_plane)
-    {
-        pos = vec3(verts[gl_VertexIndex].vx, verts[gl_VertexIndex].vy, verts[gl_VertexIndex].vz) * 1.f;
-        normal = vec3(verts[gl_VertexIndex].nx, verts[gl_VertexIndex].ny, verts[gl_VertexIndex].nz);
-        tangent = vec4(verts[gl_VertexIndex].tx, verts[gl_VertexIndex].ty, verts[gl_VertexIndex].tz, verts[gl_VertexIndex].tw);
-        uv = vec2(verts[gl_VertexIndex].tu, verts[gl_VertexIndex].tv);
+    pos = vec3(verts[gl_VertexIndex].vx, verts[gl_VertexIndex].vy, verts[gl_VertexIndex].vz) * 1.f;
+    normal = vec3(verts[gl_VertexIndex].nx, verts[gl_VertexIndex].ny, verts[gl_VertexIndex].nz);
+    tangent = vec4(verts[gl_VertexIndex].tx, verts[gl_VertexIndex].ty, verts[gl_VertexIndex].tz, verts[gl_VertexIndex].tw);
+    uv = vec2(verts[gl_VertexIndex].tu, verts[gl_VertexIndex].tv);
 
-        vertex_world_pos = draws[draw_ID].world * vec4(pos, 1.0);
-        gl_Position = globals.projection * globals.view * vertex_world_pos;
-    }
-    else
-    {
-       float t = float(globals.time);
-       pos = ground_plane[gl_VertexIndex];
-
-       float wave = sin(2.0 + t) * 0.85;
-       vec3 wave_pos = vec3(pos.x, wave + pos.y, pos.z);
-
-       plane wave_plane = plane_normal_create(vec3(0, 1.f, 0), wave_pos);
-
-       if(plane_distance(wave_plane, camera_pos) >= 0.f)
-       {
-          // above water
-          vertex_world_pos = vec4(wave_pos, 1.0);
-          gl_Position = globals.projection * globals.view * vertex_world_pos;
-       }
-       else
-       {
-          // below water
-          pos = screen_plane[gl_VertexIndex];
-          vertex_world_pos = vec4(pos, 1.0);
-          gl_Position = vertex_world_pos;
-       }
-    }
-
+    vertex_world_pos = draws[draw_ID].world * vec4(pos, 1.0);
+    gl_Position = globals.projection * globals.view * vertex_world_pos;
 
     // Decode normal and transform to world space using inverse transpose
     normal = (normal - 127.5) / 127.5;
