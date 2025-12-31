@@ -17,6 +17,11 @@ Colors highlighting individual meshlets:
 Normals:
 <img width="1917" height="1033" alt="{A5DF8784-C76B-4A40-A0E6-FF53A5541C35}" src="https://github.com/user-attachments/assets/393d9412-f971-4ee0-974c-c931eac613ac" />
 
+Messing around with water mesh shader:
+
+<img width="1920" height="1080" alt="{66524D83-8A9D-463E-AAE6-1EB045E62C76}" src="https://github.com/user-attachments/assets/420a3a07-78bd-41af-a2c2-24c6f9603fff" />
+
+
 
 For command line build, follow these steps:
 
