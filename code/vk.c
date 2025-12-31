@@ -1130,6 +1130,9 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    vkCmdSetLineWidth(command_buffer, 2.f);
    vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_FILL);
 
+   if(state->draw_axis)
+      vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
+
    if(state->is_mesh_shading)
    {
       VkPipeline meshlet_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, meshlet_module_name);
@@ -1175,9 +1178,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
                                        buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name)->handle,
                                        0, (u32)context->geometry.mesh_draws.count,
                                        sizeof(VkDrawMeshTasksIndirectCommandEXT));
-
-      if(state->draw_axis)
-         vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
 
       VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
       cmd_bind_pipeline(command_buffer, water_pipeline);
