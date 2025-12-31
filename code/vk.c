@@ -1109,11 +1109,12 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
    if(state->is_mesh_shading)
    {
-      VkPipeline pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, meshlet_module_name);
+      VkPipeline meshlet_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, meshlet_module_name);
+
       VkPipelineLayout pipeline_layout = context->rtx_pipeline_layout;
 
       cmd_bind_descriptor_set(command_buffer, pipeline_layout, &context->texture_descriptor.set, 1, 1);
-      cmd_bind_pipeline(command_buffer, pipeline);
+      cmd_bind_pipeline(command_buffer, meshlet_pipeline);
 
       arena s = context->scratch;
       array(vk_buffer_binding) bindings = {&s};
@@ -1151,17 +1152,22 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
                                        buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name)->handle,
                                        0, (u32)context->geometry.mesh_draws.count,
                                        sizeof(VkDrawMeshTasksIndirectCommandEXT));
+
+      VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
+      cmd_bind_pipeline(command_buffer, water_pipeline);
+
+      vkCmdDrawMeshTasksEXT(command_buffer, 1, 1, 1);
    }
    else
    {
       if(state->draw_normals)
          mvp.draw_normals = true;
 
-      VkPipeline pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, graphics_module_name);
+      VkPipeline graphics_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, graphics_module_name);
       VkPipelineLayout pipeline_layout = context->non_rtx_pipeline_layout;
 
       cmd_bind_descriptor_set(command_buffer, pipeline_layout, &context->texture_descriptor.set, 1, 1);
-      cmd_bind_pipeline(command_buffer, pipeline);
+      cmd_bind_pipeline(command_buffer, graphics_pipeline);
       if(buffer_hash_lookup(&context->buffer_table, ib_buffer_name))
          cmd_bind_index_buffer(command_buffer, buffer_hash_lookup(&context->buffer_table, ib_buffer_name)->handle, 0);
 
@@ -1688,6 +1694,7 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    VkPipeline axis = 0;
    VkPipeline frustum = 0;
    VkPipeline mesh = 0;
+   VkPipeline water = 0;
 
    enum {shader_module_count = 2};
    vk_shader_module shader_modules[shader_module_count] = {0};
@@ -1717,6 +1724,20 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    if(!vk_mesh_pipeline_create(&mesh, context, cache, shader_modules, shader_module_count))
       return false;
    vk_pipeline_hash_insert(&context->pipeline_table, meshlet_module_name, mesh);
+
+   vk_shader_module water_ms = vk_shader_hash_lookup(&context->shader_table, water_module_name"_ms");
+   vk_shader_module water_fs = vk_shader_hash_lookup(&context->shader_table, water_module_name"_fs");
+
+   shader_modules[0].stage = VK_SHADER_STAGE_MESH_BIT_EXT;
+   shader_modules[0].handle = water_ms.handle;
+
+   shader_modules[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+   shader_modules[1].handle = water_fs.handle;
+
+   if(!vk_mesh_pipeline_create(&water, context, cache, shader_modules, shader_module_count))
+      return false;
+
+   vk_pipeline_hash_insert(&context->pipeline_table, water_module_name, water);
 
    vk_shader_module am_vs = vk_shader_hash_lookup(&context->shader_table, axis_module_name"_vs");
    vk_shader_module am_fs = vk_shader_hash_lookup(&context->shader_table, axis_module_name"_fs");
