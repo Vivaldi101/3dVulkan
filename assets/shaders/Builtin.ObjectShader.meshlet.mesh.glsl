@@ -46,6 +46,7 @@ layout(location = 2) out vec3 out_wp[];
 layout(location = 3) out vec3 out_normal[];
 layout(location = 4) flat out uint out_draw_ID[];
 layout(location = 5) out vec4 out_tangent[];
+layout(location = 6) out vec3 out_camera_pos[];
 
 vec3 renormalize_normal(vec3 n)
 {
@@ -79,6 +80,8 @@ void main()
     uint triangle_count = meshlets[mi].triangle_count;
 
     mat3 normal_matrix = transpose(inverse(mat3(draws[draw_ID].world)));
+    mat3 camera_inverse = transpose(mat3(globals.view));
+    vec3 camera_pos = camera_inverse * -globals.view[3].xyz;
 
 #if DEBUG
     uint h = hash_index(mi);
@@ -121,6 +124,7 @@ void main()
 
       // TODO: Some meshes dont have tangents so do a fallback calculation here
       out_tangent[i] = vec4(world_tangent.xyz, tangent.w);
+      out_camera_pos[i] = camera_pos;
     }
 
     for(uint i = ti; i < triangle_count; i += 64)

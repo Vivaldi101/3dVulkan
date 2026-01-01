@@ -18,10 +18,11 @@ layout(location = 0) out vec4 out_color;
 
 layout(location = 0) in vec4 in_color;
 layout(location = 1) in vec2 in_uv;
-layout(location = 2) in vec3 in_wp;
+layout(location = 2) in vec3 in_wp; // world position
 layout(location = 3) in vec3 in_normal;
 layout(location = 4) flat in uint in_draw_ID;
 layout(location = 5) in vec4 in_tangent;
+layout(location = 6) in vec3 in_camera_pos;
 
 layout(set = 1, binding = 0)
 uniform sampler2D textures[];
@@ -42,6 +43,7 @@ void main()
    vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
    vec3 emissive = vec3(0, 0, 0);
    vec3 world_normal = vec3(0.0, 0.0, 0.0);
+   float metal_roughness = 0.f;
 
    if(draw.albedo != -1)
    {
@@ -56,6 +58,9 @@ void main()
       emissive = texture(textures[draw.emissive], in_uv).rgb;
       emissive.xyz = color_to_linear(emissive.xyz);
    }
+
+   if(draw.metal != -1)
+      metal_roughness = texture(textures[draw.emissive], in_uv).g;
 
    if(draw.normal != -1)
    {
@@ -101,21 +106,29 @@ void main()
    bool hit = (rayQueryGetIntersectionTypeEXT(rq, true) != gl_RayQueryCommittedIntersectionNoneEXT);
    float visibility = hit ? 0.1 : 1.0;
 
-   vec3 camera_pos = vec3(0); // TODO: camera as uniform
-   vec3 view_dir = normalize(camera_pos - in_wp); // camera position in world space
+       float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
 
-   float diffuse_factor = max(dot(world_normal, sun_dir), 0.0);
+       //vec3 light_pos = vec3(0.0, 4.0, 0.0);
+       vec3 light_pos = in_camera_pos;
+       //vec3 light_dir = -in_camera_pos;
+       //vec3 light_dir = normalize(vec3(0.0, -1.0, 0.0));
 
-       // Blinn-Phong
-   vec3 half_dir = normalize(sun_dir + view_dir);
-   float spec_factor = pow(max(dot(world_normal, half_dir), 0.0), 32.0); // shininess
-   vec3 specular = vec3(1.0) * spec_factor; // white specular
+       vec3 V = normalize(in_camera_pos - in_wp);
+       vec3 L = normalize(light_pos - in_wp);
+       //vec3 L = -light_dir;
+       vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
 
-   vec3 ambient = 0.1 * albedo.rgb;
+       float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
+       vec3 specular = blinn_phong * vec3(0.8);
+       //vec3 specular = vec3(blinn_phong);
+       
+       float lambert = max(dot(N, L), 0.0);
 
-   vec3 linear_color = (albedo.rgb * lambert_term * visibility + emissive) + ambient;
-   
-   out_color = vec4(linear_color, albedo.a);
-   out_color.xyz = color_to_srgb(out_color.xyz);
+       vec3 ambient = vec3(0, 0, 0);
+
+       vec3 diffuse = albedo.rgb * lambert * visibility;
+
+       vec3 linear_color = diffuse + emissive + specular + ambient;
+       out_color = vec4(linear_color, albedo.a);
 #endif
 }
