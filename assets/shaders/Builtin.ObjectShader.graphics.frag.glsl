@@ -12,10 +12,11 @@
 layout(location = 0) out vec4 out_color;
 
 layout(location = 0) in vec3 in_normal;
-layout(location = 1) in vec3 in_world_frag_pos;
+layout(location = 1) in vec3 in_world_pos;
 layout(location = 2) in vec2 in_uv;
 layout(location = 3) flat in uint in_draw_ID;
 layout(location = 4) in vec4 in_tangent;
+layout(location = 5) in vec3 in_camera_pos;
 
 layout(set = 0, binding = 1) readonly buffer mesh_draw_block
 {
@@ -39,9 +40,10 @@ void main()
 {
        mesh_draw draw = draws[in_draw_ID];
    
-       vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
-       vec3 emissive = vec3(0.0);
-       vec3 world_normal = vec3(0.0, 0.0, 1.0);
+       vec4 albedo = vec4(1.0, 0.0, 0.0, 1);
+       vec3 emissive = vec3(0, 0, 0);
+       vec3 world_normal = vec3(0.0, 0.0, 0.0);
+       float metal_roughness = 0.f;
 
        if(draw.albedo != -1)
        {
@@ -56,6 +58,9 @@ void main()
           emissive = texture(textures[draw.emissive], in_uv).rgb;
           emissive.xyz = color_to_linear(emissive.xyz);
        }
+
+       if(draw.metal != -1)
+          metal_roughness = texture(textures[draw.emissive], in_uv).g;
    
        if(draw.normal != -1)
        {
@@ -72,16 +77,30 @@ void main()
          world_normal = normalize(normal_map.x * tangent.xyz + normal_map.y * bitangent + normal_map.z * normal);
        }
 
-       vec3 sun_dir = normalize(vec3(0, 1, 0));
-       vec3 camera_pos = vec3(0); // TODO: camera as uniform
-       vec3 view_dir = normalize(camera_pos - in_world_frag_pos); // camera position in world space
+       float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
 
-       float lambert_term = max(dot(world_normal, sun_dir), 0.0);
+       //vec3 light_pos = vec3(0.0, 4.0, 0.0);
+       vec3 light_pos = in_camera_pos;
+       //vec3 light_dir = -in_camera_pos;
+       //vec3 light_dir = normalize(vec3(0.0, -1.0, 0.0));
 
-       vec3 ambient = 0.1 * albedo.rgb;
+       vec3 V = normalize(in_camera_pos - in_world_pos);
+       vec3 L = normalize(light_pos - in_world_pos);
+       //vec3 L = -light_dir;
+       vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
 
-       float visibility = 1.0;
-       vec3 linear_color = albedo.rgb * lambert_term * visibility + emissive + ambient;
+       vec3 N = world_normal;
+       float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
+       vec3 specular = blinn_phong * vec3(0.8);
+       //vec3 specular = vec3(blinn_phong);
+       
+       float lambert = max(dot(N, L), 0.0);
+
+       vec3 ambient = vec3(0, 0, 0);
+
+       vec3 diffuse = albedo.rgb * lambert;
+
+       vec3 linear_color = diffuse + emissive + specular + ambient;
        out_color = vec4(linear_color, albedo.a);
 
        if(globals.draw_normals)

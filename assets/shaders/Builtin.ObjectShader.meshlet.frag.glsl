@@ -40,8 +40,8 @@ void main()
    vec3 light_color = vec3(1.f);
 
    vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
-   vec3 emissive = vec3(0.0);
-   vec3 world_normal = vec3(0.0, 0.0, 1.0);
+   vec3 emissive = vec3(0, 0, 0);
+   vec3 world_normal = vec3(0.0, 0.0, 0.0);
 
    if(draw.albedo != -1)
    {

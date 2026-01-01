@@ -35,10 +35,11 @@ layout(set = 0, binding = 1) readonly buffer mesh_draw_block
 };
 
 layout(location = 0) out vec3 out_normal;
-layout(location = 1) out vec3 out_world_frag_pos;
+layout(location = 1) out vec3 out_world_pos;
 layout(location = 2) out vec2 out_uv;
 layout(location = 3) flat out uint out_draw_ID;
 layout(location = 4) out vec4 out_tangent;
+layout(location = 5) out vec3 out_camera_pos;
 
 void main()
 {
@@ -53,6 +54,8 @@ void main()
 
     mat3 camera_inverse = transpose(mat3(globals.view));
     vec3 camera_pos = camera_inverse * -globals.view[3].xyz;
+
+    out_camera_pos = camera_pos;
 
     pos = vec3(verts[gl_VertexIndex].vx, verts[gl_VertexIndex].vy, verts[gl_VertexIndex].vz) * 1.f;
     normal = vec3(verts[gl_VertexIndex].nx, verts[gl_VertexIndex].ny, verts[gl_VertexIndex].nz);
@@ -70,11 +73,11 @@ void main()
     vec3 world_normal = normalize(normal_matrix * normal);
     vec4 world_tangent = draws[draw_ID].world * vec4(tangent.xyz, 1.0f);
 
-    // TODO: Some meshes dont have tangents so do a fallback calculation here
+    // TODO: Some meshes dont have normal maps so do a fallback calculation here
     out_tangent = vec4(world_tangent.xyz, tangent.w);
 
     out_normal = world_normal;
-    out_world_frag_pos = vertex_world_pos.xyz;
+    out_world_pos = vertex_world_pos.xyz;
     out_uv = uv;
     out_draw_ID = draw_ID;
 }
