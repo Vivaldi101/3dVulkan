@@ -8,7 +8,7 @@ simple diffuse lighting model with specular highlights:
 
 Ray tracing with queries with shadow rays:
 
-<img width="1920" height="1025" alt="{79F038C0-B69F-4DAE-AB4D-452F3BC86DA5}" src="https://github.com/user-attachments/assets/a6885e5f-70c8-4275-8309-5ca460f79e8a" />
+<img width="1920" height="1080" alt="{71C7E331-8EDB-41EF-B685-0E947A4A56FA}" src="https://github.com/user-attachments/assets/89b3a9aa-0a9b-4dab-a4e4-582b0453e97b" />
 
 Colors highlighting individual meshlets:
 
