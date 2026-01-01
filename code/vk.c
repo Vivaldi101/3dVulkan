@@ -37,12 +37,6 @@ static void* VKAPI_PTR vk_allocation(void* user_data,
    {
       assert(!((uptr)f->data.memory & (alignment - 1)));
 
-      #if _DEBUG
-      printf("ACQUIRING node from free-list: %p with %zu bytes\n", f, f->data.slot_size);
-      allocator->min_addr = min((uptr)((byte*)f->data.memory + sizeof(size)), allocator->min_addr);
-      allocator->max_addr = max((uptr)((byte*)f->data.memory + sizeof(size)), allocator->max_addr);
-      #endif
-
       return (byte*)f->data.memory + sizeof(size);
    }
 
@@ -795,35 +789,6 @@ static void vk_swapchain_destroy(vk_device* devices, vk_swapchain_images* images
    vkDestroySwapchainKHR(devices->logical, swapchain->handle, &global_allocator.handle);
 }
 
-static bool vk_swapchain_update(arena scratch, vk_device* devices, vk_swapchain_images* images, vk_swapchain_surface* swapchain, framebuffers_array* framebuffers, VkRenderPass renderpass)
-{
-   VkImage* raw_images = push(&scratch, VkImage, swapchain->image_count);
-
-   vk_assert(vkGetSwapchainImagesKHR(devices->logical, swapchain->handle, &swapchain->image_count, raw_images));
-
-   VkExtent3D depth_extent = {swapchain->image_width, swapchain->image_height, 1};
-
-   for(u32 i = 0; i < swapchain->image_count; ++i)
-   {
-      images->images.data[i].handle = raw_images[i];
-
-      // TODO: just return the image and no in/out param
-      if(!vk_depth_image_create(&images->depths.data[i], devices, VK_FORMAT_D32_SFLOAT, depth_extent).h)
-         return false;
-      if(!(images->images.data[i].view = vk_image_view_create(devices, swapchain->format, images->images.data[i].handle, VK_IMAGE_ASPECT_COLOR_BIT).h))
-         return false;
-      if(!(images->depths.data[i].view = vk_image_view_create(devices, VK_FORMAT_D32_SFLOAT, images->depths.data[i].handle, VK_IMAGE_ASPECT_DEPTH_BIT).h))
-         return false;
-
-      VkImageView attachments[2] = {images->images.data[i].view, images->depths.data[i].view};
-
-      if(!(framebuffers->data[i] = vk_framebuffer_create(devices->logical, renderpass, swapchain, attachments, array_count(attachments)).h))
-         return false;
-   }
-
-   return true;
-}
-
 static void gpu_log(hw* hw)
 {
    u32 renderer_index = hw->renderer.renderer_index;
@@ -874,21 +839,50 @@ static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
    vk_device* devices = &context->devices;
 
    // wait for device to be done before recreating swapchain
-   vk_assert(vkDeviceWaitIdle(devices->logical));
+   if(!vk_valid(vkDeviceWaitIdle(devices->logical)))
+      return false;
 
-   vk_swapchain_images* images = &context->images;
+   vk_swapchain_images* swapchain_images = &context->images;
    framebuffers_array* framebuffers = &context->framebuffers;
    vk_swapchain_surface* swapchain = &context->swapchain;
 
-   vk_swapchain_destroy(&context->devices, images, framebuffers, swapchain);
+   assert(swapchain->image_count == framebuffers->count);
+   assert(swapchain->image_count == swapchain_images->images.count);
+   assert(swapchain->image_count == swapchain_images->depths.count);
 
-   arena s = context->scratch;
+   vk_swapchain_destroy(&context->devices, swapchain_images, framebuffers, swapchain);
+
    VkSurfaceKHR surface = context->surface;
-
    VkRenderPass renderpass = context->renderpass;
 
+   arena s = context->scratch;
    context->swapchain = vk_swapchain_surface_create(s, devices, surface, width, height);
-   return vk_swapchain_update(s, devices, images, swapchain, framebuffers, renderpass);
+
+   VkImage* images = push(&s, VkImage, swapchain->image_count);
+
+   if(!vk_valid(vkGetSwapchainImagesKHR(devices->logical, swapchain->handle, &swapchain->image_count, images)))
+      return false;
+
+   VkExtent3D depth_extent = {swapchain->image_width, swapchain->image_height, 1};
+
+   for(u32 i = 0; i < swapchain->image_count; ++i)
+   {
+      swapchain_images->images.data[i].handle = images[i];
+
+      if(!vk_depth_image_create(&swapchain_images->depths.data[i], devices, VK_FORMAT_D32_SFLOAT, depth_extent).h)
+         return false;
+      if(!(swapchain_images->images.data[i].view = vk_image_view_create(devices, swapchain->format, swapchain_images->images.data[i].handle, VK_IMAGE_ASPECT_COLOR_BIT).h))
+         return false;
+      if(!(swapchain_images->depths.data[i].view = vk_image_view_create(devices, VK_FORMAT_D32_SFLOAT, swapchain_images->depths.data[i].handle, VK_IMAGE_ASPECT_DEPTH_BIT).h))
+         return false;
+
+      VkImageView attachments[2] = {swapchain_images->images.data[i].view, swapchain_images->depths.data[i].view};
+
+      if(!(framebuffers->data[i] = vk_framebuffer_create(devices->logical, renderpass, swapchain, attachments, array_count(attachments)).h))
+         return false;
+   }
+
+   return true;
 }
 
 static hw_result vk_query_pool_create(vk_device* devices, size query_pool_size)
@@ -1821,11 +1815,6 @@ bool vk_initialize(hw* hw)
    global_allocator.handle.pfnFree = vk_free;
    global_allocator.handle.pfnInternalFree = vk_internal_free;
    global_allocator.handle.pfnInternalAllocation = vk_internal_allocation;
-
-#if _DEBUG
-   global_allocator.min_addr = UINT64_MAX;
-   global_allocator.max_addr = 0;
-#endif
 
    if(!(context->devices.instance = vk_instance_create(s).h))
    {

@@ -406,10 +406,10 @@ arena win32_file_read(arena* a, const char* path)
 
    DWORD bytes_read = 0;
    if(!(ReadFile(file, buffer, file_size_32, &bytes_read, 0) && (file_size_32 == bytes_read)))
-      return (arena) {};
+      return (arena) {0};
 
    if(!CloseHandle(file))
-      return (arena) {};
+      return (arena) {0};
 
    result.beg = buffer;
    result.end = buffer + bytes_read;
