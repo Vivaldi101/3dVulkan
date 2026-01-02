@@ -2,7 +2,7 @@ Vulkan renderer working in progress, with mesh shading and ray tracing written i
 
 Orbit camera usage: left-click to orbit eye, right-click to pan, wheel to zoom in and out.
 
-simple diffuse lighting model with specular highlights:
+Diffuse lighting model with specular highlights:
 
 <img width="1920" height="1080" alt="{E08F3D14-795F-4011-B12F-1B874DB8DED4}" src="https://github.com/user-attachments/assets/b7b8c5eb-e465-40ce-a1a9-54ae8bcb7e56" />
 
