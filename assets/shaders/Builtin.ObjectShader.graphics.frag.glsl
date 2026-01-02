@@ -60,7 +60,7 @@ void main()
        }
 
        if(draw.metal != -1)
-          metal_roughness = texture(textures[draw.emissive], in_uv).g;
+          metal_roughness = texture(textures[draw.metal], in_uv).g;
    
        if(draw.normal != -1)
        {
@@ -91,7 +91,7 @@ void main()
 
        vec3 N = world_normal;
        float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
-       vec3 specular = blinn_phong * vec3(0.8);
+       vec3 specular = blinn_phong * vec3(0.35);
        //vec3 specular = vec3(blinn_phong);
        
        float lambert = max(dot(N, L), 0.0);
