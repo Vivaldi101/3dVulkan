@@ -76,6 +76,8 @@ void main()
 
          world_normal = normalize(normal_map.x * tangent.xyz + normal_map.y * bitangent + normal_map.z * normal);
        }
+       else
+         world_normal = in_normal;
 
        float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
 
