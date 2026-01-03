@@ -77,8 +77,10 @@ void main()
 
       world_normal = normalize(normal_map.x * tangent.xyz + normal_map.y * bitangent + normal_map.z * normal);
    }
+   else
+      world_normal = normalize(in_normal);
 
-   vec3 sun_dir = normalize(vec3(0, 1, 0));
+   vec3 sun_dir = normalize(in_camera_pos);
    vec3 N = world_normal;
    
    // Small offset to avoid self-intersection
