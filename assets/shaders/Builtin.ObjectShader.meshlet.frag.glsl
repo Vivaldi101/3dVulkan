@@ -130,5 +130,14 @@ void main()
 
        vec3 linear_color = diffuse + emissive + specular + ambient;
        out_color = vec4(linear_color, albedo.a);
+
+       if(globals.draw_normals)
+       {
+          // normal debugging
+          vec3 linear_color = world_normal;
+          out_color = vec4(linear_color * 0.5 + 0.5, 1);
+       }
+
+       out_color.xyz = color_to_srgb(out_color.xyz);
 #endif
 }
