@@ -135,28 +135,22 @@ void app_camera_reset(app_camera* camera, vec3 origin, f32 radius, f32 altitude,
 static void app_input_handle(app_state* state)
 {
    app_camera_update(state);
-   state->draw_axis = false;
 
-   if(state->input.key == 'A' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
-      state->draw_axis = true;
+   if(state->input.key == 'A' && state->input.key_state == KEY_STATE_UP)
+      state->draw_axis = !state->draw_axis;
    if(state->input.key == 'M' && state->input.key_state == KEY_STATE_UP)
-   {
-      state->input.key_state = 0;
       state->is_mesh_shading = !state->is_mesh_shading;
-   }
+   if(state->input.key == 'N' && state->input.key_state == KEY_STATE_UP)
+      state->draw_normals = !state->draw_normals;
    if(state->input.key == 'R' && state->input.key_state == KEY_STATE_UP)
    {
-      state->input.key_state = 0;
       f32 altitude = PI / 8.f;
       f32 azimuth = PI * 2.f;
       vec3 origin = {0, 0, 0};
       app_camera_reset(&state->camera, origin, 4.0f, altitude, azimuth);
    }
-   if(state->input.key == 'N' && state->input.key_state == KEY_STATE_UP)
-   {
-      state->input.key_state = 0;
-      state->draw_normals = !state->draw_normals;
-   }
+
+   state->input.key_state = 0;
 }
 
 void app_start(hw* hw, s8 asset_file)
