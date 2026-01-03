@@ -79,20 +79,15 @@ void main()
 
        float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
 
-       //vec3 light_pos = vec3(0.0, 4.0, 0.0);
        vec3 light_pos = in_camera_pos;
-       //vec3 light_dir = -in_camera_pos;
-       //vec3 light_dir = normalize(vec3(0.0, -1.0, 0.0));
 
        vec3 V = normalize(in_camera_pos - in_world_pos);
        vec3 L = normalize(light_pos - in_world_pos);
-       //vec3 L = -light_dir;
        vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
 
        vec3 N = world_normal;
        float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
        vec3 specular = blinn_phong * vec3(0.35);
-       //vec3 specular = vec3(blinn_phong);
        
        float lambert = max(dot(N, L), 0.0);
 
