@@ -1127,6 +1127,9 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    if(state->draw_axis)
       vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
 
+   if(state->draw_normals)
+      mvp.draw_normals = true;
+
    if(state->render_rtx)
    {
       VkPipeline meshlet_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, meshlet_module_name);
@@ -1180,9 +1183,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    }
    else
    {
-      if(state->draw_normals)
-         mvp.draw_normals = true;
-
       VkPipeline graphics_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, graphics_module_name);
       VkPipelineLayout pipeline_layout = context->non_rtx_pipeline_layout;
 

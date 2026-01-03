@@ -12,9 +12,6 @@ layout(push_constant) uniform push_constants_block
     bool draw_normals;
 } globals;
 
-#define RAYTRACE 1
-#define DEBUG 0   // TODO: make this toggleable
-
 vec3 color_to_srgb(vec3 color)
 {
    float gamma = 2.2;
@@ -57,5 +54,8 @@ plane plane_normal_create(vec3 n, vec3 p0)
 
    return p;
 }
+
+#define RAYTRACE 1
+#define DEBUG 0   // TODO: make this toggleable
 
 #endif
