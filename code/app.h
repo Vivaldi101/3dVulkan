@@ -50,6 +50,8 @@ align_struct app_camera
    f32 smoothed_radius;
    u32 viewplane_width;
    u32 viewplane_height;
+   bool update_fps;
+   bool update_orbit;
 } app_camera;
 
 align_struct app_state
@@ -61,7 +63,7 @@ align_struct app_state
    s8 asset_file;  // TODO: for testing
    f64 frame_delta_in_seconds;
    f64 time_in_seconds;
-   bool is_mesh_shading;
+   bool render_rtx;
    bool draw_normals;
    bool draw_axis;
    bool quit;
@@ -69,6 +71,6 @@ align_struct app_state
 
 typedef struct hw hw;
 void app_start(hw* hw, s8 asset_file);
-void app_camera_reset(app_camera* camera, vec3 origin, f32 radius, f32 altitude, f32 azimuth);
+void app_camera_set(app_camera* camera, vec3 origin, f32 radius, f32 altitude, f32 azimuth);
 
 #endif

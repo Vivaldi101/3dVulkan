@@ -813,7 +813,7 @@ static void gpu_log(hw* hw)
    const f64 us = 1e6;
    const f64 gpu_delta = max(gpu_end - gpu_begin, 0.f);
 
-   if(hw->state.is_mesh_shading)
+   if(hw->state.render_rtx)
       hw->window_title_set(hw,
                        s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'a' to show world axis; 'f' to toggle fullscreen; 'r' to reset camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
@@ -1127,7 +1127,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    if(state->draw_axis)
       vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
 
-   if(state->is_mesh_shading)
+   if(state->render_rtx)
    {
       VkPipeline meshlet_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, meshlet_module_name);
 

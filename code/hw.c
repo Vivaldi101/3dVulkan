@@ -157,7 +157,9 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
    f32 altitude = PI / 8.f;
    f32 azimuth = PI * 2.f;
    vec3 origin = {0, 0, 0};
-   app_camera_reset(&hw->state.camera, origin, 4.0f, altitude, azimuth);
+
+   hw->state.camera.update_orbit = true;
+   app_camera_set(&hw->state.camera, origin, 4.0f, altitude, azimuth);
 
    i64 begin = clock_query_counter();
    i64 fps_counter = begin;

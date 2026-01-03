@@ -18,9 +18,14 @@ static void app_frame(arena scratch, app_state* state)
    // per app frame drawing
 }
 
-static void app_camera_update(app_state* state)
+static void app_fps_camera_update(app_state* state)
 {
-   f32 decay = -logf(0.08f);
+}
+
+static void app_orbit_camera_update(app_state* state)
+{
+   const f32 decay_factor = 0.005f;
+   f32 decay = -logf(decay_factor);
    f32 smoothing_factor = 1.0f - expf(-decay * (f32)state->frame_delta_in_seconds);
 
    // half turn across view plane extents (in azimuth)
@@ -31,7 +36,7 @@ static void app_camera_update(app_state* state)
    f32 delta_x = (f32)state->input.mouse_pos[0] - (f32)state->input.mouse_prev_pos[0];
    f32 delta_y = (f32)state->input.mouse_pos[1] - (f32)state->input.mouse_prev_pos[1];
 
-   f32 zoom_speed = 2.f;
+   f32 zoom_speed = 1.f;
 
    if(state->input.mouse_wheel_state & MOUSE_WHEEL_STATE_UP)
    {
@@ -39,6 +44,7 @@ static void app_camera_update(app_state* state)
       state->camera.target_radius -= zoom_speed;
       // prevent flipping
       state->camera.target_radius = max(state->camera.target_radius, 0.0001f);
+      state->input.mouse_wheel_state = 0;
    }
    else if(state->input.mouse_wheel_state & MOUSE_WHEEL_STATE_DOWN)
    {
@@ -111,14 +117,12 @@ static void app_camera_update(app_state* state)
    state->camera.smoothed_radius = radius;
 }
 
-void app_camera_reset(app_camera* camera, vec3 origin, f32 radius, f32 altitude, f32 azimuth)
+void app_camera_set(app_camera* camera, vec3 origin, f32 radius, f32 altitude, f32 azimuth)
 {
    f32 x = radius * cosf(altitude) * cosf(azimuth) + origin.x;
    f32 z = radius * cosf(altitude) * sinf(azimuth) + origin.z;
    f32 y = radius * sinf(altitude) + origin.y;
    vec3 eye = {x, y, z};
-
-   struct_clear(camera);
 
    camera->origin = origin;
    camera->eye = eye;
@@ -134,12 +138,15 @@ void app_camera_reset(app_camera* camera, vec3 origin, f32 radius, f32 altitude,
 
 static void app_input_handle(app_state* state)
 {
-   app_camera_update(state);
+   if(state->camera.update_orbit)
+      app_orbit_camera_update(state);
+   else if(state->camera.update_fps)
+      app_fps_camera_update(state);
 
    if(state->input.key == 'A' && state->input.key_state == KEY_STATE_UP)
       state->draw_axis = !state->draw_axis;
    if(state->input.key == 'M' && state->input.key_state == KEY_STATE_UP)
-      state->is_mesh_shading = !state->is_mesh_shading;
+      state->render_rtx = !state->render_rtx;
    if(state->input.key == 'N' && state->input.key_state == KEY_STATE_UP)
       state->draw_normals = !state->draw_normals;
    if(state->input.key == 'R' && state->input.key_state == KEY_STATE_UP)
@@ -147,7 +154,7 @@ static void app_input_handle(app_state* state)
       f32 altitude = PI / 8.f;
       f32 azimuth = PI * 2.f;
       vec3 origin = {0, 0, 0};
-      app_camera_reset(&state->camera, origin, 4.0f, altitude, azimuth);
+      app_camera_set(&state->camera, origin, 4.0f, altitude, azimuth);
    }
 
    state->input.key_state = 0;
