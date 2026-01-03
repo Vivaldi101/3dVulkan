@@ -138,11 +138,6 @@ void app_camera_set(app_camera* camera, vec3 origin, f32 radius, f32 altitude, f
 
 static void app_input_handle(app_state* state)
 {
-   if(state->camera.update_orbit)
-      app_orbit_camera_update(state);
-   else if(state->camera.update_fps)
-      app_fps_camera_update(state);
-
    if(state->input.key == 'A' && state->input.key_state == KEY_STATE_UP)
       state->draw_axis = !state->draw_axis;
    if(state->input.key == 'M' && state->input.key_state == KEY_STATE_UP)
@@ -156,6 +151,10 @@ static void app_input_handle(app_state* state)
       vec3 origin = {0, 0, 0};
       app_camera_set(&state->camera, origin, 4.0f, altitude, azimuth);
    }
+   if(state->camera.update_orbit)
+      app_orbit_camera_update(state);
+   else
+      app_fps_camera_update(state);
 
    state->input.key_state = 0;
 }

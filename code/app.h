@@ -50,7 +50,6 @@ align_struct app_camera
    f32 smoothed_radius;
    u32 viewplane_width;
    u32 viewplane_height;
-   bool update_fps;
    bool update_orbit;
 } app_camera;
 
