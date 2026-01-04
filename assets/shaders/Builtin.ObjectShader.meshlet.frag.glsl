@@ -40,6 +40,12 @@ void main()
     mesh_draw draw = draws[in_draw_ID];
    vec3 light_color = vec3(1.f);
 
+   //float t = (sin(float(globals.time)) + 1) * 0.5f; //  map from [-1, 1] to [0, 2] and scale down by 2 to [0, 1]
+   float t = sin(float(globals.time));
+   float p = 0.0f;   // dont go below this
+   float q = 0.2f;   // dont go above this
+   float shadow = mix(p, q, t);
+
    vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
    vec3 emissive = vec3(0, 0, 0);
    vec3 world_normal = vec3(0.0, 0.0, 1.0);
@@ -80,13 +86,13 @@ void main()
    else
       world_normal = normalize(in_normal);
 
-   vec3 sun_dir = normalize(in_camera_pos);
-   //vec3 sun_dir = normalize(vec3(0, 1, 0));
+   //vec3 light_pos = in_camera_pos;  // Camera acts as light position
    vec3 N = world_normal;
-   
    // Small offset to avoid self-intersection
    float epsilon = 0.05;
    vec3 ray_origin = in_wp + N * epsilon;
+   //vec3 sun_dir = normalize(light_pos - ray_origin);  // Direction FROM surface TO light   //vec3 sun_dir = normalize(vec3(0, 1, 0));
+   vec3 sun_dir = normalize(vec3(shadow,1,shadow));
    
    // Initialize and cast the shadow ray
    rayQueryEXT rq;
@@ -119,7 +125,7 @@ void main()
        float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
        vec3 specular = blinn_phong * vec3(0.25);
        
-       vec3 ambient = vec3(1, 1, 1) * 0.005;
+       vec3 ambient = vec3(1, 1, 1) * 0;
 
        vec3 diffuse = albedo.rgb * lambert;
        vec3 linear_color = diffuse + emissive + specular + ambient;
