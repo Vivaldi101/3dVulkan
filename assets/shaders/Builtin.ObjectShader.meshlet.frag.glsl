@@ -106,27 +106,23 @@ void main()
    bool hit = (rayQueryGetIntersectionTypeEXT(rq, true) != gl_RayQueryCommittedIntersectionNoneEXT);
 
    float visibility = hit ? 0.15 : 1.0;
-   //vec3 L = normalize(light_pos - in_wp);
    vec3 L = sun_dir;
    float lambert = max(dot(N, L), 0.0);
 
        lambert *= visibility;
 
-       //float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
+       float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
 
-       //vec3 light_pos = in_camera_pos;
+       vec3 V = normalize(in_camera_pos - ray_origin);
+       vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
 
-       //vec3 V = normalize(in_camera_pos - in_wp);
-       //vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
-
-       //float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
-       //vec3 specular = blinn_phong * vec3(0.35);
+       float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
+       vec3 specular = blinn_phong * vec3(0.25);
        
-       vec3 ambient = vec3(0, 0, 0);
+       vec3 ambient = vec3(1, 1, 1) * 0.005;
 
        vec3 diffuse = albedo.rgb * lambert;
-       //vec3 linear_color = diffuse + emissive + specular + ambient;
-       vec3 linear_color = diffuse + emissive + ambient;
+       vec3 linear_color = diffuse + emissive + specular + ambient;
        out_color = vec4(linear_color, albedo.a);
 
        if(globals.draw_normals)
