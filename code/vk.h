@@ -80,7 +80,10 @@ align_struct vk_buffer_binding
    vk_buffer buffer;
    u32 binding;
    VkDescriptorType type;
-   void* extras;
+   union
+   {
+      VkAccelerationStructureKHR data;
+   };
 } vk_buffer_binding;
 
 typedef struct meshlet meshlet;

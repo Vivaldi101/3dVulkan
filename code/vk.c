@@ -954,27 +954,30 @@ static void cmd_push_storage_buffer(VkCommandBuffer command_buffer, arena scratc
    VkWriteDescriptorSet* write_sets = push(&scratch, VkWriteDescriptorSet, binding_count);
    VkDescriptorBufferInfo* infos = push(&scratch, VkDescriptorBufferInfo, binding_count);
 
+   // TODO: Shared for now
    VkWriteDescriptorSetAccelerationStructureKHR acceleration_write_descriptor =
    {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR};
 
    for(u32 i = 0; i < binding_count; ++i)
    {
-      infos[i] = cmd_buffer_descriptor_create(&bindings[i].buffer);
-
       VkWriteDescriptorSet set = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
 
       if(bindings[i].type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
       {
-         acceleration_write_descriptor.pAccelerationStructures = bindings[i].extras;
+         acceleration_write_descriptor.pAccelerationStructures = &bindings[i].data;
          acceleration_write_descriptor.accelerationStructureCount = 1;
          set.pNext = &acceleration_write_descriptor;
       }
+      else
+      {
+         infos[i] = cmd_buffer_descriptor_create(&bindings[i].buffer);
+         set.pBufferInfo = &infos[i];
+      }
 
       set.dstBinding = bindings[i].binding;
-      set.dstSet = VK_NULL_HANDLE;
+      set.dstSet = 0;
       set.descriptorCount = 1;
       set.descriptorType = bindings[i].type;
-      set.pBufferInfo = &infos[i];
 
       write_sets[i] = set;
    }
@@ -1160,11 +1163,8 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
          array_push(bindings) = (vk_buffer_binding){buffer, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
       }
 
-      if(buffer_hash_lookup(&context->buffer_table, rt_buffer_name))
-      {
-         vk_buffer buffer = *buffer_hash_lookup(&context->buffer_table, rt_buffer_name);
-         array_push(bindings) = (vk_buffer_binding){buffer, 3, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, &context->rt_as.tlas};
-      }
+      if(context->rt_as.tlas)
+         array_push(bindings) = (vk_buffer_binding){(vk_buffer){}, 3, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, context->rt_as.tlas};
 
       cmd_push_storage_buffer(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
 
@@ -1631,7 +1631,6 @@ static bool vk_buffers_create(vk_context* context)
    vk_buffer indirect_buffer = {0};
    vk_buffer indirect_rtx_buffer = {0};
    vk_buffer mesh_draw_buffer = {0};
-   vk_buffer rt_buffer = {0};
 
    arena s = context->scratch;
 
@@ -1650,11 +1649,6 @@ static bool vk_buffers_create(vk_context* context)
       return false;
 
    buffer_hash_insert(&context->buffer_table, mesh_draw_buffer_name, mesh_draw_buffer);
-
-   if(!buffer_rt_create(&rt_buffer, context))
-      return false;
-
-   buffer_hash_insert(&context->buffer_table, rt_buffer_name, rt_buffer);
 
    return true;
 }

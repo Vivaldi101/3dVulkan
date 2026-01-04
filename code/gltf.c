@@ -585,7 +585,7 @@ static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_
             cgltf_primitive* prim = mesh->primitives + pi;
             cgltf_material* material = prim->material;
 
-            mat4 wm = {0};
+            mat4 wm = mat4_identity();
             cgltf_node_transform_world(node, wm.data);
 
             vk_mesh_instance mi = {0};
@@ -624,6 +624,14 @@ static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_
             array_push(geometry->mesh_instances) = mi;
          }
       }
+   }
+
+   for(cgltf_size i = 0; i < data->nodes_count; i++)
+   {
+      cgltf_node* node = &data->nodes[i];
+      printf("Node %s: scale = [%f, %f, %f]\n",
+             node->name ? node->name : "(unnamed)",
+             node->scale[0], node->scale[1], node->scale[2]);
    }
 
    // preallocate textures

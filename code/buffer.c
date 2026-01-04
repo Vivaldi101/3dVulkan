@@ -10,7 +10,6 @@ static const char* tlas_buffer_name = "tlas";
 static const char* indirect_buffer_name = "indirect";
 static const char* indirect_rtx_buffer_name = "indirect_rtx";
 static const char* mesh_draw_buffer_name = "mesh_draw";
-static const char* rt_buffer_name = "rt";
 
 // graphics pipeline module names
 #define graphics_module_name "graphics"
