@@ -81,10 +81,11 @@ void main()
       world_normal = normalize(in_normal);
 
    vec3 sun_dir = normalize(in_camera_pos);
+   //vec3 sun_dir = normalize(vec3(0, 1, 0));
    vec3 N = world_normal;
    
    // Small offset to avoid self-intersection
-   float epsilon = 0.0005;
+   float epsilon = 0.05;
    vec3 ray_origin = in_wp + N * epsilon;
    
    // Initialize and cast the shadow ray
@@ -97,32 +98,35 @@ void main()
        ray_origin,                         // ray origin with offset
        epsilon,                             // tMin matching offset
        sun_dir,                             // ray direction
-       100.0                               // tMax
+       1000.0                               // tMax
    );
    rayQueryProceedEXT(rq);
    
    // Visibility factor: 1 = fully lit, 0.1 = in shadow
    bool hit = (rayQueryGetIntersectionTypeEXT(rq, true) != gl_RayQueryCommittedIntersectionNoneEXT);
-   float visibility = hit ? 0.1 : 1.0;
 
-       float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
+   float visibility = hit ? 0.15 : 1.0;
+   //vec3 L = normalize(light_pos - in_wp);
+   vec3 L = sun_dir;
+   float lambert = max(dot(N, L), 0.0);
 
-       vec3 light_pos = in_camera_pos;
+       lambert *= visibility;
 
-       vec3 V = normalize(in_camera_pos - in_wp);
-       vec3 L = normalize(light_pos - in_wp);
-       vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
+       //float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
 
-       float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
-       vec3 specular = blinn_phong * vec3(0.35);
+       //vec3 light_pos = in_camera_pos;
+
+       //vec3 V = normalize(in_camera_pos - in_wp);
+       //vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
+
+       //float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
+       //vec3 specular = blinn_phong * vec3(0.35);
        
-       float lambert = max(dot(N, L), 0.0);
-
        vec3 ambient = vec3(0, 0, 0);
 
-       vec3 diffuse = albedo.rgb * lambert * visibility;
-
-       vec3 linear_color = diffuse + emissive + specular + ambient;
+       vec3 diffuse = albedo.rgb * lambert;
+       //vec3 linear_color = diffuse + emissive + specular + ambient;
+       vec3 linear_color = diffuse + emissive + ambient;
        out_color = vec4(linear_color, albedo.a);
 
        if(globals.draw_normals)
