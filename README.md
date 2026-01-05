@@ -13,6 +13,9 @@ Ray tracing queries with shadow rays:
 
 <img width="1920" height="1080" alt="{5C0B0679-6B04-447D-9A45-1B621DA402B9}" src="https://github.com/user-attachments/assets/bd9f6f7a-0930-414e-bcb7-b8f416d6ceee" />
 
+<img width="1920" height="1080" alt="{FB99996C-F405-4CC4-B7FB-C95E1ACD038C}" src="https://github.com/user-attachments/assets/8868ce66-8887-46cd-bcc1-ccb0daf7c0ab" />
+
+
 Trivial water mesh shader:
 
 <img width="1920" height="1080" alt="{75277977-D5D9-49F4-85B6-6D35A74BA9B7}" src="https://github.com/user-attachments/assets/abc8f7f1-90af-4b0b-9e6f-66ea0000efcb" />
