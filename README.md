@@ -6,9 +6,9 @@ Diffuse lighting model with specular highlights:
 
 <img width="1920" height="1080" alt="{E08F3D14-795F-4011-B12F-1B874DB8DED4}" src="https://github.com/user-attachments/assets/b7b8c5eb-e465-40ce-a1a9-54ae8bcb7e56" />
 
-Ray tracing with queries with shadow rays:
-
 <img width="1920" height="1080" alt="{71C7E331-8EDB-41EF-B685-0E947A4A56FA}" src="https://github.com/user-attachments/assets/89b3a9aa-0a9b-4dab-a4e4-582b0453e97b" />
+
+Ray tracing with queries with shadow rays:
 
 <img width="1920" height="1080" alt="{5C0B0679-6B04-447D-9A45-1B621DA402B9}" src="https://github.com/user-attachments/assets/bd9f6f7a-0930-414e-bcb7-b8f416d6ceee" />
 
@@ -19,7 +19,7 @@ Trivial water mesh shader:
 
 For command line git init, code and shader build, follow these three steps:
 
-0. run 'git submodule update --init' 
+0. run 'git submodule update --init'
 1. run 'build_all.bat'
 2. run 'build\vulkan_3d_release.exe'
 
