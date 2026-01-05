@@ -43,7 +43,7 @@ void main()
    //float t = (sin(float(globals.time)) + 1) * 0.5f; //  map from [-1, 1] to [0, 2] and scale down by 2 to [0, 1]
    float t = sin(float(globals.time));
    float p = 0.0f;   // dont go below this
-   float q = 0.2f;   // dont go above this
+   float q = 0.5f;   // dont go above this
    float shadow = mix(p, q, t);
 
    vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
@@ -86,29 +86,24 @@ void main()
    else
       world_normal = normalize(in_normal);
 
-   //vec3 light_pos = in_camera_pos;  // Camera acts as light position
    vec3 N = world_normal;
-   // Small offset to avoid self-intersection
    float epsilon = 0.05;
    vec3 ray_origin = in_wp + N * epsilon;
-   //vec3 sun_dir = normalize(light_pos - ray_origin);  // Direction FROM surface TO light   //vec3 sun_dir = normalize(vec3(0, 1, 0));
    vec3 sun_dir = normalize(vec3(shadow,1,shadow));
    
-   // Initialize and cast the shadow ray
    rayQueryEXT rq;
    rayQueryInitializeEXT(
        rq,
        tlas,
-       gl_RayFlagsTerminateOnFirstHitEXT, // stop at first hit
-       0xff,                               // instance mask (all)
-       ray_origin,                         // ray origin with offset
-       epsilon,                             // tMin matching offset
-       sun_dir,                             // ray direction
-       1000.0                               // tMax
+       gl_RayFlagsTerminateOnFirstHitEXT,
+       0xff,                            
+       ray_origin,                     
+       epsilon,                       
+       sun_dir,                      
+       1000.0                       
    );
    rayQueryProceedEXT(rq);
    
-   // Visibility factor: 1 = fully lit, 0.1 = in shadow
    bool hit = (rayQueryGetIntersectionTypeEXT(rq, true) != gl_RayQueryCommittedIntersectionNoneEXT);
 
    float visibility = hit ? 0.15 : 1.0;
@@ -117,10 +112,10 @@ void main()
 
        lambert *= visibility;
 
-       float shininess = mix(128.0, 4.0, metal_roughness); // rough = wide lobe
+       float shininess = mix(128.0, 4.0, metal_roughness);
 
        vec3 V = normalize(in_camera_pos - ray_origin);
-       vec3 H = normalize(L + V);                        // half vector for GGX / Blinn
+       vec3 H = normalize(L + V);
 
        float blinn_phong = pow(max(dot(N, H), 0.0), shininess);
        vec3 specular = blinn_phong * vec3(0.25);
