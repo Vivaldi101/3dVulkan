@@ -167,7 +167,7 @@ static bool rt_blas_geometry_build(arena s, vk_context* context, VkAccelerationS
    return true;
 }
 
-static bool rt_tlas_geometry_build(vk_context* context, VkAccelerationStructureKHR* tlas, const VkDeviceAddress* blas_addresses)
+static bool rt_tlas_geometry_build(vk_context* context, VkAccelerationStructureKHR* tlas)
 {
    vk_buffer_hash_table* buffer_table = &context->buffer_table;
    vk_geometry* geometry = &context->geometry;
@@ -199,10 +199,10 @@ static bool rt_tlas_geometry_build(vk_context* context, VkAccelerationStructureK
    VkAccelerationStructureBuildSizesInfoKHR size_info =
    {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
 
-   u32 max_instance_count = (u32)draw_count;
+   u32 instance_count = (u32)draw_count;
    vkGetAccelerationStructureBuildSizesKHR(devices->logical,
                                            VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-                                           &build_info, &max_instance_count, &size_info);
+                                           &build_info, &instance_count, &size_info);
 
    assert(geometry->mesh_draws.count == geometry->mesh_instances.count);
 
@@ -223,7 +223,12 @@ static bool rt_tlas_geometry_build(vk_context* context, VkAccelerationStructureK
       }};
       instance.transform = transform;
 
-      instance.accelerationStructureReference = blas_addresses[i];
+      VkAccelerationStructureDeviceAddressInfoKHR addr_info = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR};
+
+      addr_info.accelerationStructure = context->rt_as.blases[i];
+      VkDeviceAddress blas_address = vkGetAccelerationStructureDeviceAddressKHR(devices->logical, &addr_info);
+
+      instance.accelerationStructureReference = blas_address;
 
       instances[i] = instance;
    }
@@ -253,14 +258,6 @@ static bool rt_tlas_geometry_build(vk_context* context, VkAccelerationStructureK
    build_info.dstAccelerationStructure = *tlas;
    build_info.scratchData.deviceAddress = scratch_address;
 
-   VkAccelerationStructureBuildRangeInfoKHR build_range = {0};
-   build_range.primitiveCount = (u32)draw_count;
-   build_range.primitiveOffset = 0;
-   build_range.firstVertex = 0;
-   build_range.transformOffset = 0;
-
-   VkAccelerationStructureBuildRangeInfoKHR* build_range_ptr = &build_range;
-
    if(!vk_valid(vkResetCommandPool(devices->logical, context->cmd.pool, 0)))
       return false;
 
@@ -270,6 +267,13 @@ static bool rt_tlas_geometry_build(vk_context* context, VkAccelerationStructureK
    if(!vk_valid(vkBeginCommandBuffer(context->cmd.buffer, &buffer_begin_info)))
       return false;
 
+   VkAccelerationStructureBuildRangeInfoKHR build_range = {0};
+   build_range.primitiveCount = (u32)draw_count;
+   build_range.primitiveOffset = 0;
+   build_range.firstVertex = 0;
+   build_range.transformOffset = 0;
+
+   VkAccelerationStructureBuildRangeInfoKHR* build_range_ptr = &build_range;
    vkCmdBuildAccelerationStructuresKHR(context->cmd.buffer, 1, &build_info, &build_range_ptr);
 
    if(!vk_valid(vkEndCommandBuffer(context->cmd.buffer)))
@@ -293,7 +297,6 @@ static bool rt_tlas_geometry_build(vk_context* context, VkAccelerationStructureK
 
 static bool rt_acceleration_structures_create(vk_context* context)
 {
-   vk_device* devices = &context->devices;
    arena s = context->scratch;
 
    const size draw_count = context->geometry.mesh_draws.count;
@@ -308,19 +311,7 @@ static bool rt_acceleration_structures_create(vk_context* context)
 
    assert(context->rt_as.blas_count == draw_count);
 
-   VkDeviceAddress* blas_addresses = push(&s, typeof(*blas_addresses), draw_count);
-
-   for(size i = 0; i < draw_count; ++i)
-   {
-      VkAccelerationStructureDeviceAddressInfoKHR addr_info = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR};
-      addr_info.accelerationStructure = context->rt_as.blases[i];
-      blas_addresses[i] = vkGetAccelerationStructureDeviceAddressKHR(devices->logical, &addr_info);
-
-      if(!blas_addresses[i])
-         return false;
-   }
-
-   if(!rt_tlas_geometry_build(context, &context->rt_as.tlas, blas_addresses))
+   if(!rt_tlas_geometry_build(context, &context->rt_as.tlas))
       return false;
 
    return true;
