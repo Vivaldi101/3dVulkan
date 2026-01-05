@@ -161,11 +161,11 @@ align_struct vk_cmd
    VkCommandPool pool;
 } vk_cmd;
 
+typedef array(VkAccelerationStructureKHR) blas_array;
 align_struct vk_rt_as
 {
-   VkAccelerationStructureKHR* blases;
+   blas_array blases;
    VkAccelerationStructureKHR tlas;
-   size blas_count;   // TODO: array
 } vk_rt_as;
 
 align_struct vk_features

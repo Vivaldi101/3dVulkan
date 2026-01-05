@@ -28,13 +28,13 @@ typedef enum alloc_flags
 #define new4(a, t, n, f)    (t*)alloc(a, sizeof(t), __alignof(t), n, f)
 
 // TODO: functions?
-// TODO: increment count inside array_alloc...
-// Pushes to non preallocated app_storage
+// Pushes to non preallocated array
 #define array_push(a)       *(typeof(a.data))array_alloc((array*)&a, sizeof(typeof(*a.data)), __alignof(typeof(*a.data)), 1, 0)
 #define arrayp_push(a)      *(typeof(a->data))array_alloc((array*)a, sizeof(typeof(*a->data)), __alignof(typeof(*a->data)), 1, 0)
 
-// Adds to preallocated arena
+// adds to preallocated array
 #define array_add(a, v)        *((a.data + a.count++)) = (v)
+#define arrayp_add(a, v)        *((a->data + a->count++)) = (v)
 #define array_resize(a, s)  {(a).data = alloc(a.arena, sizeof(typeof(*a.data)), __alignof(typeof(*a.data)), (s), 0);};
 
 #define array_set(arr, a)  (arr).arena = a

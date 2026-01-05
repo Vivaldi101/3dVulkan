@@ -1164,7 +1164,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       }
 
       if(context->rt_as.tlas)
-         array_push(bindings) = (vk_buffer_binding){(vk_buffer){}, 3, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, context->rt_as.tlas};
+         array_push(bindings) = (vk_buffer_binding){(vk_buffer){0}, 3, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, context->rt_as.tlas};
 
       cmd_push_storage_buffer(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
 
@@ -1851,7 +1851,7 @@ bool vk_initialize(hw* hw)
       return false;
    }
 
-   // TODO: break this apart so that handle creation is separate
+   // TODO: break this apart so that VkSwapchainKHR handle creation is separate
    context->swapchain = vk_swapchain_surface_create(s, devices, *surface, hw->renderer.window.width, hw->renderer.window.height);
 
    // semaphores
@@ -1946,12 +1946,23 @@ bool vk_initialize(hw* hw)
       return false;
    }
 
+   if(context->geometry.mesh_draws.count == 0 || context->geometry.mesh_instances.count == 0)
+   {
+      printf("No meshes found in: %s\n", s8_data(hw->state.asset_file));
+      return false;
+   }
+
    if(features->raytracing_supported)
+   {
+      context->rt_as.blases.arena = a;
+      array_resize(context->rt_as.blases, context->geometry.mesh_draws.count);
+
       if(!rt_acceleration_structures_create(context))
       {
          printf("Could not create acceleration structures for ray tracing\n");
          return false;
       }
+   }
 
    if(!vk_buffers_create(context))
    {
@@ -2000,9 +2011,7 @@ static void vk_ctx_pipeline_destroy(void* ctx, VkPipeline pipeline)
 
 void vk_uninitialize(hw* hw)
 {
-   // TODO: compress this entire function
    vk_context* context = hw->renderer.backends[VULKAN_RENDERER_INDEX];
-   vk_device* devices = &context->devices;
 
    vkDeviceWaitIdle(context->devices.logical);
 
@@ -2023,8 +2032,8 @@ void vk_uninitialize(hw* hw)
    vkDestroyCommandPool(context->devices.logical, context->cmd.pool, &global_allocator.handle);
    vkDestroyQueryPool(context->devices.logical, context->query_pool, &global_allocator.handle);
 
-   for(size i = 0; i < context->rt_as.blas_count; i++)
-      vkDestroyAccelerationStructureKHR(context->devices.logical, context->rt_as.blases[i], &global_allocator.handle);
+   for(size i = 0; i < context->rt_as.blases.count; i++)
+      vkDestroyAccelerationStructureKHR(context->devices.logical, context->rt_as.blases.data[i], &global_allocator.handle);
 
    vkDestroyAccelerationStructureKHR(context->devices.logical, context->rt_as.tlas, &global_allocator.handle);
 
@@ -2059,6 +2068,8 @@ void vk_uninitialize(hw* hw)
 
    //TODO: call vk_swapchain_destroy(context);
    vkDestroySwapchainKHR(context->devices.logical, context->swapchain.handle, &global_allocator.handle);
+
+   vk_device* devices = &context->devices;
    vkDestroySurfaceKHR(devices->instance, context->surface, &global_allocator.handle);
 
    vkDestroyDevice(context->devices.logical, &global_allocator.handle);
