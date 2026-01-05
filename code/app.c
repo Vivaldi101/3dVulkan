@@ -20,7 +20,85 @@ static void app_frame(arena scratch, app_state* state)
 
 static void app_fps_camera_update(app_state* state)
 {
-   (void)state;
+   f32 speed = 0.1f;
+   // TODO: Handle multiple pressed keys!!
+   if(state->input.key == 'W' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   {
+      vec3 eye = state->camera.eye;
+      vec3 dir = state->camera.dir;
+      vec3_normalize(dir);
+      dir = vec3_scale(&dir, speed);
+      state->camera.eye = vec3_add(&eye, &dir);
+   }
+   else if(state->input.key == 'A' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   {
+      vec3 eye = state->camera.eye;
+      vec3 dir = state->camera.dir;
+      vec3 right = {};
+      vec3 up = {0, 1, 0};
+
+      vec3_normalize(dir);
+      vec3_cross(dir, up, right);
+      vec3_normalize(right);
+      vec3 left = vec3_scale(&right, -speed);
+
+      state->camera.eye = vec3_add(&eye, &left);
+   }
+   else if(state->input.key == 'D' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   {
+      vec3 eye = state->camera.eye;
+      vec3 dir = state->camera.dir;
+      vec3 right = {};
+      vec3 up = {0, 1, 0};
+
+      vec3_normalize(dir);
+      vec3_cross(dir, up, right);
+      vec3_normalize(right);
+      right = vec3_scale(&right, speed);
+
+      state->camera.eye = vec3_add(&eye, &right);
+   }
+   else if(state->input.key == 'S' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   {
+      vec3 eye = state->camera.eye;
+      vec3 dir = state->camera.dir;
+      vec3_normalize(dir);
+      dir = vec3_scale(&dir, -speed);
+      state->camera.eye = vec3_add(&eye, &dir);
+   }
+
+   // half turn across view plane extents (in azimuth)
+   f32 rotation_speed_x = (2.f * PI) / state->camera.viewplane_width;
+   f32 rotation_speed_y = (2.f * PI) / state->camera.viewplane_height;
+
+   // delta in pixels
+   f32 delta_x = (f32)state->input.mouse_pos[0] - (f32)state->input.mouse_prev_pos[0];
+   f32 delta_y = (f32)state->input.mouse_pos[1] - (f32)state->input.mouse_prev_pos[1];
+
+   // rotating input affects target azimuth and altitude
+   if(state->input.mouse_buttons & MOUSE_BUTTON_STATE_LEFT)
+   {
+      state->camera.target_azimuth += rotation_speed_x * delta_x;
+      state->camera.target_altitude -= rotation_speed_y * delta_y;
+
+      const f32 max_altitude = PI / 2.0f - 0.01f;
+      if(state->camera.target_altitude > max_altitude) state->camera.target_altitude = max_altitude;
+      if(state->camera.target_altitude < -max_altitude) state->camera.target_altitude = -max_altitude;
+   }
+
+   f32 azimuth = state->camera.target_azimuth;
+   f32 altitude = state->camera.target_altitude;
+
+   f32 x = cosf(altitude) * cosf(azimuth);
+   f32 z = cosf(altitude) * sinf(azimuth);
+   f32 y = sinf(altitude);
+
+   vec3 dir = {x, y, z};
+
+   state->camera.dir = dir;
+
+   state->input.mouse_prev_pos[0] = state->input.mouse_pos[0];
+   state->input.mouse_prev_pos[1] = state->input.mouse_pos[1];
 }
 
 static void app_orbit_camera_update(app_state* state)
@@ -136,27 +214,74 @@ void app_camera_set(app_camera* camera, vec3 origin, f32 radius, f32 altitude, f
    camera->target_altitude = altitude;
 }
 
+void app_camera_eye_set(app_camera* camera, vec3 origin, vec3 eye)
+{
+   camera->origin = origin;
+   camera->eye = eye;
+   camera->dir = vec3_sub(&eye, &origin);
+}
+
 static void app_input_handle(app_state* state)
 {
-   if(state->input.key == 'A' && state->input.key_state == KEY_STATE_UP)
+   if(state->input.key == 'P' && state->input.key_state == KEY_STATE_RELEASED)
+   {
       state->draw_axis = !state->draw_axis;
-   if(state->input.key == 'M' && state->input.key_state == KEY_STATE_UP)
+      state->input.key_state = 0;
+   }
+   if(state->input.key == 'M' && state->input.key_state == KEY_STATE_RELEASED)
+   {
       state->render_rtx = !state->render_rtx;
-   if(state->input.key == 'N' && state->input.key_state == KEY_STATE_UP)
+      state->input.key_state = 0;
+   }
+   if(state->input.key == 'N' && state->input.key_state == KEY_STATE_RELEASED)
+   {
       state->draw_normals = !state->draw_normals;
-   if(state->input.key == 'R' && state->input.key_state == KEY_STATE_UP)
+      state->input.key_state = 0;
+   }
+   if(state->input.key == 'R' && state->input.key_state == KEY_STATE_RELEASED)
    {
       f32 altitude = PI / 8.f;
       f32 azimuth = PI * 2.f;
       vec3 origin = {0, 0, 0};
       app_camera_set(&state->camera, origin, 4.0f, altitude, azimuth);
+      state->input.key_state = 0;
    }
+
+   if(state->input.key == 'C' && state->input.key_state == KEY_STATE_RELEASED)
+   {
+      // no sticky key
+      state->input.key_state = 0;
+      state->camera.update_orbit = !state->camera.update_orbit;
+
+      if(!state->camera.update_orbit)
+      {
+         #if 0
+         f32 altitude = state->camera.target_altitude;
+         f32 azimuth = state->camera.target_azimuth;
+         f32 x = cosf(altitude) * cosf(azimuth);
+         f32 z = cosf(altitude) * sinf(azimuth);
+         f32 y = sinf(altitude);
+         vec3 origin = {0, 0, 0};
+         vec3 eye = {x, y, z};
+
+         app_camera_eye_set(&state->camera, origin, eye);
+         #endif
+      }
+      else
+      {
+         #if 0
+         f32 altitude = PI / 8.f;
+         f32 azimuth = PI * 2.f;
+         vec3 origin = {0, 0, 0};
+         app_camera_set(&state->camera, origin, 4.0f, altitude, azimuth);
+         #endif
+      }
+   }
+
    if(state->camera.update_orbit)
       app_orbit_camera_update(state);
    else
       app_fps_camera_update(state);
-
-   state->input.key_state = 0;
 }
 
 void app_start(hw* hw, s8 asset_file)
