@@ -8,7 +8,7 @@ Diffuse lighting model with specular highlights:
 
 <img width="1920" height="1080" alt="{71C7E331-8EDB-41EF-B685-0E947A4A56FA}" src="https://github.com/user-attachments/assets/89b3a9aa-0a9b-4dab-a4e4-582b0453e97b" />
 
-Ray tracing with queries with shadow rays:
+Ray tracing queries with shadow rays:
 
 <img width="1920" height="1080" alt="{5C0B0679-6B04-447D-9A45-1B621DA402B9}" src="https://github.com/user-attachments/assets/bd9f6f7a-0930-414e-bcb7-b8f416d6ceee" />
 
