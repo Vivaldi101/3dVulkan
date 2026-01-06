@@ -40,13 +40,15 @@ void main()
     mesh_draw draw = draws[in_draw_ID];
    vec3 light_color = vec3(1.f);
 
-   //float t = (sin(float(globals.time)) + 1) * 0.5f; //  map from [-1, 1] to [0, 2] and scale down by 2 to [0, 1]
-   float t = sin(float(globals.time));
-   float p = 0.0f;   // dont go below this
-   float q = 0.5f;   // dont go above this
+   float speed = 0.75;
+   float t = sin(float(globals.time * speed));
+   
+   float p = 0.0;
+   float q = 0.3;
    float shadow = mix(p, q, t);
 
-   vec4 albedo = vec4(1.0, 1.0, 1.0, 1);
+   vec4 albedo = vec4(1.0, 0.6, 0.7, 1.0);
+
    vec3 emissive = vec3(0, 0, 0);
    vec3 world_normal = vec3(0.0, 0.0, 1.0);
    float metal_roughness = 0.f;
@@ -89,7 +91,7 @@ void main()
    vec3 N = world_normal;
    float epsilon = 0.05;
    vec3 ray_origin = in_wp + N * epsilon;
-   vec3 sun_dir = normalize(vec3(shadow,1,shadow));
+   vec3 sun_dir = normalize(vec3(-shadow,1,shadow));
    
    rayQueryEXT rq;
    rayQueryInitializeEXT(
