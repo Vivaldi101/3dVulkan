@@ -1,4 +1,4 @@
-Vulkan renderer working in progress, with mesh shading and ray tracing written in C23 with minimal library dependencies (cgltf, volk, stb image) written from scratch for Win32.
+Vulkan renderer working in progress, with mesh shading and ray tracing in C23 with minimal library dependencies (cgltf, volk, stb image) written from scratch for Win32 platform.
 
 Orbit camera usage: left-click to orbit eye, right-click to pan, wheel to zoom in and out.
 FPS camera usage: left-click to change direction, wasd to move.
