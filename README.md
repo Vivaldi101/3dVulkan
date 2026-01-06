@@ -13,7 +13,7 @@ Ray tracing queries with shadow rays:
 
 <img width="1920" height="1080" alt="{5C0B0679-6B04-447D-9A45-1B621DA402B9}" src="https://github.com/user-attachments/assets/bd9f6f7a-0930-414e-bcb7-b8f416d6ceee" />
 
-<img width="1920" height="1080" alt="{FB99996C-F405-4CC4-B7FB-C95E1ACD038C}" src="https://github.com/user-attachments/assets/8868ce66-8887-46cd-bcc1-ccb0daf7c0ab" />
+<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/8668ab58-4e09-4d69-a93f-4b8e74da7405" />
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/697026fb-d19b-4020-bd63-139964645484" />
 
