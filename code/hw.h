@@ -76,6 +76,7 @@ align_struct hw
    arena scratch;
    hw_timer timer;
    app_state state;
+   app_input input;
    void* main_fiber;
    void* message_fiber;
 

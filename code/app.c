@@ -15,14 +15,15 @@ static void app_frame(arena scratch, app_state* state)
 {
    (void)scratch;
    (void)state;
-   // per app frame drawing
+
+   if(state->fullscreen)
+      ; // toggle here
 }
 
 static void app_fps_camera_update(app_state* state)
 {
    f32 speed = 0.1f;
-   // TODO: Handle multiple pressed keys!!
-   if(state->input.key == 'W' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   if(state->input.keys['W'] & (KEY_STATE_REPEATING | KEY_STATE_DOWN))
    {
       vec3 eye = state->camera.eye;
       vec3 dir = state->camera.dir;
@@ -30,7 +31,7 @@ static void app_fps_camera_update(app_state* state)
       dir = vec3_scale(&dir, speed);
       state->camera.eye = vec3_add(&eye, &dir);
    }
-   else if(state->input.key == 'A' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   if(state->input.keys['A'] & (KEY_STATE_REPEATING | KEY_STATE_DOWN))
    {
       vec3 eye = state->camera.eye;
       vec3 dir = state->camera.dir;
@@ -44,7 +45,7 @@ static void app_fps_camera_update(app_state* state)
 
       state->camera.eye = vec3_add(&eye, &left);
    }
-   else if(state->input.key == 'D' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   if(state->input.keys['D'] & (KEY_STATE_REPEATING | KEY_STATE_DOWN))
    {
       vec3 eye = state->camera.eye;
       vec3 dir = state->camera.dir;
@@ -58,7 +59,7 @@ static void app_fps_camera_update(app_state* state)
 
       state->camera.eye = vec3_add(&eye, &right);
    }
-   else if(state->input.key == 'S' && (state->input.key_state == KEY_STATE_REPEATING || state->input.key_state == KEY_STATE_DOWN))
+   if(state->input.keys['S'] & (KEY_STATE_REPEATING | KEY_STATE_DOWN))
    {
       vec3 eye = state->camera.eye;
       vec3 dir = state->camera.dir;
@@ -223,22 +224,16 @@ void app_camera_eye_set(app_camera* camera, vec3 origin, vec3 eye)
 
 static void app_input_handle(app_state* state)
 {
-   if(state->input.key == 'P' && state->input.key_state == KEY_STATE_RELEASED)
-   {
+   // TODO: hanlde exit also here - currently it is in win32 layer
+   if(state->input.keys['F'] & KEY_STATE_RELEASED)
+      state->fullscreen = !state->fullscreen;
+   if(state->input.keys['P'] & KEY_STATE_RELEASED)
       state->draw_axis = !state->draw_axis;
-      state->input.key_state = 0;
-   }
-   if(state->input.key == 'M' && state->input.key_state == KEY_STATE_RELEASED)
-   {
+   if(state->input.keys['M'] & KEY_STATE_RELEASED)
       state->render_rtx = !state->render_rtx;
-      state->input.key_state = 0;
-   }
-   if(state->input.key == 'N' && state->input.key_state == KEY_STATE_RELEASED)
-   {
+   if(state->input.keys['N'] & KEY_STATE_RELEASED)
       state->draw_normals = !state->draw_normals;
-      state->input.key_state = 0;
-   }
-   if(state->input.key == 'R' && state->input.key_state == KEY_STATE_RELEASED)
+   if(state->input.keys['R'] & KEY_STATE_RELEASED)
    {
       f32 altitude = PI / 8.f;
       f32 azimuth = PI * 2.f;
@@ -246,8 +241,7 @@ static void app_input_handle(app_state* state)
       app_camera_set(&state->camera, origin, 4.0f, altitude, azimuth);
       state->input.key_state = 0;
    }
-
-   if(state->input.key == 'C' && state->input.key_state == KEY_STATE_RELEASED)
+   if(state->input.keys['C'] & KEY_STATE_RELEASED)
    {
       // no sticky key
       state->input.key_state = 0;
@@ -276,7 +270,7 @@ void app_start(hw* hw, s8 asset_file)
       return;
    }
 
-   hw->state.asset_file = asset_file;
+   hw->state.asset.file_name = asset_file;
 
    if(!vk_initialize(hw))
    {

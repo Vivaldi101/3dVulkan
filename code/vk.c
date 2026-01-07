@@ -1940,7 +1940,7 @@ bool vk_initialize(hw* hw)
 
    spirv_initialize(hw, context, &shaders);
 
-   if(!vk_assets_read(context, hw->state.asset_file))
+   if(!vk_assets_read(context, hw->state.asset.file_name))
    {
       printf("Could not read all the assets\n");
       return false;
@@ -1948,7 +1948,7 @@ bool vk_initialize(hw* hw)
 
    if(context->geometry.mesh_draws.count == 0 || context->geometry.mesh_instances.count == 0)
    {
-      printf("No meshes found in: %s\n", s8_data(hw->state.asset_file));
+      printf("No meshes found in: %s\n", s8_data(hw->state.asset.file_name));
       return false;
    }
 

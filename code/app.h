@@ -18,23 +18,25 @@ enum
 
 enum
 {
-   KEY_STATE_DOWN = 1 << 0,
-   KEY_STATE_UP = 1 << 1,
+   KEY_STATE_DOWN = 1 << 1,
    KEY_STATE_RELEASED = 1 << 2,
    KEY_STATE_REPEATING = 1 << 4
 };
 
 typedef enum { HW_INPUT_TYPE_KEY, HW_INPUT_TYPE_MOUSE, HW_INPUT_TYPE_TOUCH } hw_input_type;
 
+typedef struct app_state app_state;
 align_struct app_input
 {
    hw_input_type input_type;
+   f64 time_since_last_insert[256];
    u32 mouse_pos[2];
    u32 mouse_prev_pos[2];
    u32 mouse_buttons;
    u32 mouse_wheel_state;
-   u64 key;
+   i32 keys[256]; // TODO: handle key states
    u32 key_state;
+   void (*gather)(app_state* state, f64 total_seconds_elapsed);
 } app_input;
 
 align_struct app_camera
@@ -53,18 +55,24 @@ align_struct app_camera
    bool update_orbit;
 } app_camera;
 
+align_struct app_asset
+{
+   s8 file_name;
+} app_asset;
+
 align_struct app_state
 {
    mat4 proj;
    mat4 view;
    app_input input;
    app_camera camera;
-   s8 asset_file;  // TODO: for testing
+   app_asset asset;
    f64 frame_delta_in_seconds;
    f64 time_in_seconds;
    bool render_rtx;
    bool draw_normals;
    bool draw_axis;
+   bool fullscreen;
    bool quit;
 } app_state;
 

@@ -158,11 +158,12 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
    f32 azimuth = PI * 2.f;
    vec3 origin = {0, 0, 0};
 
-   hw->state.camera.update_orbit = true;
+   hw->state.camera.update_orbit = false;
    app_camera_set(&hw->state.camera, origin, 4.0f, altitude, azimuth);
 
    i64 begin = clock_query_counter();
    i64 fps_counter = begin;
+   f64 total_seconds_elapsed = 0;
    while(!hw->state.quit)
    {
       SwitchToFiber(hw->message_fiber); // run the fiber message pump
@@ -179,6 +180,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
       hw->state.camera.viewplane_width = hw->renderer.window.width;
       hw->state.camera.viewplane_height = hw->renderer.window.height;
 
+      hw->input.gather(&hw->state, total_seconds_elapsed);
       app_input_function(&hw->state);
       app_frame_function(hw->scratch, &hw->state);
 
@@ -191,6 +193,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
       hw_frame_present(hw);
 
       hw->state.frame_delta_in_seconds = clock_seconds_elapsed(begin, end);
+      total_seconds_elapsed += hw->state.frame_delta_in_seconds;
 
       fps_counter += (end - begin);
 

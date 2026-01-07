@@ -52,7 +52,7 @@ void win32_print_last_error(s8 message)
    if(error != 0)
    {
       // TODO: use a scratch buffer for this
-      static char buffer[4096] = {};
+      static char buffer[4096] = {0};
       FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                      0, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, array_count(buffer), 0);
       printf("%s\n", buffer);
@@ -83,7 +83,89 @@ static vec2 win32_window_size(hw_window* window)
    return (vec2){.x = (f32)width, .y = (f32)height};
 }
 
+static void win32_input_gather(app_state* state, f64 total_seconds_elapsed)
+{
+   static bool prev_down[256] = {0};
+
+   const f64 key_down_interval = 0.33f; // 330ms 
+
+   for(i32 vk = 'A'; vk <= 'Z'; ++vk)
+   {
+      u32 key_state = GetAsyncKeyState(vk);
+
+      bool is_down = (key_state & 0x8000) != 0;
+      bool was_pressed = is_down && !prev_down[vk];
+
+      u32 ch = MapVirtualKeyA(vk, MAPVK_VK_TO_CHAR);
+
+      // Caps Lock is toggle state — 0x0001 bit of GetKeyState
+      bool caps = (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+      // Shift is physical state — 0x8000 bit of GetAsyncKeyState
+      bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+      bool esc = (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
+
+      if(!(shift ^ caps))
+         ch = (char)tolower(ch);
+
+      if(esc)
+         state->quit = true;
+
+      if(state->input.keys[vk] & KEY_STATE_RELEASED)
+         state->input.keys[vk] = 0;
+
+      if(was_pressed)
+      {
+         state->input.time_since_last_insert[vk] = total_seconds_elapsed;
+         state->input.keys[vk] = KEY_STATE_DOWN;
+         printf("Pressed timestamp: %f\n", state->input.time_since_last_insert[vk]);
+      }
+      else if(is_down)
+      {
+         f64 delta_seconds = total_seconds_elapsed - state->input.time_since_last_insert[vk];
+         if(delta_seconds > key_down_interval)
+         {
+            state->input.keys[vk] = KEY_STATE_REPEATING;
+            printf("Is Down timestamp: %f\n", total_seconds_elapsed);
+         }
+      }
+      else
+         if(state->input.keys[vk])
+            state->input.keys[vk] = KEY_STATE_RELEASED;
+
+      prev_down[vk] = is_down;
+   }
+}
+
 static WINDOWPLACEMENT global_window_placement = {sizeof(global_window_placement)};
+
+static void win32_toggle_fullscreen(hw_window window)
+{
+   DWORD dwStyle = GetWindowLong(window.handle, GWL_STYLE);
+   if(dwStyle & WS_OVERLAPPEDWINDOW)
+   {
+      MONITORINFO mi = {sizeof(mi)};
+
+      if(GetWindowPlacement(window.handle, &global_window_placement)
+         && GetMonitorInfo(MonitorFromWindow(window.handle, MONITOR_DEFAULTTOPRIMARY), &mi))
+      {
+         SetWindowLong(window.handle, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+         SetWindowPos(window.handle, HWND_TOP,
+                      mi.rcMonitor.left, mi.rcMonitor.top,
+                      mi.rcMonitor.right - mi.rcMonitor.left,
+                      mi.rcMonitor.bottom - mi.rcMonitor.top,
+                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+      }
+   }
+   else
+   {
+      SetWindowLong(window.handle, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
+      SetWindowPlacement(window.handle, &global_window_placement);
+      SetWindowPos(window.handle, NULL, 0, 0, 0, 0,
+                   SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                   SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+   }
+}
+
 
 static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam)
 {
@@ -203,6 +285,7 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
          win32_hw->state.input.mouse_buttons &= ~MOUSE_BUTTON_STATE_MIDDLE;
          break;
 
+         #if 0
       case WM_SYSKEYDOWN:
       case WM_KEYDOWN:
       {
@@ -225,36 +308,11 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
 
          if(win32_hw->state.input.key == 'F')
          {
-            DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
-            if(dwStyle & WS_OVERLAPPEDWINDOW)
-            {
-               MONITORINFO mi = {sizeof(mi)};
-
-               if(GetWindowPlacement(hwnd, &global_window_placement)
-                  && GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi))
-               {
-                  SetWindowLong(hwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
-                  SetWindowPos(hwnd, HWND_TOP,
-                               mi.rcMonitor.left, mi.rcMonitor.top,
-                               mi.rcMonitor.right - mi.rcMonitor.left,
-                               mi.rcMonitor.bottom - mi.rcMonitor.top,
-                               SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-               }
-            }
-            else
-            {
-               SetWindowLong(hwnd, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
-               SetWindowPlacement(hwnd, &global_window_placement);
-               SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
-                            SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-            }
          }
-         else if(win32_hw->state.input.key == VK_ESCAPE)
-            win32_hw->state.quit = true;
 
          return 0;
       }
+         #endif
       break;
 
       default:
@@ -550,6 +608,8 @@ int main(int argc, char** argv)
    hw.timer.time = win32_query_counter;
    hw.timer.seconds_elapsed = win32_seconds_elapsed;
    hw.timer.time_to_counter = win32_time_to_counter;
+
+   hw.input.gather = win32_input_gather;
 
    hw.platform_loop = win32_platform_loop;
 
