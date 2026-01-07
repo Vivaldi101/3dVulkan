@@ -814,12 +814,22 @@ static void gpu_log(hw* hw)
    const f64 gpu_delta = max(gpu_end - gpu_begin, 0.f);
 
    if(hw->state.render_rtx)
-      hw->window_title_set(hw,
-                       s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'p' to toggle wireframe; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON"),
+      if(!hw->state.camera.update_orbit)
+         hw->window_title_set(hw,
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'p' to toggle wireframe; 'wasd' to move; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON"),
+                       hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
+      else
+         hw->window_title_set(hw,
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'p' to toggle wireframe; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
    else
-      hw->window_title_set(hw,
-                       s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: 0; 'esc' to quit; 'p' to toggle wireframe; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
+      if(!hw->state.camera.update_orbit)
+         hw->window_title_set(hw,
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; 'esc' to quit; 'p' to toggle wireframe; 'wasd' to move; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
+                       hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
+      else
+         hw->window_title_set(hw,
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; 'esc' to quit; 'p' to toggle wireframe; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
 
    hw->state.time_in_seconds += hw->state.frame_delta_in_seconds;

@@ -117,16 +117,12 @@ static void win32_input_gather(app_state* state, f64 total_seconds_elapsed)
       {
          state->input.time_since_last_insert[vk] = total_seconds_elapsed;
          state->input.keys[vk] = KEY_STATE_DOWN;
-         printf("Pressed timestamp: %f\n", state->input.time_since_last_insert[vk]);
       }
       else if(is_down)
       {
          f64 delta_seconds = total_seconds_elapsed - state->input.time_since_last_insert[vk];
          if(delta_seconds > key_down_interval)
-         {
             state->input.keys[vk] = KEY_STATE_REPEATING;
-            printf("Is Down timestamp: %f\n", total_seconds_elapsed);
-         }
       }
       else
          if(state->input.keys[vk])
