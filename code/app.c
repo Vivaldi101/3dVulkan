@@ -34,7 +34,7 @@ static void app_fps_camera_update(app_state* state)
    {
       vec3 eye = state->camera.eye;
       vec3 dir = state->camera.dir;
-      vec3 right = {};
+      vec3 right = {0};
       vec3 up = {0, 1, 0};
 
       vec3_normalize(dir);
@@ -48,7 +48,7 @@ static void app_fps_camera_update(app_state* state)
    {
       vec3 eye = state->camera.eye;
       vec3 dir = state->camera.dir;
-      vec3 right = {};
+      vec3 right = {0};
       vec3 up = {0, 1, 0};
 
       vec3_normalize(dir);
@@ -253,29 +253,9 @@ static void app_input_handle(app_state* state)
       state->input.key_state = 0;
       state->camera.update_orbit = !state->camera.update_orbit;
 
-      if(!state->camera.update_orbit)
-      {
-         #if 0
-         f32 altitude = state->camera.target_altitude;
-         f32 azimuth = state->camera.target_azimuth;
-         f32 x = cosf(altitude) * cosf(azimuth);
-         f32 z = cosf(altitude) * sinf(azimuth);
-         f32 y = sinf(altitude);
-         vec3 origin = {0, 0, 0};
-         vec3 eye = {x, y, z};
-
-         app_camera_eye_set(&state->camera, origin, eye);
-         #endif
-      }
-      else
-      {
-         #if 0
-         f32 altitude = PI / 8.f;
-         f32 azimuth = PI * 2.f;
-         vec3 origin = {0, 0, 0};
-         app_camera_set(&state->camera, origin, 4.0f, altitude, azimuth);
-         #endif
-      }
+      state->camera.smoothed_altitude = 0;
+      state->camera.smoothed_azimuth = 0;
+      state->camera.smoothed_radius = 0;
    }
 
    if(state->camera.update_orbit)
