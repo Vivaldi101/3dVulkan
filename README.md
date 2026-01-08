@@ -1,7 +1,7 @@
-Vulkan renderer working in progress, with mesh shading and ray tracing in C23 with minimal library dependencies (cgltf, volk, stb image) written from scratch for Win32 platform.
+Vulkan renderer, with mesh shading and ray tracing in C23 with minimal library dependencies (cgltf, volk, stb image) written from scratch for Win32 platform using fibers as a cooperative user-mode threads.
 
-Orbit camera usage: left-click to orbit eye, right-click to pan, wheel to zoom in and out.
-FPS camera usage: left-click to change direction, wasd to move.
+Orbit camera usage: Hold left-click to orbit eye, right-click to pan around, wheel to zoom in and out.
+FPS camera usage: Hold left-click to change direction, wasd to move.
 
 Diffuse lighting model with specular highlights:
 
@@ -23,11 +23,15 @@ Trivial water mesh shader:
 <img width="1920" height="1080" alt="{75277977-D5D9-49F4-85B6-6D35A74BA9B7}" src="https://github.com/user-attachments/assets/abc8f7f1-90af-4b0b-9e6f-66ea0000efcb" />
 
 
-For command line git init, code and shader build, follow these three steps:
+For command line git init, code and shader build, follow these steps:
 
 0. run 'git submodule update --init'
 1. run 'build_all.bat'
 2. run 'build\vulkan_3d_release.exe'
+
+Or build and run together:
+0. run 'git submodule update --init'
+1. run 'build_all_run.bat'
 
 For msvc build, open the project under win32-solution.
 
