@@ -28,6 +28,7 @@ static s8 win32_module_path(arena* a)
 
 static s8 vk_exe_directory(arena* a)
 {
+   // win32_module_path should come from the platform layer pointer
    s8 module_path = win32_module_path(a);
 
    if(module_path.len == 0)
@@ -55,7 +56,7 @@ static VkShaderModule vk_shader_vk_shader_module_load(hw* hw, VkDevice logical_d
    array(char) shader_path = {&scratch};
    s8 prefix = s8_lit("%s\\bin\\assets\\shaders\\%s");
 
-   shader_path.count = shader_dir.len + prefix.len + shader_name.len;  // TODO s8 for shader_name
+   shader_path.count = shader_dir.len + prefix.len + shader_name.len;
    array_resize(shader_path, shader_path.count);
 
    wsprintf(shader_path.data, s8_data(prefix), shader_dir.data, shader_name.data);

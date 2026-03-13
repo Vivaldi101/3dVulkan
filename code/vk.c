@@ -1186,10 +1186,10 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
                                        0, (u32)context->geometry.mesh_draws.count,
                                        sizeof(VkDrawMeshTasksIndirectCommandEXT));
 
-      //VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
-      //cmd_bind_pipeline(command_buffer, water_pipeline);
+      VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
+      cmd_bind_pipeline(command_buffer, water_pipeline);
 
-      //vkCmdDrawMeshTasksEXT(command_buffer, 1, 1, 1);
+      vkCmdDrawMeshTasksEXT(command_buffer, 1, 1, 1);
    }
    else
    {
