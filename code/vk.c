@@ -2056,9 +2056,6 @@ void vk_uninitialize(hw* hw)
 
    vkDestroyFence(context->devices.logical, context->render_fence, &global_allocator.handle);
 
-   for(u32 i = 0; i < context->framebuffers.count; ++i)
-      vkDestroyFramebuffer(context->devices.logical, context->framebuffers.data[i], &global_allocator.handle);
-
    for(u32 i = 0; i < context->textures.count; ++i)
    {
       vkDestroyImageView(context->devices.logical, context->textures.data[i].image.view, &global_allocator.handle);
@@ -2066,18 +2063,7 @@ void vk_uninitialize(hw* hw)
       vkFreeMemory(context->devices.logical, context->textures.data[i].image.memory, &global_allocator.handle);
    }
 
-   for (u32 i = 0; i < context->images.depths.count; ++i)
-   {
-      vkDestroyImageView(context->devices.logical, context->images.depths.data[i].view, &global_allocator.handle);
-      vkDestroyImage(context->devices.logical, context->images.depths.data[i].handle, &global_allocator.handle);
-      vkFreeMemory(context->devices.logical, context->images.depths.data[i].memory, &global_allocator.handle);
-   }
-
-   for (u32 i = 0; i < context->images.images.count; ++i)
-      vkDestroyImageView(context->devices.logical, context->images.images.data[i].view, &global_allocator.handle);
-
-   //TODO: call vk_swapchain_destroy(context);
-   vkDestroySwapchainKHR(context->devices.logical, context->swapchain.handle, &global_allocator.handle);
+   vk_swapchain_destroy(&context->devices, &context->images, &context->framebuffers, &context->swapchain);
 
    vk_device* devices = &context->devices;
    vkDestroySurfaceKHR(devices->instance, context->surface, &global_allocator.handle);
