@@ -11,13 +11,6 @@ static const char* indirect_buffer_name = "indirect";
 static const char* indirect_rtx_buffer_name = "indirect_rtx";
 static const char* mesh_draw_buffer_name = "mesh_draw";
 
-// graphics pipeline module names
-#define graphics_module_name "graphics"
-#define meshlet_module_name "meshlet"
-#define frustum_module_name "frustum"
-#define axis_module_name "axis"
-#define water_module_name "water"
-
 static bool vk_buffer_allocate(vk_buffer* buffer, VkDevice device, VkPhysicalDevice physical, VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_flags)
 {
    VkBufferCreateInfo create_info = {vk_info(BUFFER)};

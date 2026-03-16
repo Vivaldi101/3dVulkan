@@ -201,6 +201,8 @@
     <None Include="..\assets\shaders\Builtin.ObjectShader.graphics.vert.glsl" />
     <None Include="..\assets\shaders\Builtin.ObjectShader.meshlet.frag.glsl" />
     <None Include="..\assets\shaders\Builtin.ObjectShader.meshlet.mesh.glsl" />
+    <None Include="..\assets\shaders\Builtin.ObjectShader.pixelation.frag.glsl" />
+    <None Include="..\assets\shaders\Builtin.ObjectShader.pixelation.vert.glsl" />
     <None Include="..\assets\shaders\Builtin.ObjectShader.water.frag.glsl" />
     <None Include="..\assets\shaders\Builtin.ObjectShader.water.mesh.glsl" />
     <None Include="..\assets\shaders\common.glsl" />

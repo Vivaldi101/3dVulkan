@@ -16,6 +16,14 @@ static vk_allocator global_allocator;
 
 #include <volk.c>
 
+// pipeline module names
+#define graphics_module_name "graphics"
+#define meshlet_module_name "meshlet"
+#define frustum_module_name "frustum"
+#define axis_module_name "axis"
+#define water_module_name "water"
+#define pixelation_module_name "pixelation"
+
 static void* VKAPI_PTR vk_allocation(void* user_data,
                                      size_t new_size,
                                      size_t alignment,
@@ -243,6 +251,14 @@ static void spirv_initialize(hw* hw, vk_context* context, s8_array* shaders)
          else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             vk_shader_hash_insert(shader_table, water_module_name"_fs", fm);
       }
+      else if(s8_is_substr_count(shader, s8_lit(pixelation_module_name)) != -1)
+      {
+         vk_shader_module fm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
+         if(fm.stage == VK_SHADER_STAGE_VERTEX_BIT)
+            vk_shader_hash_insert(shader_table, pixelation_module_name"_vs", fm);
+         else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+            vk_shader_hash_insert(shader_table, pixelation_module_name"_fs", fm);
+      }
    }
 }
 
@@ -278,7 +294,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vk_debug_callback(
    return false;
 }
 
-static hw_result vk_create_debugutils_messenger_ext(hw* hw, vk_device* devices)
+static hw_result vk_debug_utils_create(hw* hw, vk_device* devices)
 {
    VkDebugUtilsMessengerCreateInfoEXT messenger_info = {vk_info_ext(DEBUG_UTILS_MESSENGER)};
    messenger_info.messageSeverity =
@@ -453,11 +469,15 @@ static hw_result vk_physical_device_select(arena s, vk_device* device, vk_featur
          if(s8_equals(e, s8_lit(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME)))
             features->dynamic_state_extended = true;
 
-         if(features->raytracing_supported && features->mesh_shading_supported && features->dynamic_state_extended)
+         if(s8_equals(e, s8_lit(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)))
+            features->dynamic_rendering = true;
+
+         if(features->raytracing_supported && features->mesh_shading_supported && features->dynamic_state_extended && features->dynamic_rendering)
          {
             printf("Ray tracing supported\n");
             printf("Mesh shading supported\n");
             printf("Dynamic state extended supported\n");
+            printf("Dynamic rendering supported\n");
 
             return (hw_result){.h = devs[i]};
          }
@@ -511,6 +531,10 @@ static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_
    {
       array_push(extensions) = s8_lit(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
    }
+   if(features->dynamic_rendering)
+   {
+      array_push(extensions) = s8_lit(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+   }
 
    VkPhysicalDeviceFeatures2 features2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 
@@ -527,6 +551,8 @@ static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_
    VkPhysicalDeviceRayQueryFeaturesKHR ray_query = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
 
    VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynamic_state = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT};
+
+   VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
 
    features12.storageBuffer8BitAccess = true;
    features12.uniformAndStorageBuffer8BitAccess = true;
@@ -571,6 +597,14 @@ static hw_result vk_logical_device_create(arena scratch, vk_device* devices, vk_
       features2.pNext = &dynamic_state;
 
       dynamic_state.extendedDynamicState3PolygonMode = true;
+   }
+
+   if(features->dynamic_rendering)
+   {
+      dynamic_rendering.pNext = features2.pNext;
+      features2.pNext = &dynamic_rendering;
+
+      dynamic_rendering.dynamicRendering = true;
    }
 
    vkGetPhysicalDeviceFeatures2(devices->physical, &features2);
@@ -747,7 +781,7 @@ static hw_result vk_framebuffer_create(VkDevice logical_device, VkRenderPass ren
    return (hw_result){framebuffer};
 }
 
-VkImageMemoryBarrier vk_pipeline_barrier(VkImage image, VkImageAspectFlags aspect,
+VkImageMemoryBarrier vk_pipeline_image_barrier(VkImage image, VkImageAspectFlags aspect,
                                          VkAccessFlags src_access, VkAccessFlags dst_access, 
                                          VkImageLayout old_layout, VkImageLayout new_layout)
 {
@@ -862,6 +896,11 @@ static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
 
    vk_swapchain_destroy(&context->devices, swapchain_images, framebuffers, swapchain);
 
+   // TODO: semcompress these destroys
+   vkDestroyImageView(context->devices.logical, context->rtt.color_image.view, &global_allocator.handle);
+   vkDestroyImage(context->devices.logical, context->rtt.color_image.handle, &global_allocator.handle);
+   vkFreeMemory(context->devices.logical, context->rtt.color_image.memory, &global_allocator.handle);
+
    VkSurfaceKHR surface = context->surface;
    VkRenderPass renderpass = context->renderpass;
 
@@ -891,6 +930,16 @@ static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
       if(!(framebuffers->data[i] = vk_framebuffer_create(devices->logical, renderpass, swapchain, attachments, array_count(attachments)).h))
          return false;
    }
+
+   VkExtent3D rtt_extents = {swapchain->image_width, swapchain->image_height, 1};
+   if(!vk_image_create(&context->rtt.color_image, &context->devices, VK_FORMAT_R8G8B8A8_UNORM, rtt_extents, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT).h)
+      return false;
+   if(!(context->rtt.color_image.view = vk_image_view_create(&context->devices, VK_FORMAT_R8G8B8A8_UNORM, context->rtt.color_image.handle, VK_IMAGE_ASPECT_COLOR_BIT).h))
+      return false;
+   if(!vk_depth_image_create(&context->rtt.depth_image, devices, VK_FORMAT_D32_SFLOAT, rtt_extents).h)
+      return false;
+   if(!(context->rtt.depth_image.view = vk_image_view_create(devices, VK_FORMAT_D32_SFLOAT, context->rtt.depth_image.handle, VK_IMAGE_ASPECT_DEPTH_BIT).h))
+      return false;
 
    return true;
 }
@@ -959,10 +1008,10 @@ static VkWriteDescriptorSet cmd_write_descriptor_create(u32 binding, VkDescripto
    return result;
 }
 
-static void cmd_push_storage_buffer(VkCommandBuffer command_buffer, arena scratch, VkPipelineLayout layout, vk_buffer_binding* bindings, u32 binding_count, u32 set_number)
+// TODO: pass array(vk_buffer_binding)
+static void cmd_push_descriptors(VkCommandBuffer command_buffer, arena scratch, VkPipelineLayout layout, vk_buffer_binding* bindings, u32 binding_count, u32 set_number)
 {
    VkWriteDescriptorSet* write_sets = push(&scratch, VkWriteDescriptorSet, binding_count);
-   VkDescriptorBufferInfo* infos = push(&scratch, VkDescriptorBufferInfo, binding_count);
 
    // TODO: Shared for now
    VkWriteDescriptorSetAccelerationStructureKHR acceleration_write_descriptor =
@@ -978,14 +1027,21 @@ static void cmd_push_storage_buffer(VkCommandBuffer command_buffer, arena scratc
          acceleration_write_descriptor.accelerationStructureCount = 1;
          set.pNext = &acceleration_write_descriptor;
       }
-      else
+      else if(bindings[i].type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
       {
-         infos[i] = cmd_buffer_descriptor_create(&bindings[i].buffer);
-         set.pBufferInfo = &infos[i];
+         VkDescriptorImageInfo* info = push(&scratch, VkDescriptorImageInfo);
+         *info = bindings[i].image;
+         set.pImageInfo = info;
+      }
+      else if(bindings[i].type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+      {
+         VkDescriptorBufferInfo* info = push(&scratch, VkDescriptorBufferInfo);
+         *info = cmd_buffer_descriptor_create(&bindings[i].buffer);
+         set.pBufferInfo = info;
       }
 
       set.dstBinding = bindings[i].binding;
-      set.dstSet = 0;
+      set.dstSet = 0; // push descriptors require
       set.descriptorCount = 1;
       set.descriptorType = bindings[i].type;
 
@@ -1102,24 +1158,33 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    renderpass_info.pClearValues = clear;
 
    VkImage color_image = context->images.images.data[image_index].handle;
-   VkImageMemoryBarrier color_image_begin_barrier = vk_pipeline_barrier(color_image, VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+   VkImageMemoryBarrier color_image_begin_barrier = vk_pipeline_image_barrier(color_image, VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
       VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &color_image_begin_barrier);
 
    VkImage depth_image = context->images.depths.data[image_index].handle;
-   VkImageMemoryBarrier depth_image_begin_barrier = vk_pipeline_barrier(depth_image, VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+   VkImageMemoryBarrier depth_image_begin_barrier = vk_pipeline_image_barrier(depth_image, VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
       VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &depth_image_begin_barrier);
 
+   VkImage rtt_color_image = context->rtt.color_image.handle;
+   VkImageView rtt_color_image_view = context->rtt.color_image.view;
+   VkImageMemoryBarrier rtt_begin_barrier = vk_pipeline_image_barrier(rtt_color_image, VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+   vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &rtt_begin_barrier);
 
-   vkCmdBeginRenderPass(command_buffer, &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
+   VkImage rtt_depth_image = context->rtt.depth_image.handle;
+   VkImageView rtt_depth_image_view = context->rtt.depth_image.view;
+   VkImageMemoryBarrier rtt_depth_image_begin_barrier = vk_pipeline_image_barrier(rtt_depth_image, VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+   vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+      VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &rtt_depth_image_begin_barrier);
 
    VkViewport viewport = {0};
 
-   // y-is-up
    viewport.x = 0.0f;
    viewport.y = (f32)context->swapchain.image_height;
    viewport.width = (f32)context->swapchain.image_width;
+   // y-is-up
    viewport.height = -(f32)context->swapchain.image_height;
 
    viewport.minDepth = 0.0f;
@@ -1134,7 +1199,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
    vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-   vkCmdSetLineWidth(command_buffer, 2.f);
+   vkCmdSetLineWidth(command_buffer, 1.f);
    vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_FILL);
 
    if(state->draw_axis)
@@ -1142,6 +1207,8 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
    if(state->draw_normals)
       mvp.draw_normals = true;
+   if(state->do_postprocess)
+      mvp.do_postprocess = true;
 
    if(state->render_rtx)
    {
@@ -1155,28 +1222,30 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       arena s = context->scratch;
       array(vk_buffer_binding) bindings = {&s};
 
+      u32 binding = 0;
+
       if(buffer_hash_lookup(&context->buffer_table, vb_buffer_name))
       {
          vk_buffer buffer = *buffer_hash_lookup(&context->buffer_table, vb_buffer_name);
-         array_push(bindings) = (vk_buffer_binding){buffer, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
+         array_push(bindings) = (vk_buffer_binding){buffer, binding++, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
       }
 
       if(buffer_hash_lookup(&context->buffer_table, mb_buffer_name))
       {
          vk_buffer buffer = *buffer_hash_lookup(&context->buffer_table, mb_buffer_name);
-         array_push(bindings) = (vk_buffer_binding){buffer, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
+         array_push(bindings) = (vk_buffer_binding){buffer, binding++, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
       }
 
       if(buffer_hash_lookup(&context->buffer_table, mesh_draw_buffer_name))
       {
          vk_buffer buffer = *buffer_hash_lookup(&context->buffer_table, mesh_draw_buffer_name);
-         array_push(bindings) = (vk_buffer_binding){buffer, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
+         array_push(bindings) = (vk_buffer_binding){buffer, binding++, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
       }
 
       if(context->rt_as.tlas)
-         array_push(bindings) = (vk_buffer_binding){(vk_buffer){0}, 3, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, context->rt_as.tlas};
+         array_push(bindings) = (vk_buffer_binding){(vk_buffer) { 0 }, binding++, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, context->rt_as.tlas};
 
-      cmd_push_storage_buffer(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
+      cmd_push_descriptors(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
 
       cmd_push_all_rtx_constants(command_buffer, pipeline_layout, &mvp);
 
@@ -1189,7 +1258,8 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
       cmd_bind_pipeline(command_buffer, water_pipeline);
 
-      vkCmdDrawMeshTasksEXT(command_buffer, 1, 1, 1);
+      u32 grp_count_x = 1, grp_count_y = 1, grp_count_z = 1;
+      vkCmdDrawMeshTasksEXT(command_buffer, grp_count_x, grp_count_y, grp_count_z);
    }
    else
    {
@@ -1198,26 +1268,54 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
       cmd_bind_descriptor_set(command_buffer, pipeline_layout, &context->texture_descriptor.set, 1, 1);
       cmd_bind_pipeline(command_buffer, graphics_pipeline);
+
       if(buffer_hash_lookup(&context->buffer_table, ib_buffer_name))
          cmd_bind_index_buffer(command_buffer, buffer_hash_lookup(&context->buffer_table, ib_buffer_name)->handle, 0);
 
       arena s = context->scratch;
       array(vk_buffer_binding) bindings = {&s};
 
+      u32 binding = 0;
+
       if(buffer_hash_lookup(&context->buffer_table, vb_buffer_name))
       {
          vk_buffer buffer = *buffer_hash_lookup(&context->buffer_table, vb_buffer_name);
-         array_push(bindings) = (vk_buffer_binding){buffer, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
+         array_push(bindings) = (vk_buffer_binding){buffer, binding++, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
       }
 
       if(buffer_hash_lookup(&context->buffer_table, mesh_draw_buffer_name))
       {
          vk_buffer buffer = *buffer_hash_lookup(&context->buffer_table, mesh_draw_buffer_name);
-         array_push(bindings) = (vk_buffer_binding){buffer, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
+         array_push(bindings) = (vk_buffer_binding){buffer, binding++, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER};
       }
 
-      cmd_push_storage_buffer(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
+      cmd_push_descriptors(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
       cmd_push_all_constants(command_buffer, pipeline_layout, &mvp);
+
+      VkRenderingAttachmentInfo color_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+      color_attachment.imageView = rtt_color_image_view;
+      color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      color_attachment.clearValue = (VkClearValue){0.529f, 0.808f, 0.922f, 1.0f};
+
+      VkRenderingAttachmentInfo depth_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+      depth_attachment.imageView = rtt_depth_image_view;
+      depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      depth_attachment.clearValue.depthStencil = (VkClearDepthStencilValue){1.0f, 0};
+
+      VkRenderingInfo rendering_info = {VK_STRUCTURE_TYPE_RENDERING_INFO};
+      VkExtent2D render_extents = {context->swapchain.image_width, context->swapchain.image_height};
+      rendering_info.renderArea.offset = (VkOffset2D){0, 0};
+      rendering_info.renderArea.extent = render_extents;
+      rendering_info.layerCount = 1;
+      rendering_info.colorAttachmentCount = 1;
+      rendering_info.pColorAttachments = &color_attachment;
+      rendering_info.pDepthAttachment = &depth_attachment;
+
+      vkCmdBeginRendering(command_buffer, &rendering_info);
 
       if(buffer_hash_lookup(&context->buffer_table, indirect_buffer_name))
          vkCmdDrawIndexedIndirect(command_buffer,
@@ -1225,21 +1323,87 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
                                   0, (u32)context->geometry.mesh_draws.count,
                                   sizeof(VkDrawIndexedIndirectCommand));
 
-      vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
+      vkCmdEndRendering(command_buffer);
    }
 
    if(state->draw_axis)
    {
-      // draw axis
       vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_hash_lookup(&context->pipeline_table, axis_module_name));
       vkCmdDraw(command_buffer, 18, 1, 0, 0);
    }
 
-   vkCmdEndRenderPass(command_buffer);
+   VkImageMemoryBarrier rtt_done_barrier = vk_pipeline_image_barrier(rtt_color_image,
+                                                                     VK_IMAGE_ASPECT_COLOR_BIT,
+                                                                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                                                     VK_ACCESS_SHADER_READ_BIT,
+                                                                     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-   VkImageMemoryBarrier color_image_end_barrier = vk_pipeline_barrier(color_image, VK_IMAGE_ASPECT_COLOR_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-   vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-      VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &color_image_end_barrier);
+   vkCmdPipelineBarrier(
+       command_buffer,
+       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+       0,
+       0, 0,
+       0, 0,
+       1, &rtt_done_barrier
+   );
+
+   VkDescriptorImageInfo descriptor_image = {0};
+   descriptor_image.imageView = context->rtt.color_image.view;
+   descriptor_image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+   descriptor_image.sampler = context->rtt.sampler;
+
+   arena s = context->scratch;
+   array(vk_buffer_binding) bindings = {&s};
+   array_push(bindings) = (vk_buffer_binding){{0}, 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .image = descriptor_image};
+
+   VkPipelineLayout pipeline_layout = context->non_rtx_pipeline_layout;
+   cmd_push_descriptors(command_buffer, s, pipeline_layout, bindings.data, (u32)bindings.count, 0);
+   cmd_push_all_constants(command_buffer, pipeline_layout, &mvp);
+
+   VkRenderingAttachmentInfo color_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+   color_attachment.imageView = context->images.images.data[image_index].view;
+   color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+   color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+   color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+   color_attachment.clearValue = (VkClearValue){0.0f, 0.0f, 0.0f, 1.0f};
+
+   VkRenderingAttachmentInfo depth_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+   depth_attachment.imageView = context->images.depths.data[image_index].view;
+   depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+   depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+   depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+   depth_attachment.clearValue.depthStencil = (VkClearDepthStencilValue){1.0f, 0};
+
+   VkRenderingInfo rendering_info = {VK_STRUCTURE_TYPE_RENDERING_INFO};
+   rendering_info.renderArea.offset = (VkOffset2D){0, 0};
+   rendering_info.renderArea.extent = (VkExtent2D){context->swapchain.image_width, context->swapchain.image_height};
+   rendering_info.layerCount = 1;
+   rendering_info.colorAttachmentCount = 1;
+   rendering_info.pColorAttachments = &color_attachment;
+   rendering_info.pDepthAttachment = &depth_attachment;
+
+   vkCmdBeginRendering(command_buffer, &rendering_info);
+
+   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                     vk_pipeline_hash_lookup(&context->pipeline_table, pixelation_module_name));
+   vkCmdDraw(command_buffer, 6, 1, 0, 0);
+
+   vkCmdEndRendering(command_buffer);
+
+   VkImageMemoryBarrier color_image_end_barrier = vk_pipeline_image_barrier(
+       color_image, VK_IMAGE_ASPECT_COLOR_BIT,
+       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
+       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+   );
+
+   vkCmdPipelineBarrier(
+       command_buffer,
+       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+       VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+       VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &color_image_end_barrier
+   );
 
    vkCmdWriteTimestamp(context->cmd.buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, context->query_pool, 1);
 
@@ -1303,7 +1467,7 @@ static bool vk_pipeline_set_layout_create(VkDescriptorSetLayout* set_layout, VkD
    }
    else
    {
-      VkDescriptorSetLayoutBinding bindings[2] = {0};
+      VkDescriptorSetLayoutBinding bindings[3] = {0};
       bindings[0].binding = 0;
       bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       bindings[0].descriptorCount = 1;
@@ -1313,6 +1477,11 @@ static bool vk_pipeline_set_layout_create(VkDescriptorSetLayout* set_layout, VkD
       bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       bindings[1].descriptorCount = 1;
       bindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+      bindings[2].binding = 2;
+      bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      bindings[2].descriptorCount = 1;
+      bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
       VkDescriptorSetLayoutCreateInfo info = {vk_info(DESCRIPTOR_SET_LAYOUT)};
 
@@ -1385,7 +1554,6 @@ static bool vk_mesh_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    pipeline_info.pVertexInputState = &vertex_input_info;
 
    VkPipelineInputAssemblyStateCreateInfo assembly_info = {vk_info(PIPELINE_INPUT_ASSEMBLY_STATE)};
-   assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
    pipeline_info.pInputAssemblyState = &assembly_info;
 
    VkPipelineViewportStateCreateInfo viewport_info = {vk_info(PIPELINE_VIEWPORT_STATE)};
@@ -1443,8 +1611,18 @@ static bool vk_mesh_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    dynamic_info.dynamicStateCount = array_count(dynamic_states);
    pipeline_info.pDynamicState = &dynamic_info;
 
-   pipeline_info.renderPass = context->renderpass;
    pipeline_info.layout = context->rtx_pipeline_layout;
+
+   VkFormat color_format = context->swapchain.format;
+
+   VkPipelineRenderingCreateInfo rendering_info = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+   rendering_info.colorAttachmentCount = 1;
+   rendering_info.pColorAttachmentFormats = &color_format;
+
+   VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
+   rendering_info.depthAttachmentFormat = depth_format;
+
+   pipeline_info.pNext = &rendering_info;
 
    if(!vk_valid(vkCreateGraphicsPipelines(context->devices.logical, cache, 1, &pipeline_info, &global_allocator.handle, pipeline)))
       return false;
@@ -1527,8 +1705,18 @@ static bool vk_graphics_pipeline_create(VkPipeline* pipeline, vk_context* contex
    dynamic_info.dynamicStateCount = array_count(dynamic_states);
    pipeline_info.pDynamicState = &dynamic_info;
 
-   pipeline_info.renderPass = context->renderpass;
    pipeline_info.layout = context->non_rtx_pipeline_layout;
+
+   VkFormat color_format = context->swapchain.format;
+
+   VkPipelineRenderingCreateInfo rendering_info = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+   rendering_info.colorAttachmentCount = 1;
+   rendering_info.pColorAttachmentFormats = &color_format;
+
+   VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
+   rendering_info.depthAttachmentFormat = depth_format;
+
+   pipeline_info.pNext = &rendering_info;
 
    if(!vk_valid(vkCreateGraphicsPipelines(context->devices.logical, cache, 1, &pipeline_info, &global_allocator.handle, pipeline)))
       return false;
@@ -1591,6 +1779,100 @@ static bool vk_axis_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    pipeline_info.pDynamicState = &dynamic_info;
    pipeline_info.renderPass = context->renderpass;
    pipeline_info.layout = context->non_rtx_pipeline_layout;
+
+   if(!vk_valid(vkCreateGraphicsPipelines(context->devices.logical, cache, 1, &pipeline_info, &global_allocator.handle, pipeline)))
+      return false;
+
+   return true;
+}
+
+static bool vk_pixelation_pipeline_create(VkPipeline* pipeline, vk_context* context, VkPipelineCache cache, const vk_shader_module* shader_modules, size shader_module_count)
+{
+   arena scratch = context->scratch;
+
+   array(VkPipelineShaderStageCreateInfo) stages = {&scratch};
+
+   for (size i = 0; i < shader_module_count; ++i)
+      array_push(stages) = vk_shader_stage_create_info(shader_modules[i]);
+
+   VkGraphicsPipelineCreateInfo pipeline_info = {vk_info(GRAPHICS_PIPELINE)};
+   pipeline_info.stageCount = (u32)stages.count;
+   pipeline_info.pStages = stages.data;
+
+   VkPipelineVertexInputStateCreateInfo vertex_input_info = {vk_info(PIPELINE_VERTEX_INPUT_STATE)};
+   pipeline_info.pVertexInputState = &vertex_input_info;
+
+   VkPipelineInputAssemblyStateCreateInfo assembly_info = {vk_info(PIPELINE_INPUT_ASSEMBLY_STATE)};
+   assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+   pipeline_info.pInputAssemblyState = &assembly_info;
+
+   VkPipelineViewportStateCreateInfo viewport_info = {vk_info(PIPELINE_VIEWPORT_STATE)};
+   viewport_info.scissorCount = 1;
+   viewport_info.viewportCount = 1;
+   pipeline_info.pViewportState = &viewport_info;
+
+   VkPipelineRasterizationStateCreateInfo raster_info = {vk_info(PIPELINE_RASTERIZATION_STATE)};
+   raster_info.lineWidth = 1.0f;
+   raster_info.cullMode = VK_CULL_MODE_BACK_BIT;
+   raster_info.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+   pipeline_info.pRasterizationState = &raster_info;
+
+   VkPipelineMultisampleStateCreateInfo sample_info = {vk_info(PIPELINE_MULTISAMPLE_STATE)};
+   sample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+   pipeline_info.pMultisampleState = &sample_info;
+
+   VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {vk_info(PIPELINE_DEPTH_STENCIL_STATE)};
+   depth_stencil_info.depthTestEnable = true;
+   depth_stencil_info.depthWriteEnable = true;
+   depth_stencil_info.depthBoundsTestEnable = true;
+   depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;  // right handed NDC
+   depth_stencil_info.minDepthBounds = 0.0f;
+   depth_stencil_info.maxDepthBounds = 1.0f;
+   pipeline_info.pDepthStencilState = &depth_stencil_info;
+
+   VkPipelineColorBlendAttachmentState color_blend_attachment = {0};
+   color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+   color_blend_attachment.blendEnable = true;
+   // Src color: output color alpha
+   color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+   // Dst color: one minus source alpha (transparency)
+   color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+   color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+   // Same for alpha channel blending
+   color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+   color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+   color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+   VkPipelineColorBlendStateCreateInfo color_blend_info = {vk_info(PIPELINE_COLOR_BLEND_STATE)};
+   color_blend_info.attachmentCount = 1;
+   color_blend_info.pAttachments = &color_blend_attachment;
+   color_blend_info.logicOpEnable = false;
+   color_blend_info.blendConstants[0] = 0.f;
+   color_blend_info.blendConstants[1] = 0.f;
+   color_blend_info.blendConstants[2] = 0.f;
+   color_blend_info.blendConstants[3] = 0.f;
+
+   pipeline_info.pColorBlendState = &color_blend_info;
+
+   VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
+   VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+   dynamic_info.pDynamicStates = dynamic_states;
+   dynamic_info.dynamicStateCount = array_count(dynamic_states);
+   pipeline_info.pDynamicState = &dynamic_info;
+
+   pipeline_info.layout = context->non_rtx_pipeline_layout;
+
+   VkFormat color_format = context->swapchain.format;
+
+   VkPipelineRenderingCreateInfo rendering_info = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+   rendering_info.colorAttachmentCount = 1;
+   rendering_info.pColorAttachmentFormats = &color_format;
+
+   VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
+   rendering_info.depthAttachmentFormat = depth_format;
+
+   pipeline_info.pNext = &rendering_info;
 
    if(!vk_valid(vkCreateGraphicsPipelines(context->devices.logical, cache, 1, &pipeline_info, &global_allocator.handle, pipeline)))
       return false;
@@ -1683,8 +1965,8 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    array(VkDescriptorSetLayout) set_layouts = {&scratch};
    array_push(set_layouts) = non_rtx_set_layout;
 
-	if(context->textures.count > 0)
-		array_push(set_layouts) = context->texture_descriptor.layout;
+   if(context->textures.count > 0)
+      array_push(set_layouts) = context->texture_descriptor.layout;
 
    if(!vk_pipeline_layout_create(&non_rtx_pipeline_layout, context->devices.logical, set_layouts.data, set_layouts.count, false))
       return false;
@@ -1692,8 +1974,8 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    array(VkDescriptorSetLayout) rtx_set_layouts = {&scratch};
    array_push(rtx_set_layouts) = rtx_set_layout;
 
-	if(context->textures.count > 0)
-		array_push(rtx_set_layouts) = context->texture_descriptor.layout;
+   if(context->textures.count > 0)
+      array_push(rtx_set_layouts) = context->texture_descriptor.layout;
 
    if(!vk_pipeline_layout_create(&rtx_pipeline_layout, context->devices.logical, rtx_set_layouts.data, rtx_set_layouts.count, true))
       return false;
@@ -1711,8 +1993,9 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    VkPipeline frustum = 0;
    VkPipeline mesh = 0;
    VkPipeline water = 0;
+   VkPipeline pixelation = 0;
 
-   enum {shader_module_count = 2};
+   enum { shader_module_count = 2 };
    vk_shader_module shader_modules[shader_module_count] = {0};
 
    vk_shader_module gm_vs = vk_shader_hash_lookup(&context->shader_table, graphics_module_name"_vs");
@@ -1724,7 +2007,7 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    shader_modules[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
    shader_modules[1].handle = gm_fs.handle;
 
-   if (!vk_graphics_pipeline_create(&graphics, context, cache, shader_modules, shader_module_count))
+   if(!vk_graphics_pipeline_create(&graphics, context, cache, shader_modules, shader_module_count))
       return false;
    vk_pipeline_hash_insert(&context->pipeline_table, graphics_module_name, graphics);
 
@@ -1778,9 +2061,23 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    shader_modules[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
    shader_modules[1].handle = fm_fs.handle;
 
-   if (!vk_graphics_pipeline_create(&frustum, context, cache, shader_modules, shader_module_count))
+   if(!vk_graphics_pipeline_create(&frustum, context, cache, shader_modules, shader_module_count))
       return false;
    vk_pipeline_hash_insert(&context->pipeline_table, frustum_module_name, frustum);
+
+   vk_shader_module pm_vs = vk_shader_hash_lookup(&context->shader_table, pixelation_module_name"_vs");
+   vk_shader_module pm_fs = vk_shader_hash_lookup(&context->shader_table, pixelation_module_name"_fs");
+
+   shader_modules[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+   shader_modules[0].handle = pm_vs.handle;
+
+   shader_modules[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+   shader_modules[1].handle = pm_fs.handle;
+
+   if(!vk_pixelation_pipeline_create(&pixelation, context, cache, shader_modules, shader_module_count))
+      return false;
+
+   vk_pipeline_hash_insert(&context->pipeline_table, pixelation_module_name, pixelation);
 
    return true;
 }
@@ -1834,7 +2131,7 @@ bool vk_initialize(hw* hw)
       return false;
    }
    #ifdef _DEBUG
-   if(!(context->messenger = vk_create_debugutils_messenger_ext(hw, devices).h))
+   if(!(context->messenger = vk_debug_utils_create(hw, devices).h))
    {
       printf("Could not create debug messenger\n");
       return false;
@@ -1915,11 +2212,11 @@ bool vk_initialize(hw* hw)
    context->framebuffers.arena = a;
    array_resize(context->framebuffers, context->swapchain.image_count);
 
-   // images
+   // swapchain images
    context->images.images.arena = a;
    array_resize(context->images.images, context->swapchain.image_count);
 
-   // depths
+   // swapchain depths
    context->images.depths.arena = a;
    array_resize(context->images.depths, context->swapchain.image_count);
 
@@ -1995,6 +2292,21 @@ bool vk_initialize(hw* hw)
 
    vk_shader_hash_function(&context->shader_table, vk_shader_hash_log_module_name, 0);
 
+   // sampler for rtt
+   VkSamplerCreateInfo sampler_info = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+   sampler_info.magFilter = VK_FILTER_LINEAR;
+   sampler_info.minFilter = VK_FILTER_LINEAR;
+   sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+   sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+   sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+   sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+   sampler_info.maxLod = 0.0f;
+
+   VkSampler sampler = 0;
+   vk_assert(vkCreateSampler(context->devices.logical, &sampler_info, &global_allocator.handle, &sampler));
+
+   context->rtt.sampler = sampler;
+
    return true;
 }
 
@@ -2056,12 +2368,23 @@ void vk_uninitialize(hw* hw)
 
    vkDestroyFence(context->devices.logical, context->render_fence, &global_allocator.handle);
 
+   // TODO: semcompress these image cleanups
    for(u32 i = 0; i < context->textures.count; ++i)
    {
       vkDestroyImageView(context->devices.logical, context->textures.data[i].image.view, &global_allocator.handle);
       vkDestroyImage(context->devices.logical, context->textures.data[i].image.handle, &global_allocator.handle);
       vkFreeMemory(context->devices.logical, context->textures.data[i].image.memory, &global_allocator.handle);
    }
+
+   vkDestroyImageView(context->devices.logical, context->rtt.color_image.view, &global_allocator.handle);
+   vkDestroyImage(context->devices.logical, context->rtt.color_image.handle, &global_allocator.handle);
+   vkFreeMemory(context->devices.logical, context->rtt.color_image.memory, &global_allocator.handle);
+
+   vkDestroyImageView(context->devices.logical, context->rtt.depth_image.view, &global_allocator.handle);
+   vkDestroyImage(context->devices.logical, context->rtt.depth_image.handle, &global_allocator.handle);
+   vkFreeMemory(context->devices.logical, context->rtt.depth_image.memory, &global_allocator.handle);
+
+   vkDestroySampler(context->devices.logical, context->rtt.sampler, &global_allocator.handle);
 
    vk_swapchain_destroy(&context->devices, &context->images, &context->framebuffers, &context->swapchain);
 

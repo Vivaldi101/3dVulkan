@@ -233,6 +233,8 @@ static void app_input_handle(app_state* state)
       state->render_rtx = !state->render_rtx;
    if(state->input.keys['N'] & KEY_STATE_RELEASED)
       state->draw_normals = !state->draw_normals;
+   if(state->input.keys['X'] & KEY_STATE_RELEASED)
+      state->do_postprocess = !state->do_postprocess;
    if(state->input.keys['R'] & KEY_STATE_RELEASED)
    {
       f32 altitude = PI / 8.f;

@@ -75,6 +75,13 @@ align_struct vk_buffer
    size size;
 } vk_buffer;
 
+align_struct vk_rtt
+{
+   vk_image color_image;
+   vk_image depth_image;
+   VkSampler sampler;
+} vk_rtt;
+
 align_struct vk_buffer_binding
 {
    vk_buffer buffer;
@@ -83,6 +90,7 @@ align_struct vk_buffer_binding
    union
    {
       VkAccelerationStructureKHR data;
+      VkDescriptorImageInfo image;
    };
 } vk_buffer_binding;
 
@@ -173,6 +181,7 @@ align_struct vk_features
    bool mesh_shading_supported;
    bool raytracing_supported;
    bool dynamic_state_extended;
+   bool dynamic_rendering;
    f32 time_period;
 } vk_features;
 
@@ -195,6 +204,8 @@ align_struct vk_context
    array(size) meshlet_counts;
    array(size) meshlet_offsets;
    array(size) vertex_offsets;
+
+   vk_rtt rtt;
 
    vk_rt_as rt_as;
 
@@ -220,7 +231,7 @@ align_struct vk_context
 
    vk_cmd cmd;
 
-   VkRenderPass renderpass;
+   VkRenderPass renderpass; // TODO: remove
 
    vk_pipeline_hash_table pipeline_table;
 

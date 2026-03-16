@@ -39,6 +39,7 @@ struct mvp_transform
     float f;
     float ar;
     uint32_t draw_normals;
+    uint32_t do_postprocess;
 };
 
 #endif

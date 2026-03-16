@@ -1,10 +1,12 @@
 #include "vk.h"
 
-#define STBI_NO_SIMD
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "../extern/stb_image.h"
 
+// TODO: Cleanup these so that the params make sense!!!
+// TODO: currently image is either vk_image or VKImage
+// TODO: also the return value should always be the result and not input/output
 static hw_result vk_image_view_create(vk_device* devices, VkFormat format, VkImage image, VkImageAspectFlags aspect_mask)
 {
    VkImageView image_view = 0;
