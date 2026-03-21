@@ -901,6 +901,10 @@ static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
    vkDestroyImage(context->devices.logical, context->rtt.color_image.handle, &global_allocator.handle);
    vkFreeMemory(context->devices.logical, context->rtt.color_image.memory, &global_allocator.handle);
 
+   vkDestroyImageView(context->devices.logical, context->rtt.depth_image.view, &global_allocator.handle);
+   vkDestroyImage(context->devices.logical, context->rtt.depth_image.handle, &global_allocator.handle);
+   vkFreeMemory(context->devices.logical, context->rtt.depth_image.memory, &global_allocator.handle);
+
    VkSurfaceKHR surface = context->surface;
    VkRenderPass renderpass = context->renderpass;
 
@@ -1249,6 +1253,31 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
       cmd_push_all_rtx_constants(command_buffer, pipeline_layout, &mvp);
 
+      VkRenderingAttachmentInfo color_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+      color_attachment.imageView = rtt_color_image_view;
+      color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      color_attachment.clearValue = (VkClearValue){0.529f, 0.808f, 0.922f, 1.0f};
+
+      VkRenderingAttachmentInfo depth_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+      depth_attachment.imageView = rtt_depth_image_view;
+      depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      depth_attachment.clearValue.depthStencil = (VkClearDepthStencilValue){1.0f, 0};
+
+      VkRenderingInfo rendering_info = {VK_STRUCTURE_TYPE_RENDERING_INFO};
+      VkExtent2D render_extents = {context->swapchain.image_width, context->swapchain.image_height};
+      rendering_info.renderArea.offset = (VkOffset2D){0, 0};
+      rendering_info.renderArea.extent = render_extents;
+      rendering_info.layerCount = 1;
+      rendering_info.colorAttachmentCount = 1;
+      rendering_info.pColorAttachments = &color_attachment;
+      rendering_info.pDepthAttachment = &depth_attachment;
+
+      vkCmdBeginRendering(command_buffer, &rendering_info);
+
       if(buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name))
          vkCmdDrawMeshTasksIndirectEXT(command_buffer,
                                        buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name)->handle,
@@ -1260,6 +1289,8 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
       u32 grp_count_x = 1, grp_count_y = 1, grp_count_z = 1;
       vkCmdDrawMeshTasksEXT(command_buffer, grp_count_x, grp_count_y, grp_count_z);
+
+      vkCmdEndRendering(command_buffer);
    }
    else
    {
@@ -2376,10 +2407,12 @@ void vk_uninitialize(hw* hw)
       vkFreeMemory(context->devices.logical, context->textures.data[i].image.memory, &global_allocator.handle);
    }
 
+   // TODO: semcompress these image cleanups
    vkDestroyImageView(context->devices.logical, context->rtt.color_image.view, &global_allocator.handle);
    vkDestroyImage(context->devices.logical, context->rtt.color_image.handle, &global_allocator.handle);
    vkFreeMemory(context->devices.logical, context->rtt.color_image.memory, &global_allocator.handle);
 
+   // TODO: semcompress these image cleanups
    vkDestroyImageView(context->devices.logical, context->rtt.depth_image.view, &global_allocator.handle);
    vkDestroyImage(context->devices.logical, context->rtt.depth_image.handle, &global_allocator.handle);
    vkFreeMemory(context->devices.logical, context->rtt.depth_image.memory, &global_allocator.handle);
