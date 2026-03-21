@@ -192,11 +192,8 @@ align_struct vk_allocator
    arena* a;
 } vk_allocator;
 
-typedef array(VkFramebuffer) framebuffers_array;
 align_struct vk_context
 {
-   framebuffers_array framebuffers;
-
    array(vk_texture) textures;
 
    array(meshlet) meshlets;

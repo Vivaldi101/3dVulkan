@@ -713,74 +713,6 @@ static hw_result vk_command_pool_create(vk_device* devices)
    return (hw_result){pool};
 }
 
-
-static hw_result vk_renderpass_create(vk_device* devices, vk_swapchain_surface* swapchain)
-{
-   VkRenderPass renderpass = 0;
-
-   const u32 color_attachment_index = 0;
-   const u32 depth_attachment_index = 1;
-
-   VkAttachmentReference color_attachment_ref = {color_attachment_index, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}; 
-   VkAttachmentReference depth_attachment_ref = {depth_attachment_index, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}; 
-
-   VkSubpassDescription subpass = {0};
-   subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-   subpass.colorAttachmentCount = 1;
-   subpass.pColorAttachments = &color_attachment_ref;
-
-   subpass.pDepthStencilAttachment = &depth_attachment_ref;
-
-   VkAttachmentDescription attachments[2] = {0};
-
-   attachments[color_attachment_index].format = swapchain->format;
-   attachments[color_attachment_index].samples = VK_SAMPLE_COUNT_1_BIT;
-   attachments[color_attachment_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-   attachments[color_attachment_index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-   attachments[color_attachment_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-   attachments[color_attachment_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-   attachments[color_attachment_index].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-   attachments[color_attachment_index].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-   attachments[depth_attachment_index].format = VK_FORMAT_D32_SFLOAT;
-   attachments[depth_attachment_index].samples = VK_SAMPLE_COUNT_1_BIT;
-   attachments[depth_attachment_index].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-   attachments[depth_attachment_index].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-   attachments[depth_attachment_index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-   attachments[depth_attachment_index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-   attachments[depth_attachment_index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-   attachments[depth_attachment_index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-
-   VkRenderPassCreateInfo renderpass_info = {vk_info(RENDER_PASS)}; 
-   renderpass_info.subpassCount = 1;
-   renderpass_info.pSubpasses = &subpass;
-   renderpass_info.attachmentCount = array_count(attachments);
-   renderpass_info.pAttachments = attachments;
-
-   if(!vk_valid(vkCreateRenderPass(devices->logical, &renderpass_info, &global_allocator.handle, &renderpass)))
-      return (hw_result){0};
-
-   return (hw_result){renderpass};
-}
-
-static hw_result vk_framebuffer_create(VkDevice logical_device, VkRenderPass renderpass, vk_swapchain_surface* surface_info, VkImageView* attachments, u32 attachment_count)
-{
-   VkFramebuffer framebuffer = 0;
-
-   VkFramebufferCreateInfo framebuffer_info = {vk_info(FRAMEBUFFER)};
-   framebuffer_info.renderPass = renderpass;
-   framebuffer_info.attachmentCount = attachment_count;
-   framebuffer_info.pAttachments = attachments;
-   framebuffer_info.width = surface_info->image_width;
-   framebuffer_info.height = surface_info->image_height;
-   framebuffer_info.layers = 1;
-
-   vkCreateFramebuffer(logical_device, &framebuffer_info, &global_allocator.handle, &framebuffer);
-
-   return (hw_result){framebuffer};
-}
-
 VkImageMemoryBarrier vk_pipeline_image_barrier(VkImage image, VkImageAspectFlags aspect,
                                          VkAccessFlags src_access, VkAccessFlags dst_access, 
                                          VkImageLayout old_layout, VkImageLayout new_layout)
@@ -805,11 +737,8 @@ VkImageMemoryBarrier vk_pipeline_image_barrier(VkImage image, VkImageAspectFlags
    return result;
 }
 
-static void vk_swapchain_destroy(vk_device* devices, vk_swapchain_images* images, framebuffers_array* framebuffers, vk_swapchain_surface* swapchain)
+static void vk_swapchain_destroy(vk_device* devices, vk_swapchain_images* images, vk_swapchain_surface* swapchain)
 {
-   for(u32 i = 0; i < framebuffers->count; ++i)
-      vkDestroyFramebuffer(devices->logical, framebuffers->data[i], &global_allocator.handle);
-
    for (u32 i = 0; i < images->depths.count; ++i)
    {
       vkDestroyImageView(devices->logical, images->depths.data[i].view, &global_allocator.handle);
@@ -887,14 +816,12 @@ static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
       return false;
 
    vk_swapchain_images* swapchain_images = &context->images;
-   framebuffers_array* framebuffers = &context->framebuffers;
    vk_swapchain_surface* swapchain = &context->swapchain;
 
-   assert(swapchain->image_count == framebuffers->count);
    assert(swapchain->image_count == swapchain_images->images.count);
    assert(swapchain->image_count == swapchain_images->depths.count);
 
-   vk_swapchain_destroy(&context->devices, swapchain_images, framebuffers, swapchain);
+   vk_swapchain_destroy(&context->devices, swapchain_images, swapchain);
 
    // TODO: semcompress these destroys
    vkDestroyImageView(context->devices.logical, context->rtt.color_image.view, &global_allocator.handle);
@@ -906,7 +833,6 @@ static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
    vkFreeMemory(context->devices.logical, context->rtt.depth_image.memory, &global_allocator.handle);
 
    VkSurfaceKHR surface = context->surface;
-   VkRenderPass renderpass = context->renderpass;
 
    arena s = context->scratch;
    context->swapchain = vk_swapchain_surface_create(s, devices, surface, width, height);
@@ -927,11 +853,6 @@ static bool vk_resize_swapchain(hw_renderer* renderer, u32 width, u32 height)
       if(!(swapchain_images->images.data[i].view = vk_image_view_create(devices, swapchain->format, swapchain_images->images.data[i].handle, VK_IMAGE_ASPECT_COLOR_BIT).h))
          return false;
       if(!(swapchain_images->depths.data[i].view = vk_image_view_create(devices, VK_FORMAT_D32_SFLOAT, swapchain_images->depths.data[i].handle, VK_IMAGE_ASPECT_DEPTH_BIT).h))
-         return false;
-
-      VkImageView attachments[2] = {swapchain_images->images.data[i].view, swapchain_images->depths.data[i].view};
-
-      if(!(framebuffers->data[i] = vk_framebuffer_create(devices->logical, renderpass, swapchain, attachments, array_count(attachments)).h))
          return false;
    }
 
@@ -1122,12 +1043,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    VkCommandBufferBeginInfo buffer_begin_info = {vk_info_begin(COMMAND_BUFFER)};
    buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-   VkRenderPassBeginInfo renderpass_info = {vk_info_begin(RENDER_PASS)};
-   renderpass_info.renderPass = context->renderpass;
-   renderpass_info.framebuffer = context->framebuffers.data[image_index];
-   renderpass_info.renderArea.extent = (VkExtent2D)
-   {context->swapchain.image_width, context->swapchain.image_height};
-
    VkCommandBuffer command_buffer = context->cmd.buffer;
 
    vk_assert(vkBeginCommandBuffer(command_buffer, &buffer_begin_info));
@@ -1153,13 +1068,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
    assert(mvp.n > 0.0f);
    assert(mvp.ar != 0.0f);
-
-   VkClearValue clear[2] = {0};
-   clear[0].color = (VkClearColorValue){0.19f, 0.19f, 0.19f};
-   clear[1].depthStencil = (VkClearDepthStencilValue){1.0f, 0};
-
-   renderpass_info.clearValueCount = 2;
-   renderpass_info.pClearValues = clear;
 
    VkImage color_image = context->images.images.data[image_index].handle;
    VkImageMemoryBarrier color_image_begin_barrier = vk_pipeline_image_barrier(color_image, VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -1205,9 +1113,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
    vkCmdSetLineWidth(command_buffer, 1.f);
    vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_FILL);
-
-   if(state->draw_axis)
-      vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
 
    if(state->draw_normals)
       mvp.draw_normals = true;
@@ -1359,8 +1264,38 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
 
    if(state->draw_axis)
    {
+      vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
+      vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
+
+      VkRenderingAttachmentInfo color_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+      color_attachment.imageView = rtt_color_image_view;
+      color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      color_attachment.clearValue = (VkClearValue){0.529f, 0.808f, 0.922f, 1.0f};
+
+      VkRenderingAttachmentInfo depth_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+      depth_attachment.imageView = rtt_depth_image_view;
+      depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      depth_attachment.clearValue.depthStencil = (VkClearDepthStencilValue){1.0f, 0};
+
+      VkRenderingInfo rendering_info = {VK_STRUCTURE_TYPE_RENDERING_INFO};
+      VkExtent2D render_extents = {context->swapchain.image_width, context->swapchain.image_height};
+      rendering_info.renderArea.offset = (VkOffset2D){0, 0};
+      rendering_info.renderArea.extent = render_extents;
+      rendering_info.layerCount = 1;
+      rendering_info.colorAttachmentCount = 1;
+      rendering_info.pColorAttachments = &color_attachment;
+      rendering_info.pDepthAttachment = &depth_attachment;
+
+      vkCmdBeginRendering(command_buffer, &rendering_info);
+
       vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_hash_lookup(&context->pipeline_table, axis_module_name));
       vkCmdDraw(command_buffer, 18, 1, 0, 0);
+
+      vkCmdEndRendering(command_buffer);
    }
 
    VkImageMemoryBarrier rtt_done_barrier = vk_pipeline_image_barrier(rtt_color_image,
@@ -1804,12 +1739,24 @@ static bool vk_axis_pipeline_create(VkPipeline* pipeline, vk_context* context, V
    pipeline_info.pColorBlendState = &color_blend_info;
 
    VkPipelineDynamicStateCreateInfo dynamic_info = {vk_info(PIPELINE_DYNAMIC_STATE)};
-   dynamic_info.pDynamicStates = (VkDynamicState[3]){VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-   dynamic_info.dynamicStateCount = 2;
+   VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_POLYGON_MODE_EXT, VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY};
+
+   dynamic_info.pDynamicStates = dynamic_states;
+   dynamic_info.dynamicStateCount = array_count(dynamic_states);
 
    pipeline_info.pDynamicState = &dynamic_info;
-   pipeline_info.renderPass = context->renderpass;
    pipeline_info.layout = context->non_rtx_pipeline_layout;
+
+   VkFormat color_format = context->swapchain.format;
+
+   VkPipelineRenderingCreateInfo rendering_info = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+   rendering_info.colorAttachmentCount = 1;
+   rendering_info.pColorAttachmentFormats = &color_format;
+
+   VkFormat depth_format = VK_FORMAT_D32_SFLOAT;
+   rendering_info.depthAttachmentFormat = depth_format;
+
+   pipeline_info.pNext = &rendering_info;
 
    if(!vk_valid(vkCreateGraphicsPipelines(context->devices.logical, cache, 1, &pipeline_info, &global_allocator.handle, pipeline)))
       return false;
@@ -2123,7 +2070,6 @@ bool vk_initialize(hw* hw)
    vk_cmd* cmd = &context->cmd;
    vk_features* features = &context->features;
    VkSurfaceKHR* surface = &context->surface;
-   vk_swapchain_surface* swapchain = &context->swapchain;
 
    // app callbacks
    hw->renderer.backends[VULKAN_RENDERER_INDEX] = context;
@@ -2232,16 +2178,7 @@ bool vk_initialize(hw* hw)
       return false;
    }
 
-   if(!(context->renderpass = vk_renderpass_create(devices, swapchain).h))
-   {
-      printf("Could not create renderpass\n");
-      return false;
-   }
    context->graphics_queue = vk_graphics_queue_get(devices);
-
-   // framebuffers
-   context->framebuffers.arena = a;
-   array_resize(context->framebuffers, context->swapchain.image_count);
 
    // swapchain images
    context->images.images.arena = a;
@@ -2253,7 +2190,6 @@ bool vk_initialize(hw* hw)
 
    for(u32 i = 0; i < context->swapchain.image_count; ++i)
    {
-      array_add(context->framebuffers, VK_NULL_HANDLE);
       array_add(context->images.images, (vk_image) { 0 });
       array_add(context->images.depths, (vk_image) { 0 });
    }
@@ -2419,7 +2355,7 @@ void vk_uninitialize(hw* hw)
 
    vkDestroySampler(context->devices.logical, context->rtt.sampler, &global_allocator.handle);
 
-   vk_swapchain_destroy(&context->devices, &context->images, &context->framebuffers, &context->swapchain);
+   vk_swapchain_destroy(&context->devices, &context->images, &context->swapchain);
 
    vk_device* devices = &context->devices;
    vkDestroySurfaceKHR(devices->instance, context->surface, &global_allocator.handle);
