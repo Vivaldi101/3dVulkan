@@ -9,8 +9,8 @@ layout(push_constant) uniform push_constants_block
     float near;
     float far;
     float ar;
-    bool draw_normals;
-    bool do_postprocess;
+    uint draw_normals;
+    uint do_postprocess;
 } globals;
 
 vec3 color_to_srgb(vec3 color)

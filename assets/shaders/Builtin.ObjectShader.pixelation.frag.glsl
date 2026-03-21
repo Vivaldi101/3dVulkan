@@ -14,7 +14,7 @@ void main()
 {
     vec3 color = texture(scene_texture, in_uv).rgb; // original
 
-    if(globals.do_postprocess)
+    if(globals.do_postprocess == 1)
     {
       vec2 pixel_count = resolution / pixel_size;
       vec2 pixel_uv = (floor(in_uv * pixel_count) + 0.5) / pixel_count;

@@ -128,7 +128,7 @@ void main()
        vec3 linear_color = diffuse + emissive + specular + ambient;
        out_color = vec4(linear_color, albedo.a);
 
-       if(globals.draw_normals)
+       if(globals.draw_normals == 1)
        {
           // normal debugging
           vec3 linear_color = world_normal;
