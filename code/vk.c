@@ -22,7 +22,7 @@ static vk_allocator global_allocator;
 #define frustum_module_name "frustum"
 #define axis_module_name "axis"
 #define water_module_name "water"
-#define pixelation_module_name "pixelation"
+#define postprocess_module_name "postprocess"
 
 static void* VKAPI_PTR vk_allocation(void* user_data,
                                      size_t new_size,
@@ -251,13 +251,13 @@ static void spirv_initialize(hw* hw, vk_context* context, s8_array* shaders)
          else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
             vk_shader_hash_insert(shader_table, water_module_name"_fs", fm);
       }
-      else if(s8_is_substr_count(shader, s8_lit(pixelation_module_name)) != -1)
+      else if(s8_is_substr_count(shader, s8_lit(postprocess_module_name)) != -1)
       {
          vk_shader_module fm = vk_shader_load(hw, context->devices.logical, context->scratch, shader);
          if(fm.stage == VK_SHADER_STAGE_VERTEX_BIT)
-            vk_shader_hash_insert(shader_table, pixelation_module_name"_vs", fm);
+            vk_shader_hash_insert(shader_table, postprocess_module_name"_vs", fm);
          else if(fm.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-            vk_shader_hash_insert(shader_table, pixelation_module_name"_fs", fm);
+            vk_shader_hash_insert(shader_table, postprocess_module_name"_fs", fm);
       }
    }
 }
@@ -779,20 +779,20 @@ static void gpu_log(hw* hw)
    if(hw->state.render_rtx)
       if(!hw->state.camera.update_orbit)
          hw->window_title_set(hw,
-                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'p' to toggle wireframe; 'wasd' to move; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON; 'x' to toggle post processing"),
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'wasd' to move; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON; 'x' to toggle post processing"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
       else
          hw->window_title_set(hw,
-                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'p' to toggle wireframe; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON; 'x' to toggle post processing"),
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; #Meshlets: %u; 'esc' to quit; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX ON; 'x' to toggle post processing"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us, context->meshlets.count);
    else
       if(!hw->state.camera.update_orbit)
          hw->window_title_set(hw,
-                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; 'esc' to quit; 'p' to toggle wireframe; 'wasd' to move; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF; 'x' to toggle post processing"),
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; 'esc' to quit; 'wasd' to move; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF; 'x' to toggle post processing"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
       else
          hw->window_title_set(hw,
-                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; 'esc' to quit; 'p' to toggle wireframe; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF; 'x' to toggle post processing"),
+                          s8_lit("cpu: %.2f ms; gpu: %.2f ms; 'esc' to quit; 'f' to toggle fullscreen; 'r' to reset camera; 'c' to toggle orbit/fps camera; 'n' toggle to visualize normals; 'm' to toggle RTX; RTX OFF; 'x' to toggle post processing"),
                        hw->state.frame_delta_in_seconds * ms, gpu_delta / us);
 
    hw->state.time_in_seconds += hw->state.frame_delta_in_seconds;
@@ -1262,42 +1262,6 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       vkCmdEndRendering(command_buffer);
    }
 
-   if(state->draw_axis)
-   {
-      vkCmdSetPolygonModeEXT(command_buffer, VK_POLYGON_MODE_LINE);
-      vkCmdSetPrimitiveTopology(command_buffer, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
-
-      VkRenderingAttachmentInfo color_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-      color_attachment.imageView = rtt_color_image_view;
-      color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-      color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-      color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      color_attachment.clearValue = (VkClearValue){0.529f, 0.808f, 0.922f, 1.0f};
-
-      VkRenderingAttachmentInfo depth_attachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-      depth_attachment.imageView = rtt_depth_image_view;
-      depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-      depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-      depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      depth_attachment.clearValue.depthStencil = (VkClearDepthStencilValue){1.0f, 0};
-
-      VkRenderingInfo rendering_info = {VK_STRUCTURE_TYPE_RENDERING_INFO};
-      VkExtent2D render_extents = {context->swapchain.image_width, context->swapchain.image_height};
-      rendering_info.renderArea.offset = (VkOffset2D){0, 0};
-      rendering_info.renderArea.extent = render_extents;
-      rendering_info.layerCount = 1;
-      rendering_info.colorAttachmentCount = 1;
-      rendering_info.pColorAttachments = &color_attachment;
-      rendering_info.pDepthAttachment = &depth_attachment;
-
-      vkCmdBeginRendering(command_buffer, &rendering_info);
-
-      vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk_pipeline_hash_lookup(&context->pipeline_table, axis_module_name));
-      vkCmdDraw(command_buffer, 18, 1, 0, 0);
-
-      vkCmdEndRendering(command_buffer);
-   }
-
    VkImageMemoryBarrier rtt_done_barrier = vk_pipeline_image_barrier(rtt_color_image,
                                                                      VK_IMAGE_ASPECT_COLOR_BIT,
                                                                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -1353,7 +1317,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
    vkCmdBeginRendering(command_buffer, &rendering_info);
 
    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                     vk_pipeline_hash_lookup(&context->pipeline_table, pixelation_module_name));
+                     vk_pipeline_hash_lookup(&context->pipeline_table, postprocess_module_name));
    vkCmdDraw(command_buffer, 6, 1, 0, 0);
 
    vkCmdEndRendering(command_buffer);
@@ -1971,7 +1935,7 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    VkPipeline frustum = 0;
    VkPipeline mesh = 0;
    VkPipeline water = 0;
-   VkPipeline pixelation = 0;
+   VkPipeline postprocess = 0;
 
    enum { shader_module_count = 2 };
    vk_shader_module shader_modules[shader_module_count] = {0};
@@ -2043,8 +2007,8 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
       return false;
    vk_pipeline_hash_insert(&context->pipeline_table, frustum_module_name, frustum);
 
-   vk_shader_module pm_vs = vk_shader_hash_lookup(&context->shader_table, pixelation_module_name"_vs");
-   vk_shader_module pm_fs = vk_shader_hash_lookup(&context->shader_table, pixelation_module_name"_fs");
+   vk_shader_module pm_vs = vk_shader_hash_lookup(&context->shader_table, postprocess_module_name"_vs");
+   vk_shader_module pm_fs = vk_shader_hash_lookup(&context->shader_table, postprocess_module_name"_fs");
 
    shader_modules[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
    shader_modules[0].handle = pm_vs.handle;
@@ -2052,10 +2016,10 @@ static bool vk_pipelines_create(vk_features* features, vk_context* context)
    shader_modules[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
    shader_modules[1].handle = pm_fs.handle;
 
-   if(!vk_pixelation_pipeline_create(&pixelation, context, cache, shader_modules, shader_module_count))
+   if(!vk_pixelation_pipeline_create(&postprocess, context, cache, shader_modules, shader_module_count))
       return false;
 
-   vk_pipeline_hash_insert(&context->pipeline_table, pixelation_module_name, pixelation);
+   vk_pipeline_hash_insert(&context->pipeline_table, postprocess_module_name, postprocess);
 
    return true;
 }
