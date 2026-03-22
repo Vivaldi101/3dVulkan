@@ -1,6 +1,7 @@
 Vulkan renderer, with mesh shading and ray tracing in C23 with minimal library dependencies (cgltf, volk, stb image) written from scratch for Win32 platform using fibers as a cooperative user-mode threads.
 
 Orbit camera usage: Hold left-click to orbit eye, right-click to pan around, wheel to zoom in and out.
+
 FPS camera usage: Hold left-click to change direction, wasd to move.
 
 Diffuse lighting model with specular highlights:
