@@ -7,7 +7,7 @@ set "pf1=C:\Program Files"
 set "pf2=C:\Program Files (x86)"
 
 for %%D in ("%pf1%" "%pf2%") do (
-    echo Searching in: %%~D
+    echo Searching Microsoft C++ compiler in: %%~D
     for /f "usebackq delims=" %%F in (`dir /s /b "%%~D\vcvars64.bat" 2^>nul`) do (
         set "vcvars64=%%F"
         set "found=1"
