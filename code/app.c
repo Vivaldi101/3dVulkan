@@ -68,7 +68,7 @@ static void app_fps_camera_update(app_state* state)
       state->camera.eye = vec3_add(&eye, &dir);
    }
 
-   // half turn across view plane extents (in azimuth)
+   // full turn across view plane extents (in azimuth)
    f32 rotation_speed_x = (2.f * PI) / state->camera.viewplane_width;
    f32 rotation_speed_y = (2.f * PI) / state->camera.viewplane_height;
 

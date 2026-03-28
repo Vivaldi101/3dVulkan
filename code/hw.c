@@ -150,6 +150,17 @@ static void hw_log(hw* hw, s8 message, ...)
    hw->window_title_set(hw, message);
 }
 
+static i32 hw_monitor_rate()
+{
+   DEVMODE dev = {0};
+   dev.dmSize = sizeof(DEVMODE);
+
+   if(EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dev))
+      return dev.dmDisplayFrequency;
+
+   return 0; // failed
+}
+
 void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_state* state), void (*app_input_function)(app_state* state))
 {
    clock_query_frequency();
@@ -164,6 +175,9 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
    i64 begin = clock_query_counter();
    i64 fps_counter = begin;
    f64 total_seconds_elapsed = 0;
+
+   i32 monitor_refresh_rate = hw_monitor_rate();
+
    while(!hw->state.quit)
    {
       SwitchToFiber(hw->message_fiber); // run the fiber message pump
@@ -186,7 +200,7 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
 
       hw_frame_render(hw);
       // sync to defined frame rate
-      hw_frame_sync(hw, 0.01666666666666666666666666666667);
+      hw_frame_sync(hw, 1.0 / monitor_refresh_rate);
 
       i64 end = clock_query_counter();
 
