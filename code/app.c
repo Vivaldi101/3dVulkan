@@ -15,9 +15,6 @@ static void app_frame(arena scratch, app_state* state)
 {
    (void)scratch;
    (void)state;
-
-   if(state->fullscreen)
-      ; // toggle here
 }
 
 static void app_fps_camera_update(app_state* state)
@@ -224,9 +221,8 @@ void app_camera_eye_set(app_camera* camera, vec3 origin, vec3 eye)
 
 static void app_input_handle(app_state* state)
 {
-   // TODO: hanlde exit also here - currently it is in win32 layer
    if(state->input.keys['F'] & KEY_STATE_RELEASED)
-      state->fullscreen = !state->fullscreen;
+      state->do_fullscreen = !state->do_fullscreen;
    if(state->input.keys['P'] & KEY_STATE_RELEASED)
       state->draw_axis = !state->draw_axis;
    if(state->input.keys['M'] & KEY_STATE_RELEASED)

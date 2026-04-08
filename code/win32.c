@@ -281,34 +281,15 @@ static LRESULT CALLBACK win32_win_proc(HWND hwnd, UINT umsg, WPARAM wparam, LPAR
          win32_hw->state.input.mouse_buttons &= ~MOUSE_BUTTON_STATE_MIDDLE;
          break;
 
-         #if 0
       case WM_SYSKEYDOWN:
       case WM_KEYDOWN:
-      {
-         u32 vkcode = (u32)wparam;
-         bool is_repeat = (lparam & (1 << 30)) != 0;
-
-         win32_hw->state.input.key = vkcode;
-         win32_hw->state.input.key_state = is_repeat ? KEY_STATE_REPEATING : KEY_STATE_DOWN;
-
-         return 0;
-      }
       case WM_SYSKEYUP:
       case WM_KEYUP:
+      if(win32_hw->state.do_fullscreen)
       {
-         u32 vkcode = (u32)wparam;
-         bool was_down = (lparam & (1 << 30)) != 0;
-
-         win32_hw->state.input.key = vkcode;
-         win32_hw->state.input.key_state = was_down ? KEY_STATE_RELEASED : KEY_STATE_UP;
-
-         if(win32_hw->state.input.key == 'F')
-         {
-         }
-
-         return 0;
+         win32_toggle_fullscreen(win32_hw->renderer.window);
+         win32_hw->state.do_fullscreen = 0;
       }
-         #endif
       break;
 
       default:

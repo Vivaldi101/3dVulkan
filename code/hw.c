@@ -180,6 +180,10 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
 
    while(!hw->state.quit)
    {
+      hw->input.gather(&hw->state, total_seconds_elapsed);
+      app_input_function(&hw->state);
+      app_frame_function(hw->scratch, &hw->state);
+
       SwitchToFiber(hw->message_fiber); // run the fiber message pump
 
       if(hw->state.quit)
@@ -193,10 +197,6 @@ void hw_event_loop_start(hw* hw, void (*app_frame_function)(arena scratch, app_s
 
       hw->state.camera.viewplane_width = hw->renderer.window.width;
       hw->state.camera.viewplane_height = hw->renderer.window.height;
-
-      hw->input.gather(&hw->state, total_seconds_elapsed);
-      app_input_function(&hw->state);
-      app_frame_function(hw->scratch, &hw->state);
 
       hw_frame_render(hw);
       // sync to defined frame rate

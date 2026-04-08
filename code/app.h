@@ -73,7 +73,7 @@ align_struct app_state
    bool draw_normals;
    bool draw_axis;
    bool do_postprocess;
-   bool fullscreen;
+   bool do_fullscreen;
    bool quit;
 } app_state;
 
