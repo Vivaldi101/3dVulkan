@@ -37,25 +37,40 @@ static void win32_window_title(hw* hw, s8 message, ...)
    va_list args;
    va_start(args, message);
 
-   vsprintf_s(buffer, sizeof(buffer), (const char*)message.data, args);
+   vsprintf_s(buffer, sizeof(buffer), s8_data(message), args);
 
    SetWindowText(hw->renderer.window.handle, buffer);
 
    va_end(args);
 }
 
-void win32_print_last_error(s8 message)
+static void win32_print_last_error()
 {
-   printf("%s\n", s8_data(message));
-
    DWORD error = GetLastError();
    if(error != 0)
    {
-      // TODO: use a scratch buffer for this
-      static char buffer[4096] = {0};
-      FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                     0, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, array_count(buffer), 0);
+      char* buffer = 0;
+
+      DWORD size = FormatMessageA(
+      FORMAT_MESSAGE_FROM_SYSTEM |
+      FORMAT_MESSAGE_IGNORE_INSERTS |
+      FORMAT_MESSAGE_ALLOCATE_BUFFER,
+      NULL,
+      error,
+      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      (LPSTR)&buffer,
+      0,
+      NULL
+      );
+
       printf("%s\n", buffer);
+
+      if(size && buffer)
+      {
+         printf("%s\n", buffer);
+
+         LocalFree(buffer);
+      }
    }
 }
 
@@ -616,11 +631,11 @@ int main(int argc, char** argv)
       asset_file.len = strlen(argv[1]);
    }
 
-   win32_print_last_error(s8_lit("App starting...\n"));
+   win32_print_last_error();
 
    app_start(&hw, asset_file);
 
-   win32_print_last_error(s8_lit("App closing...\n"));
+   win32_print_last_error();
 
    assert(arena_left(&app_storage) >= 0);
    assert(arena_left(&vulkan_storage) >= 0);
