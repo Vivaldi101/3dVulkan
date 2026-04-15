@@ -20,9 +20,7 @@ Ray tracing queries with shadow rays:
 
 Pixel art style post processing:
 
-<img width="1277" height="678" alt="{D6CDBA79-551E-4D86-BB96-0842AEC1FEAF}" src="https://github.com/user-attachments/assets/4efc6956-2359-4f00-a44a-113d30dd28c9" />
-
-
+<img width="1280" height="666" alt="{69ED0CBD-FAF1-4288-9814-F79153EC13AA}" src="https://github.com/user-attachments/assets/363fbdd4-e7d6-4738-9385-dfda4f2c6b97" />
 
 Trivial water mesh shader:
 
