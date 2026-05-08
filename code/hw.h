@@ -81,8 +81,7 @@ align_struct hw
    void* message_fiber;
 
    void (*window_title_set)(struct hw* hw, s8 message, ...);
-   // TODO: return s8 instead
-   arena (*file_read)(arena* a, const char* path);
+   s8 (*file_read)(arena* a, const char* path);
 
    #ifdef _WIN32
    void (CALLBACK *platform_loop)(struct hw* hw);

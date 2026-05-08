@@ -432,37 +432,36 @@ void hw_virtual_memory_init()
    assert(global_free);
 }
 
-// TODO: return s8 instead
-arena win32_file_read(arena* a, const char* path)
+s8 win32_file_read(arena* a, const char* path)
 {
-   arena result = {0};
+   s8 result = {0};
 
    HANDLE file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
    if(file == INVALID_HANDLE_VALUE)
    {
       printf("No file with such name");
-      return (arena) {0};
+      return result;
    }
 
    LARGE_INTEGER file_size;
    if(!GetFileSizeEx(file, &file_size))
-      return (arena) {0};
+      return result;
 
    u32 file_size_32 = (u32)(file_size.QuadPart);
    if(file_size_32 == 0)
-      return (arena) {0};
+      return result;
 
    byte* buffer = push(a, byte, file_size_32);
 
    DWORD bytes_read = 0;
    if(!(ReadFile(file, buffer, file_size_32, &bytes_read, 0) && (file_size_32 == bytes_read)))
-      return (arena) {0};
+      return result;
 
    if(!CloseHandle(file))
-      return (arena) {0};
+      return result;
 
-   result.beg = buffer;
-   result.end = buffer + bytes_read;
+   result.data = buffer;
+   result.len = bytes_read;
 
    return result;
 }
@@ -579,13 +578,13 @@ int main(int argc, char** argv)
    const size initial_arena_size = PAGE_SIZE;
 
    arena app_storage = arena_new(&app_arena, initial_arena_size);
-   assert(arena_left(&app_storage) == initial_arena_size);
+   assert(arena_size(&app_storage) == initial_arena_size);
 
    arena vulkan_storage = arena_new(&vulkan_arena, initial_arena_size);
-   assert(arena_left(&vulkan_storage) == initial_arena_size);
+   assert(arena_size(&vulkan_storage) == initial_arena_size);
 
    arena scratch_storage = arena_new(&scratch_arena, initial_arena_size);
-   assert(arena_left(&scratch_storage) == initial_arena_size);
+   assert(arena_size(&scratch_storage) == initial_arena_size);
 
    hw.app_storage = &app_storage;
    hw.vulkan_storage = &vulkan_storage;
@@ -612,9 +611,6 @@ int main(int argc, char** argv)
 
    hw.file_read = win32_file_read;
 
-   assert(hw.main_fiber);
-   assert(hw.message_fiber);
-
    s8 asset_file = {0};
 
    if(argc < 2)
@@ -637,9 +633,9 @@ int main(int argc, char** argv)
 
    win32_print_last_error();
 
-   assert(arena_left(&app_storage) >= 0);
-   assert(arena_left(&vulkan_storage) >= 0);
-   assert(arena_left(&scratch_storage) >= 0);
+   assert(arena_size(&app_storage) >= 0);
+   assert(arena_size(&vulkan_storage) >= 0);
+   assert(arena_size(&scratch_storage) >= 0);
 
 #if _DEBUG
    printf("App permanent memory usage: %zu MB\n", (uptr)((byte*)app_storage.beg - (byte*)program_memory) / (1024*1024));

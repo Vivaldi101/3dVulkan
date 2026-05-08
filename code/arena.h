@@ -19,7 +19,7 @@ typedef enum alloc_flags
    list_scratch_kind,
 } alloc_flags;
 
-#define arena_left(a) (size)((byte*)(a)->end - (byte*)(a)->beg)
+#define arena_size(a) (size)((byte*)(a)->end - (byte*)(a)->beg)
 
 #define newx(a,b,c,d,e,...) e
 #define push(...)            newx(__VA_ARGS__,new4,new3,new2)(__VA_ARGS__)

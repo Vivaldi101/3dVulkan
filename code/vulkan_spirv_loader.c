@@ -61,12 +61,12 @@ static VkShaderModule vk_shader_vk_shader_module_load(hw* hw, VkDevice logical_d
 
    wsprintf(shader_path.data, s8_data(prefix), shader_dir.data, shader_name.data);
 
-   arena shader_file = hw->file_read(&scratch, shader_path.data);
+   s8 shader_file = hw->file_read(&scratch, shader_path.data);
 
    VkShaderModuleCreateInfo module_info = {0};
    module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-   module_info.pCode = (u32*)shader_file.beg;
-   module_info.codeSize = arena_left(&shader_file);
+   module_info.pCode = (u32*)shader_file.data;
+   module_info.codeSize = shader_file.len;
 
    if((vkCreateShaderModule(logical_device, &module_info, 0, &result)) != VK_SUCCESS)
       return 0;
