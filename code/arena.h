@@ -75,6 +75,11 @@ static bool hw_is_virtual_memory_commited(void* address)
    return mbi.State == MEM_COMMIT;
 }
 
+static arena arena_reserve(void* end, alloc_flags kind)
+{
+   return (arena){.end = end, .kind = kind};
+}
+
 static arena arena_new(arena* base, size cap)
 {
    assert(base->end && cap > 0);

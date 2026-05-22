@@ -555,35 +555,24 @@ int main(int argc, char** argv)
 
    hw_virtual_memory_init();
 
-   const size arena_max_commit_size = 1ull << 46;
+   const size arena_max_commit_size = 1ull << 46; // entire 64 bit address space allowed for app
    const size arena_part_size = arena_max_commit_size/4;
 
-   // max virtual limit
    void* program_memory = global_allocate(0, arena_max_commit_size, MEM_RESERVE, PAGE_READWRITE);
    assert(program_memory);
 
-   // TODO: cleanup these arena inits
-   arena app_arena = {0};
-   app_arena.end = program_memory;
-   app_arena.kind = arena_persistent_kind;
-
-   arena vulkan_arena = {0};
-   vulkan_arena.end = (byte*)app_arena.end + arena_part_size;
-   vulkan_arena.kind = arena_persistent_kind;
-
-   arena scratch_arena = {0};
-   scratch_arena.end = (byte*)vulkan_arena.end + arena_part_size;
-   scratch_arena.kind = arena_scratch_kind;
-
    const size initial_arena_size = PAGE_SIZE;
 
-   arena app_storage = arena_new(&app_arena, initial_arena_size);
+   arena a = arena_reserve(program_memory, arena_persistent_kind);
+   arena app_storage = arena_new(&a, initial_arena_size);
    assert(arena_size(&app_storage) == initial_arena_size);
 
-   arena vulkan_storage = arena_new(&vulkan_arena, initial_arena_size);
+   a = arena_reserve((byte*)a.end + arena_part_size, arena_persistent_kind);
+   arena vulkan_storage = arena_new(&a, initial_arena_size);
    assert(arena_size(&vulkan_storage) == initial_arena_size);
 
-   arena scratch_storage = arena_new(&scratch_arena, initial_arena_size);
+   a = arena_reserve((byte*)a.end + arena_part_size, arena_scratch_kind);
+   arena scratch_storage = arena_new(&a, initial_arena_size);
    assert(arena_size(&scratch_storage) == initial_arena_size);
 
    hw.app_storage = &app_storage;
