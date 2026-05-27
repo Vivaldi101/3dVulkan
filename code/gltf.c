@@ -232,7 +232,8 @@ static size gltf_index_count(const cgltf_data* data)
          cgltf_primitive* prim = gltf_mesh->primitives + p;
          assert(prim->type == cgltf_primitive_type_triangles);
 
-         index_count += prim->indices->count;
+         if(prim->indices)
+            index_count += prim->indices->count;
       }
    }
 
@@ -430,7 +431,37 @@ static bool gltf_load_data(cgltf_data** data, s8 gltf_path)
    return true;
 }
 
-static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_path)
+static bool gltf_load_textures(vk_context* context, const cgltf_data* data, s8 gltf_path)
+{
+   if(data->textures_count > 0)
+   {
+      arena* a = context->app_storage;
+      context->textures.arena = a;
+      array_resize(context->textures, data->textures_count);
+   }
+
+   for(usize i = 0; i < data->textures_count; ++i)
+   {
+      cgltf_texture* cgltf_tex = data->textures + i;
+      assert(cgltf_tex->image);
+
+      cgltf_image* img = cgltf_tex->image;
+      assert(img->uri);
+
+      cgltf_decode_uri(img->uri);
+      size uri_len = strlen(img->uri);
+
+      s8 uri = (s8){(u8*)img->uri, uri_len};
+      // TODO: pass just textures, devices instead of entire context
+      arena s = context->scratch;
+      if(!vk_texture_load(context, s, uri, gltf_path))
+         return false;
+   }
+
+   return true;
+}
+
+static bool gltf_load_geometry(vk_context* context, const cgltf_data* data, s8 gltf_path)
 {
    arena* a = context->app_storage;
    arena s = context->scratch;
@@ -634,27 +665,6 @@ static bool gltf_load_mesh(vk_context* context, const cgltf_data* data, s8 gltf_
              node->scale[0], node->scale[1], node->scale[2]);
    }
 
-   // preallocate textures
-   context->textures.arena = a;
-   array_resize(context->textures, data->textures_count);
-
-   for(usize i = 0; i < data->textures_count; ++i)
-   {
-      cgltf_texture* cgltf_tex = data->textures + i;
-      assert(cgltf_tex->image);
-
-      cgltf_image* img = cgltf_tex->image;
-      assert(img->uri);
-
-      cgltf_decode_uri(img->uri);
-      size uri_len = strlen(img->uri);
-
-      s8 uri = (s8){(u8*)img->uri, uri_len};
-      // TODO: pass just textures, devices instead of entire context
-      if(!vk_texture_load(context, s, uri, gltf_path))
-         return false;
-   }
-
    size max_vertex_count = 0;
    const size mesh_draws_count = geometry->mesh_draws.count;
    for(size i = 0; i < mesh_draws_count; ++i)
@@ -773,9 +783,16 @@ static bool gltf_load(vk_context* context, s8 gltf_path)
 
    assert(data);
 
-   if(!gltf_load_mesh(context, data, gltf_path))
+   if(!gltf_load_geometry(context, data, gltf_path))
    {
       printf("Could not load mesh in gltf: %s\n", s8_data(gltf_path));
+      cgltf_free(data);
+      return false;
+   }
+
+   if(!gltf_load_textures(context, data, gltf_path))
+   {
+      printf("Could not load load textures in gltf: %s\n", s8_data(gltf_path));
       cgltf_free(data);
       return false;
    }
