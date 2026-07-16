@@ -2,11 +2,11 @@
 
 static list_node* free_list_node_get(list* l, size new_size)
 {
-   if(!l->free_list || !l->free_list->next)
+   if(!l->free_list)
       return 0;
 
-   list_node* prev = l->free_list; // head of free-list
-   list_node* f = prev->next;      // first real free-list node, null if empty
+   list_node* prev = l->free_list;
+   list_node* f = prev->next;
    while(f && (f->data.slot_size != new_size))
    {
       prev = f;
@@ -18,6 +18,7 @@ static list_node* free_list_node_get(list* l, size new_size)
    if(!f)
       return 0;
 
+   // unlink it
    prev->next = f->next;
    f->next = 0;
 
@@ -26,34 +27,40 @@ static list_node* free_list_node_get(list* l, size new_size)
 
 static void list_node_release(list* l, list_node* n)
 {
-   n->next = l->free_list->next;
-   l->free_list->next = n;
+   n->next = l->free_list;
+   l->free_list = n;
 }
 
-static list_node* list_node_push(arena* a, list* l, size node_memory_size)
+static list_node* list_node_push(arena* a, list* l, size node_memory_size, size align)
 {
-   size alloc_size = sizeof(list_node) + node_memory_size;
+   size alloc_size = sizeof(list_node);
    list_node* result = alloc(a, alloc_size, __alignof(list_node), 1, list_persistent_kind);
 
-   // dummy free list header
    if(!l->free_list)
       l->free_list = alloc(a, alloc_size, __alignof(list_node), 1, list_persistent_kind);
 
    result->next = l->head;
    l->head = result;
 
-
-   result->data.memory = result + 1;
+   alloc_size = node_memory_size;
+   result->data.memory = alloc(a, alloc_size, align, 1, list_persistent_kind);
 
    return result;
 }
 
-static void free_list_print(list* l)
+static size free_list_count(list* l)
 {
+   size count = 0;
+   list_node* p = l->free_list;
    list_node* n = l->free_list->next;
    
-   while(n)
+   while(n && (p != n))
+   {
+      count++;
       n = n->next;
+   }
+
+   return count;
 }
 
 #if 0

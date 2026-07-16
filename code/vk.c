@@ -26,11 +26,10 @@ static vk_allocator global_allocator;
 
 static void* VKAPI_PTR vk_allocation(void* user_data,
                                      size_t new_size,
-                                     size_t alignment,
+                                     size_t align,
                                      VkSystemAllocationScope scope)
 {
    (void)scope;
-   (void)alignment;
 
    if(new_size == 0)
       return 0;
@@ -43,18 +42,18 @@ static void* VKAPI_PTR vk_allocation(void* user_data,
    list_node* f = free_list_node_get(l, new_size);
    if(f)
    {
-      assert(!((uptr)f->data.memory & (alignment - 1)));
+      assert(!((uptr)f->data.memory & (align - 1)));
 
       return (byte*)f->data.memory + sizeof(size);
    }
 
    // + sizeof(size) for header size for realloc
-   list_node* n = list_node_push(a, l, new_size + sizeof(size));
+   list_node* n = list_node_push(a, l, new_size + sizeof(size), align);
 
    void* memory = n->data.memory;
    n->data.slot_size = new_size;
 
-   assert(!((uptr)memory & (alignment - 1)));
+   assert(!((uptr)memory & (align - 1)));
 
    *(size*)(byte*)memory = new_size;
 
@@ -68,7 +67,7 @@ static void* VKAPI_PTR vk_allocation(void* user_data,
 static void* VKAPI_PTR vk_reallocation(void* user_data,
                                        void* original,
                                        size_t new_size,
-                                       size_t alignment,
+                                       size_t align,
                                        VkSystemAllocationScope scope)
 {
    (void)scope;
@@ -77,16 +76,16 @@ static void* VKAPI_PTR vk_reallocation(void* user_data,
       return 0;
 
    if(!original)
-      return vk_allocation(user_data, new_size, alignment, scope);
+      return vk_allocation(user_data, new_size, align, scope);
 
    size old_size = *((size*)original - 1);
    assert(old_size + new_size > new_size);
-   void* result = vk_allocation(user_data, old_size + new_size, alignment, scope);
+   void* result = vk_allocation(user_data, old_size + new_size, align, scope);
 
    memmove(result, original, old_size);
 
    #if _DEBUG
-   printf("Vulkan re-alloc: %p with %zu bytes\n", result, new_size);
+   //printf("Vulkan re-alloc: %p with %zu bytes\n", result, new_size);
    #endif
 
    return result;
@@ -105,7 +104,7 @@ static void VKAPI_PTR vk_free(void* user_data, void* memory)
    node_release(l, n);
 
    #if _DEBUG
-   printf("RELEASING node to free-list: %p with %zu bytes\n", n, n->data.slot_size);
+   printf("free-list count: %zu\n", free_list_count(l));
    #endif
 }
 

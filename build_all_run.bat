@@ -5,5 +5,4 @@ call code\build.bat a
 echo Build all done!
 echo Launching release build...
 
-call build\vulkan_3d_release
-
+call build\release_vulkan

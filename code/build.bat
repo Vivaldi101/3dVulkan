@@ -21,7 +21,7 @@ IF /I "%1"=="d" (
     echo Building DEBUG version...
     cl -MT -nologo -Od -Oi -Zi -FC -W3 /std:clatest /D_DEBUG %IGNORE_WARNINGS% ^
         -I "%VULKAN_INC%" -I "%EXTERNAL_INC%" "%ROOT%\app.c" "%ROOT%\win32.c" ^
-        /link %WIN32_LIBS% /DEBUG -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:vulkan_3d_debug.exe
+        /link %WIN32_LIBS% /DEBUG -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:debug_vulkan.exe
 
     popd
 )
@@ -30,21 +30,21 @@ IF /I "%1"=="r" (
     echo Building RELEASE version...
     cl -MT -nologo -O2 -Oi -Zi -FC -W3 /std:clatest %IGNORE_WARNINGS% ^
         -I "%VULKAN_INC%" -I "%EXTERNAL_INC%" "%ROOT%\app.c" "%ROOT%\win32.c" ^
-        /link %WIN32_LIBS% -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:vulkan_3d_release.exe
+        /link %WIN32_LIBS% -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:release_vulkan.exe
 
     popd
 )
 
 IF /I "%1"=="a" (
-   echo Building DEBUG and RELEASE version...
+   echo Building DEBUG and RELEASE versions...
 
    cl -MT -nologo -Od -Oi -Zi -FC -W3 /std:clatest /D_DEBUG %IGNORE_WARNINGS% ^
    -I "%VULKAN_INC%" -I "%EXTERNAL_INC%" "%ROOT%\app.c" "%ROOT%\win32.c" ^
-   /link %WIN32_LIBS% /DEBUG -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:vulkan_3d_debug.exe
+   /link %WIN32_LIBS% /DEBUG -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:debug_vulkan.exe
 
    cl -MT -nologo -O2 -Oi -Zi -FC -W3 /std:clatest %IGNORE_WARNINGS% ^
    -I "%VULKAN_INC%" -I "%EXTERNAL_INC%" "%ROOT%\app.c" "%ROOT%\win32.c" ^
-   /link %WIN32_LIBS% -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:vulkan_3d_release.exe
+   /link %WIN32_LIBS% -incremental:no /LIBPATH:"%VULKAN_LIBPATH%" /out:release_vulkan.exe
 
    popd
 )
