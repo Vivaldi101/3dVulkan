@@ -178,8 +178,8 @@ static void app_orbit_camera_update(app_state* state)
       xz = vec3_scale(&xz, delta_x);
       up = vec3_scale(&up, delta_y);
 
-      xz = vec3_scale(&xz, (f32)(smoothing_factor * smoothing_factor));
-      up = vec3_scale(&up, (f32)(smoothing_factor * smoothing_factor));
+      xz = vec3_scale(&xz, (f32)(smoothing_factor) * 0.25f);
+      up = vec3_scale(&up, (f32)(smoothing_factor) * 0.25f);
 
       state->camera.origin = vec3_sub(&xz, &state->camera.origin);
       state->camera.origin = vec3_add(&up, &state->camera.origin);
