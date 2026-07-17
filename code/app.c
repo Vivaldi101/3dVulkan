@@ -169,17 +169,29 @@ static void app_orbit_camera_update(app_state* state)
 
    if(state->input.mouse_buttons & MOUSE_BUTTON_STATE_RIGHT)
    {
+      decay = -log(0.0025 * .5);
+      smoothing_factor = 1.0f - exp(-decay * (f32)state->frame_delta_in_seconds);
+
       vec3 xz = {0};
       vec3 up = {0, 1, 0};
 
       vec3_cross(orbit_dir, up, xz);
       vec3_normalize(xz);
 
-      xz = vec3_scale(&xz, delta_x);
-      up = vec3_scale(&up, delta_y);
+      xz = vec3_scale(&xz, delta_x * .0175f);
+      up = vec3_scale(&up, delta_y * .0175f);
 
-      xz = vec3_scale(&xz, (f32)(smoothing_factor) * 0.25f);
-      up = vec3_scale(&up, (f32)(smoothing_factor) * 0.25f);
+      xz = vec3_sub(&state->camera.smoothed_xz, &xz);
+      up = vec3_sub(&state->camera.smoothed_up, &up);
+
+      xz = vec3_scale(&xz, (f32)smoothing_factor * 1.f);
+      up = vec3_scale(&up, (f32)smoothing_factor * 1.f);
+
+      state->camera.smoothed_up = vec3_add(&up, &state->camera.smoothed_up);
+      state->camera.smoothed_xz = vec3_add(&xz, &state->camera.smoothed_xz);
+
+      xz = state->camera.smoothed_xz;
+      up = state->camera.smoothed_up;
 
       state->camera.origin = vec3_sub(&xz, &state->camera.origin);
       state->camera.origin = vec3_add(&up, &state->camera.origin);

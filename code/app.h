@@ -48,6 +48,8 @@ align_struct app_camera
    f32 target_altitude;
    f32 smoothed_azimuth;
    f32 smoothed_altitude;
+   vec3 smoothed_up;
+   vec3 smoothed_xz;
    f32 target_radius;
    f32 smoothed_radius;
    u32 viewplane_width;

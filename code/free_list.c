@@ -43,6 +43,7 @@ static list_node* list_node_push(arena* a, list* l, size node_memory_size, size 
    l->head = result;
 
    alloc_size = node_memory_size;
+
    result->data.memory = alloc(a, alloc_size, align, 1, list_persistent_kind);
 
    return result;
