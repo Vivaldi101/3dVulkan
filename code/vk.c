@@ -2191,9 +2191,6 @@ bool vk_initialize(hw* hw)
 
    if(features->raytracing_supported)
    {
-      context->rt_as.blases.arena = a;
-      array_resize(context->rt_as.blases, context->geometry.mesh_draws.count);
-
       if(!rt_acceleration_structures_create(context))
       {
          printf("Could not create acceleration structures for ray tracing\n");

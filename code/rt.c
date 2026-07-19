@@ -195,7 +195,7 @@ static bool rt_tlas_geometry_build(vk_context* context, vk_rt_as* as)
                                            VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                                            &build_info, &(u32)draw_count, &size_info);
 
-   assert(geometry->mesh_draws.count == geometry->mesh_instances.count);
+   assert(geometry->mesh_draws.count == geometry->mesh_instances.count); // TODO: Fix this
 
    VkAccelerationStructureInstanceKHR* instances = (VkAccelerationStructureInstanceKHR*)instance_buffer.data;
 
@@ -286,6 +286,9 @@ static bool rt_tlas_geometry_build(vk_context* context, vk_rt_as* as)
 
 static bool rt_acceleration_structures_create(vk_context* context)
 {
+   context->rt_as.blases.arena = context->app_storage;
+   array_resize(context->rt_as.blases, context->geometry.mesh_draws.count);
+
    arena s = context->scratch;
    if(!rt_blas_geometry_build(s, context, &context->rt_as))
       return false;
