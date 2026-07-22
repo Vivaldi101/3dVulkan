@@ -1185,7 +1185,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       if(buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name))
          vkCmdDrawMeshTasksIndirectEXT(command_buffer,
                                        buffer_hash_lookup(&context->buffer_table, indirect_rtx_buffer_name)->handle,
-                                       0, (u32)context->geometry.mesh_draws.count,
+                                       0, (u32)context->geometry.mesh_instances.count,
                                        sizeof(VkDrawMeshTasksIndirectCommandEXT));
 
       VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
@@ -1255,7 +1255,7 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       if(buffer_hash_lookup(&context->buffer_table, indirect_buffer_name))
          vkCmdDrawIndexedIndirect(command_buffer,
                                   buffer_hash_lookup(&context->buffer_table, indirect_buffer_name)->handle,
-                                  0, (u32)context->geometry.mesh_draws.count,
+                                  0, (u32)context->geometry.mesh_instances.count,
                                   sizeof(VkDrawIndexedIndirectCommand));
 
       vkCmdEndRendering(command_buffer);

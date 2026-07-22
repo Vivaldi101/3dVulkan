@@ -239,15 +239,19 @@ static bool buffer_draws_create(vk_buffer* transform_buffer, vk_context* context
 
    for(u32 i = 0; i < context->geometry.mesh_instances.count; ++i)
    {
-      draws[i].mesh_offset = (u32)context->meshlet_offsets.data[i];
-      draws[i].vertex_offset = (u32)context->vertex_offsets.data[i];
+      vk_mesh_instance* instance = context->geometry.mesh_instances.data + i;
 
-      draws[i].world = context->geometry.mesh_instances.data[i].world;
-      draws[i].normal = (u32)context->geometry.mesh_instances.data[i].normal;
-      draws[i].albedo = (u32)context->geometry.mesh_instances.data[i].albedo;
-      draws[i].metal = (u32)context->geometry.mesh_instances.data[i].metal;
-      draws[i].ao = (u32)context->geometry.mesh_instances.data[i].ao;
-      draws[i].emissive = (u32)context->geometry.mesh_instances.data[i].emissive;
+      vk_mesh_draw* draw = context->geometry.mesh_draws.data + instance->draw_index;
+
+      draws[i].mesh_offset = (u32)draw->index_offset;
+      draws[i].vertex_offset = (u32)draw->vertex_offset;
+
+      draws[i].world = instance->world;
+      draws[i].normal = (u32)instance->normal;
+      draws[i].albedo = (u32)instance->albedo;
+      draws[i].metal = (u32)instance->metal;
+      draws[i].ao = (u32)instance->ao;
+      draws[i].emissive = (u32)instance->emissive;
    }
 
    size scratch_buffer_size = context->geometry.mesh_instances.count * sizeof(struct mesh_draw);
@@ -305,7 +309,7 @@ static bool buffer_indirect_create(vk_buffer* indirect_buffer, vk_context* conte
       for(u32 i = 0; i < context->geometry.mesh_instances.count; ++i)
       {
          vk_mesh_instance mi = context->geometry.mesh_instances.data[i];
-         vk_mesh_draw md = context->geometry.mesh_draws.data[mi.mesh_index];
+         vk_mesh_draw md = context->geometry.mesh_draws.data[mi.draw_index];
 
          VkDrawIndexedIndirectCommand cmd =
          {

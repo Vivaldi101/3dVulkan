@@ -100,7 +100,7 @@ typedef array(meshlet) array_meshlet;
 
 align_struct vk_mesh_instance
 {
-   u32 mesh_index;  // which vk_mesh_draw this instance draws
+   u32 draw_index;  // which vk_mesh_draw this instance draws
    u32 albedo; 
    u32 normal;
    u32 ao; 
@@ -117,6 +117,12 @@ align_struct vk_mesh_draw
    size vertex_count;
    size vertex_offset;
 } vk_mesh_draw;
+
+align_struct vk_mesh_info
+{
+   u32 first_draw; // first primitive's draw index
+   u32 draw_count; // number of primitives
+} vk_mesh_info;
 
 align_struct vk_texture
 {
@@ -161,6 +167,7 @@ align_struct vk_geometry
 {
    array(vk_mesh_draw) mesh_draws;
    array(vk_mesh_instance) mesh_instances;
+   array(vk_mesh_info) mesh_infos;
 } vk_geometry; 
 
 align_struct vk_cmd

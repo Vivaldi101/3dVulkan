@@ -331,6 +331,78 @@ static bool gltf_load_textures(vk_context* context, const cgltf_data* data, s8 g
    return true;
 }
 
+static void gltf_node_process(arena* a, const cgltf_data* data, cgltf_node* node, vk_geometry* geometry)
+{
+   if(node->camera)
+   {
+      // TODO: handle camera
+   }
+
+   geometry->mesh_instances.arena = a;
+
+   if(node->mesh)
+   {
+      cgltf_mesh* mesh = node->mesh;
+
+      mat4 wm = mat4_identity();
+      cgltf_node_transform_world(node, wm.data);
+
+      u32 mesh_index = (u32)cgltf_mesh_index(data, mesh);
+      vk_mesh_info* mesh_info = geometry->mesh_infos.data + mesh_index;
+
+      for(cgltf_size pi = 0; pi < mesh->primitives_count; ++pi)
+      {
+         cgltf_primitive* prim = mesh->primitives + pi;
+         cgltf_material* material = prim->material;
+
+         vk_mesh_instance mi = {0};
+
+         mi.draw_index = mesh_info->first_draw + (u32)pi;
+         mi.world = wm;
+
+         cgltf_size albedo_index =
+            material && material->pbr_metallic_roughness.base_color_texture.texture
+            ? cgltf_texture_index(data, material->pbr_metallic_roughness.base_color_texture.texture)
+            : -1;
+
+         cgltf_size normal_index =
+            material && material->normal_texture.texture
+            ? cgltf_texture_index(data, material->normal_texture.texture)
+            : -1;
+
+         cgltf_size ao_index =
+            material && material->occlusion_texture.texture
+            ? cgltf_texture_index(data, material->occlusion_texture.texture)
+            : -1;
+
+         cgltf_size metal_index =
+            material && material->pbr_metallic_roughness.metallic_roughness_texture.texture
+            ? cgltf_texture_index(data, material->pbr_metallic_roughness.metallic_roughness_texture.texture)
+            : -1;
+
+         cgltf_size emissive_index =
+            material && material->emissive_texture.texture
+            ? cgltf_texture_index(data, material->emissive_texture.texture)
+            : -1;
+
+         mi.albedo = (u32)albedo_index;
+         mi.normal = (u32)normal_index;
+         mi.metal = (u32)metal_index;
+         mi.ao = (u32)ao_index;
+         mi.emissive = (u32)emissive_index;
+
+         array_push(geometry->mesh_instances) = mi;
+      }
+   }
+
+   // Recurse into children
+   for(cgltf_size i = 0; i < node->children_count; ++i)
+   {
+      gltf_node_process(a, data, node->children[i], geometry);
+   }
+}
+
+
 static bool gltf_load_geometry(vk_context* context, const cgltf_data* data, s8 gltf_path)
 {
    arena* a = context->app_storage;
@@ -344,15 +416,25 @@ static bool gltf_load_geometry(vk_context* context, const cgltf_data* data, s8 g
    array(u32) indices = {&s};
    array_resize(indices, gltf_index_count(data));
 
+   vk_geometry* geometry = &context->geometry;
+
+   geometry->mesh_infos.arena = a;
+   array_resize(geometry->mesh_infos, data->meshes_count);
+
+   geometry->mesh_draws.arena = a;
+
    size index_offset = 0;
    size vertex_offset = 0;
-
-   vk_geometry* geometry = &context->geometry;
-   geometry->mesh_draws.arena = a;
+   u32 draw_index = 0;
 
    for(usize i = 0; i < data->meshes_count; ++i)
    {
       cgltf_mesh* gltf_mesh = data->meshes + i;
+      vk_mesh_info* mesh_info = geometry->mesh_infos.data + i;
+
+      mesh_info->first_draw = draw_index;
+      mesh_info->draw_count = (u32)gltf_mesh->primitives_count;
+
       for(usize p = 0; p < gltf_mesh->primitives_count; ++p)
       {
          cgltf_primitive* prim = gltf_mesh->primitives + p;
@@ -453,78 +535,23 @@ static bool gltf_load_geometry(vk_context* context, const cgltf_data* data, s8 g
          md.vertex_offset = vertex_offset;
          md.vertex_count = vertex_count;
 
-         //array_add(geometry->mesh_draws, md);
          array_push(geometry->mesh_draws) = md;
 
          index_offset += index_count;
          vertex_offset += vertex_count;
+
+         draw_index++;
       }
    }
 
    if(data->cameras_count == 0)
       printf("No camera in the scene: %s\n", s8_data(gltf_path));
 
-   geometry->mesh_instances.arena = a;
+   cgltf_scene* scene = data->scene ? data->scene : &data->scenes[0];
 
-   for(usize i = 0; i < data->nodes_count; ++i)
+   for(cgltf_size i = 0; i < scene->nodes_count; ++i)
    {
-      cgltf_node* node = data->nodes + i;
-
-      if(!node->mesh && !node->camera)
-         continue;
-
-      if(node->camera)
-      {
-         // TODO: handle camera
-      }
-      if(node->mesh)
-      {
-         cgltf_mesh* mesh = node->mesh;
-
-         for(cgltf_size pi = 0; pi < mesh->primitives_count; ++pi)
-         {
-            cgltf_primitive* prim = mesh->primitives + pi;
-            cgltf_material* material = prim->material;
-
-            mat4 wm = mat4_identity();
-            cgltf_node_transform_world(node, wm.data);
-
-            vk_mesh_instance mi = {0};
-            u32 mesh_index = (u32)cgltf_mesh_index(data, mesh);
-            // index into the mesh to draw
-            mi.mesh_index = mesh_index + (u32)pi;
-            mi.world = wm;
-
-            cgltf_size albedo_index = material && material->pbr_metallic_roughness.base_color_texture.texture
-               ? cgltf_texture_index(data, material->pbr_metallic_roughness.base_color_texture.texture)
-               : -1;
-
-            cgltf_size normal_index = material && material->normal_texture.texture
-               ? cgltf_texture_index(data, material->normal_texture.texture)
-               : -1;
-
-            cgltf_size ao_index = material && material->occlusion_texture.texture
-               ? cgltf_texture_index(data, material->occlusion_texture.texture)
-               : -1;
-
-            cgltf_size metal_index = material && material->pbr_metallic_roughness.metallic_roughness_texture.texture
-               ? cgltf_texture_index(data, material->pbr_metallic_roughness.metallic_roughness_texture.texture)
-               : -1;
-
-            cgltf_size emissive_index = material && material->emissive_texture.texture
-               ? cgltf_texture_index(data, material->emissive_texture.texture)
-               : -1;
-
-            mi.albedo = (u32)albedo_index;
-            mi.normal = (u32)normal_index;
-            mi.metal = (u32)metal_index;
-            mi.ao = (u32)ao_index;
-            mi.emissive = (u32)emissive_index;
-
-            //array_add(geometry->mesh_instances, mi);
-            array_push(geometry->mesh_instances) = mi;
-         }
-      }
+      gltf_node_process(a, data, scene->nodes[i], geometry);
    }
 
    for(cgltf_size i = 0; i < data->nodes_count; i++)
