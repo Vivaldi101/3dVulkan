@@ -1191,8 +1191,8 @@ static void vk_render(hw_renderer* renderer, vk_context* context, app_state* sta
       VkPipeline water_pipeline = vk_pipeline_hash_lookup(&context->pipeline_table, water_module_name);
       cmd_bind_pipeline(command_buffer, water_pipeline);
 
-      u32 grp_count_x = 1, grp_count_y = 1, grp_count_z = 1;
-      vkCmdDrawMeshTasksEXT(command_buffer, grp_count_x, grp_count_y, grp_count_z);
+      //u32 grp_count_x = 1, grp_count_y = 1, grp_count_z = 1;
+      //vkCmdDrawMeshTasksEXT(command_buffer, grp_count_x, grp_count_y, grp_count_z);
 
       vkCmdEndRendering(command_buffer);
    }

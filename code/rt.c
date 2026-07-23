@@ -49,7 +49,7 @@ static bool rt_blas_geometry_build(arena s, vk_context* context, vk_rt_as* as)
       ag->geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
       ag->geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
       ag->geometry.triangles.vertexStride = sizeof(vertex);
-      ag->geometry.triangles.maxVertex = ((u32)draw->index_count / 3) - 1;
+      ag->geometry.triangles.maxVertex = (u32)(draw->vertex_count - 1);
       ag->geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
       ag->geometry.triangles.vertexData.deviceAddress = vb_address + (draw->vertex_offset * sizeof(vertex));
       ag->geometry.triangles.indexData.deviceAddress = ib_address + (draw->index_offset * sizeof(u32));
@@ -195,18 +195,19 @@ static bool rt_tlas_geometry_build(vk_context* context, vk_rt_as* as)
                                            VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                                            &build_info, &(u32)draw_count, &size_info);
 
-   //assert(geometry->mesh_draws.count == geometry->mesh_instances.count); // TODO: Fix this
-
    VkAccelerationStructureInstanceKHR* instances = (VkAccelerationStructureInstanceKHR*)instance_buffer.data;
 
-   for(size i = 0; i < draw_count; ++i)
+   size mesh_instances_count = geometry->mesh_instances.count;
+
+   for(size i = 0; i < mesh_instances_count; ++i)
    {
+      vk_mesh_instance* mesh_instance = geometry->mesh_instances.data + i;
       VkAccelerationStructureInstanceKHR instance = {0};
       instance.mask = 0xFF;
-      instance.instanceCustomIndex = (u32)i;
+      instance.instanceCustomIndex = mesh_instance->draw_index;
       instance.flags = VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR | VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
 
-      mat4 wm = geometry->mesh_instances.data[i].world;
+      mat4 wm = mesh_instance->world;
       // column -> row major
       VkTransformMatrixKHR transform =
       {{
@@ -218,7 +219,7 @@ static bool rt_tlas_geometry_build(vk_context* context, vk_rt_as* as)
 
       VkAccelerationStructureDeviceAddressInfoKHR addr_info = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR};
 
-      addr_info.accelerationStructure = context->rt_as.blases.data[i];
+      addr_info.accelerationStructure = context->rt_as.blases.data[mesh_instance->draw_index];
       VkDeviceAddress blas_address = vkGetAccelerationStructureDeviceAddressKHR(devices->logical, &addr_info);
 
       instance.accelerationStructureReference = blas_address;

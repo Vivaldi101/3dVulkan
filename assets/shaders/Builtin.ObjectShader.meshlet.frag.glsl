@@ -43,8 +43,8 @@ void main()
    float speed = 0.75;
    float t = sin(float(globals.time * speed));
    
-   float p = 0.0;
-   float q = 0.3;
+   float p = 0.6;
+   float q = 1.0;
    float shadow = mix(p, q, t);
 
    vec4 albedo = vec4(1.0, 0.6, 0.7, 1.0);

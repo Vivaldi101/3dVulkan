@@ -243,7 +243,7 @@ static bool buffer_draws_create(vk_buffer* transform_buffer, vk_context* context
 
       vk_mesh_draw* draw = context->geometry.mesh_draws.data + instance->draw_index;
 
-      draws[i].mesh_offset = (u32)draw->index_offset;
+      draws[i].mesh_offset = (u32)context->meshlet_offsets.data[instance->draw_index];
       draws[i].vertex_offset = (u32)draw->vertex_offset;
 
       draws[i].world = instance->world;
@@ -342,7 +342,9 @@ static bool buffer_indirect_create(vk_buffer* indirect_buffer, vk_context* conte
 
       for(u32 i = 0; i < context->geometry.mesh_instances.count; ++i)
       {
-         VkDrawMeshTasksIndirectCommandEXT cmd = {(u32)context->meshlet_counts.data[i],1,1}; // how many meshlets per draw
+         vk_mesh_instance mi = context->geometry.mesh_instances.data[i];
+
+         VkDrawMeshTasksIndirectCommandEXT cmd = {(u32)context->meshlet_counts.data[mi.draw_index],1,1}; // how many meshlets per draw
 
          draw_commands[i] = cmd;
       }
