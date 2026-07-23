@@ -105,14 +105,14 @@ static void app_orbit_camera_update(app_state* state)
    f64 smoothing_factor = 1.0f - exp(-decay * (f32)state->frame_delta_in_seconds);
 
    // half turn across view plane extents (in azimuth)
-   f32 rotation_speed_x = (2.f*PI) / state->camera.viewplane_width;
-   f32 rotation_speed_y = (2.f*PI) / state->camera.viewplane_height;
+   f32 rotation_speed_x = (1.f*PI) / state->camera.viewplane_width;
+   f32 rotation_speed_y = (1.f*PI) / state->camera.viewplane_height;
 
    // delta in pixels
    f32 delta_x = (f32)state->input.mouse_pos[0] - (f32)state->input.mouse_prev_pos[0];
    f32 delta_y = (f32)state->input.mouse_pos[1] - (f32)state->input.mouse_prev_pos[1];
 
-   f32 zoom_speed = 1.f;
+   f32 zoom_speed = 0.1f;
 
    if(state->input.mouse_wheel_state & MOUSE_WHEEL_STATE_UP)
    {
